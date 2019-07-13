@@ -1,4 +1,5 @@
 import * as AWS from 'aws-sdk';
+import { CONNECTION_IDS_TABLE } from '../constants/tables';
 import { DisconnectResult } from './disconnect.interfaces';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../responses/api.interfaces';
 import { ResponseBuilder } from '../responses/response-builder';
@@ -23,7 +24,7 @@ export class DisconnectController {
 
     private deleteConnection = connectionId => {
         const params = {
-            TableName: 'ConnectionIds',
+            TableName: CONNECTION_IDS_TABLE,
             Key: {
                 connectionId: connectionId
             }

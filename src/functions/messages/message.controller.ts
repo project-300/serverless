@@ -1,7 +1,10 @@
+import { CONNECTION_IDS_INDEX } from '../../constants/indexes';
+import { CONNECTION_IDS_TABLE } from '../../constants/tables';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.interfaces';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { MessageResult } from './message.interfaces';
 import * as AWS from 'aws-sdk';
+import API from '../../lib/api';
 
 export class MessageController {
 
@@ -29,8 +32,8 @@ export class MessageController {
 
     private getConnectionIds = () => {
         const params = {
-            TableName: 'ConnectionIds',
-            ProjectionExpression: 'connectionId'
+            TableName: CONNECTION_IDS_TABLE,
+            ProjectionExpression: CONNECTION_IDS_INDEX
         };
 
         return this.dynamo.scan(params).promise();
@@ -40,17 +43,12 @@ export class MessageController {
         const body = JSON.parse(event.body);
         const postData = body.data;
 
-        const endpoint = event.requestContext.domainName + "/" + event.requestContext.stage;
-        const apigwManagementApi = new AWS.ApiGatewayManagementApi({
-            apiVersion: "2018-11-29",
-            endpoint: endpoint
-        });
-
         const params = {
             ConnectionId: connectionId,
             Data: postData
         };
-        return apigwManagementApi.postToConnection(params).promise();
+
+        return API(event).postToConnection(params).promise();
     };
 
 }

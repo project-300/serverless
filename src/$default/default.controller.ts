@@ -1,8 +1,8 @@
 import { ConnectResult } from '../$connect/connect.interfaces';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../responses/api.interfaces';
-import * as AWS from 'aws-sdk';
 import { ResponseBuilder } from '../responses/response-builder';
 import { DefaultResult } from './default.interfaces';
+import API from '../lib/api';
 
 export class DefaultController {
 
@@ -11,19 +11,12 @@ export class DefaultController {
             success: true
         };
 
-        const endpoint = event.requestContext.domainName + "/" + event.requestContext.stage;
-
-        const apigwManagementApi = new AWS.ApiGatewayManagementApi({
-            apiVersion: "2018-11-29",
-            endpoint: endpoint
-        });
-
         const params = {
             ConnectionId: event.requestContext.connectionId,
             Data: 'No function specified'
         };
 
-        apigwManagementApi
+        API(event)
             .postToConnection(params)
             .promise()
             .then(() => {

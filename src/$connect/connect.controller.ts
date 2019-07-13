@@ -1,3 +1,4 @@
+import { CONNECTION_IDS_TABLE } from '../constants/tables';
 import { ConnectResult } from './connect.interfaces';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../responses/api.interfaces';
 import { ResponseBuilder } from '../responses/response-builder';
@@ -23,7 +24,7 @@ export class ConnectController {
 
     private addConnection = connectionId => {
         const params = {
-            TableName: 'ConnectionIds',
+            TableName: CONNECTION_IDS_TABLE,
             Item: {
                 connectionId: connectionId
             }
