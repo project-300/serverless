@@ -30,20 +30,23 @@ provider:
         - "arn:aws:execute-api:*:*:**/@connections/*"
 
 functions:
-  connectionHandler:
-    handler: src/connection.connectionHandler
+  connectHandler:
+    handler: src/$connect/connect.connectHandler
     events:
       - websocket:
           route: $connect
+  disconnectHandler:
+    handler: src/$disconnect/disconnect.disconnectHandler
+    events:
       - websocket:
           route: $disconnect
   defaultHandler:
-    handler: src/default.defaultHandler
+    handler: src/$default/default.defaultHandler
     events:
       - websocket:
           route: $default
   sendMessageHandler:
-    handler: src/functions/send-message.sendMessageHandler
+    handler: src/functions/messages/message.sendMessageHandler
     events:
       - websocket:
           route: sendMessage
