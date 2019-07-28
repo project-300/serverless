@@ -4,6 +4,7 @@ import { BadRequestResult, ConfigurationErrorResult, ErrorResult, ForbiddenResul
 import { HttpStatusCode } from './http-status-codes';
 
 export class ResponseBuilder {
+
   public static badRequest(code: string, description: string, callback: ApiCallback): void {
     const errorResult: BadRequestResult = new BadRequestResult(code, description);
     ResponseBuilder._returnAs<BadRequestResult>(errorResult, HttpStatusCode.BadRequest, callback);
@@ -47,4 +48,5 @@ export class ResponseBuilder {
 
     callback(undefined, response);
   }
+
 }

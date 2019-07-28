@@ -21,8 +21,7 @@ provider:
         - "dynamodb:GetItem"
         - "dynamodb:DeleteItem"
         - "dynamodb:Scan"
-      Resource:
-        - Fn::GetAtt: [ConnectionTable, Arn]
+      Resource: "*"
     - Effect: Allow
       Action:
         - "execute-api:ManageConnections"
@@ -50,6 +49,11 @@ functions:
     events:
       - websocket:
           route: sendMessage
+  loginHandler:
+    handler: src/functions/login/login.loginHandler
+    events:
+      - websocket:
+          route: login
 
 resources:
   Resources:
@@ -64,3 +68,25 @@ resources:
             KeyType: "HASH"
         BillingMode: PAY_PER_REQUEST
         TableName: ConnectionIds
+    CognitoTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "cognitoId"
+            AttributeType: "S"
+        KeySchema:
+          - AttributeName: "cognitoId"
+            KeyType: "HASH"
+        BillingMode: PAY_PER_REQUEST
+        TableName: CognitoData
+    UserTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "userId"
+            AttributeType: "S"
+          KeySchema:
+            - AttributeName: "cognitoId"
+              KeyType: "HASH"
+          BillingMode: PAY_PER_REQUEST
+          TableName: CognitoData

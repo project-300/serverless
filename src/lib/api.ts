@@ -6,6 +6,6 @@ const API = (event): AWS.ApiGatewayManagementApi => {
         apiVersion: "2018-11-29",
         endpoint: endpoint
     });
-}
+};
 
 export default API;

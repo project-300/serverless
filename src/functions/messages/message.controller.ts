@@ -1,25 +1,24 @@
+import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { CONNECTION_IDS_INDEX } from '../../constants/indexes';
 import { CONNECTION_IDS_TABLE } from '../../constants/tables';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.interfaces';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { MessageResult } from './message.interfaces';
-import * as AWS from 'aws-sdk';
 import API from '../../lib/api';
+import * as AWS from 'aws-sdk';
 
 export class MessageController {
 
-    private dynamo: any = new AWS.DynamoDB.DocumentClient();
+    private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
     public sendMessage: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
         const result: MessageResult = {
             success: true
         };
 
-        this.sendMessageToAllConnected(event).then(() => {
-            ResponseBuilder.ok<MessageResult>(result, callback);
-        }).catch (err => {
-            ResponseBuilder.internalServerError(err, callback);
-        });
+        this.sendMessageToAllConnected(event)
+            .then(() => ResponseBuilder.ok<MessageResult>(result, callback))
+            .catch (err => ResponseBuilder.internalServerError(err, callback));
     };
 
     private sendMessageToAllConnected = (event) => {
