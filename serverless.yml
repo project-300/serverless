@@ -49,6 +49,11 @@ functions:
     events:
       - websocket:
           route: sendMessage
+  signupHandler:
+    handler: src/functions/signup/signup.signupHandler
+    events:
+      - websocket:
+          route: signup
   loginHandler:
     handler: src/functions/login/login.loginHandler
     events:
@@ -79,14 +84,3 @@ resources:
             KeyType: "HASH"
         BillingMode: PAY_PER_REQUEST
         TableName: CognitoData
-    UserTable:
-      Type: "AWS::DynamoDB::Table"
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: "userId"
-            AttributeType: "S"
-          KeySchema:
-            - AttributeName: "cognitoId"
-              KeyType: "HASH"
-          BillingMode: PAY_PER_REQUEST
-          TableName: CognitoData
