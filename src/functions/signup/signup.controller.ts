@@ -1,12 +1,11 @@
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { COGNITO_DATA_INDEX } from '../../constants/indexes';
-import { COGNITO_DATA_TABLE } from '../../constants/tables';
+import { USERS_INDEX } from '../../constants/indexes';
+import { USER_TABLE } from '../../constants/tables';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.interfaces';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { LoginResult } from '../login/login.interfaces';
-import { SignupResult } from './signup.interfaces';
-import * as UUID from 'uuid/v1';
+import { CognitoSignupResponse, SignupResult } from './signup.interfaces';
 
 export class SignupController {
 
@@ -23,14 +22,19 @@ export class SignupController {
     }
 
     private saveUserDetails = (event: ApiEvent): Promise<object> => {
-        const body = JSON.parse(event.body);
-        const data = body.data;
+        const data: CognitoSignupResponse = JSON.parse(event.body).data;
+        const userId: string = data.userSub;
+        const confirmed: boolean = data.userConfirmed;
+        const now: string = new Date().toISOString();
 
         const params = {
-            TableName: COGNITO_DATA_TABLE,
+            TableName: USER_TABLE,
             Item: {
-                [COGNITO_DATA_INDEX]: UUID(),
-                data
+                [USERS_INDEX]: userId,
+                confirmed,
+                times: {
+                    signedUp: now
+                }
             }
         };
 
