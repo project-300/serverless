@@ -4,7 +4,6 @@ import { USERS_INDEX } from '../../constants/indexes';
 import { USER_TABLE } from '../../constants/tables';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.interfaces';
 import { ResponseBuilder } from '../../responses/response-builder';
-import { LoginResult } from '../login/login.interfaces';
 import { ConfirmationResult } from './confirmation.interfaces';
 
 export class ConfirmationController {
@@ -17,12 +16,12 @@ export class ConfirmationController {
         };
 
         this.updateConfirmation(event)
-            .then(() => ResponseBuilder.ok<LoginResult>(result, callback))
+            .then(() => ResponseBuilder.ok<ConfirmationResult>(result, callback))
             .catch(err => ResponseBuilder.internalServerError(err, callback));
     }
 
     private updateConfirmation = (event: ApiEvent): Promise<object> => {
-        const data = JSON.parse(event.body).data;
+        const data = JSON.parse(event.body);
 
         const params = {
             TableName: USER_TABLE,

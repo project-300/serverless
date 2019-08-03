@@ -20,8 +20,8 @@ export class ResponseBuilder {
     ResponseBuilder._returnAs<ForbiddenResult>(errorResult, HttpStatusCode.Forbidden, callback);
   }
 
-  public static internalServerError(error: Error, callback: ApiCallback): void {
-    const errorResult: InternalServerErrorResult = new InternalServerErrorResult(ErrorCode.GeneralError, 'Sorry...');
+  public static internalServerError(error: Error, callback: ApiCallback, description?: string): void {
+    const errorResult: InternalServerErrorResult = new InternalServerErrorResult(ErrorCode.GeneralError, description || 'Internal Server Error');
     ResponseBuilder._returnAs<InternalServerErrorResult>(errorResult, HttpStatusCode.InternalServerError, callback);
   }
 
@@ -36,8 +36,9 @@ export class ResponseBuilder {
 
   private static _returnAs<T>(result: T, statusCode: number, callback: ApiCallback): void {
     const bodyObject: ErrorResponseBody | T = result instanceof ErrorResult
-      ? { error: result }
+      ? { error: result, success: false }
       : result;
+
     const response: ApiResponse = {
       body: JSON.stringify(bodyObject),
       headers: {

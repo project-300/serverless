@@ -53,18 +53,24 @@ functions:
   signupHandler:
     handler: src/functions/signup/signup.signupHandler
     events:
-      - websocket:
-          route: signup
+      - http:
+          path: /signup
+          method: post
+          cors: true
   confirmationHandler:
     handler: src/functions/confirmation/confirmation.confirmationHandler
     events:
-      - websocket:
-          route: confirmAccount
+      - http:
+          path: /account-confirmation
+          method: post
+          cors: true
   loginHandler:
     handler: src/functions/login/login.loginHandler
     events:
-      - websocket:
-          route: login
+      - http:
+          path: /login
+          method: post
+          cors: true
 
 resources:
   Resources:
@@ -94,10 +100,10 @@ resources:
       Type: "AWS::DynamoDB::Table"
       Properties:
         AttributeDefinitions:
-          - AttributeName: "UserId"
+          - AttributeName: "userId"
             AttributeType: "S"
         KeySchema:
-          - AttributeName: "UserId"
+          - AttributeName: "userId"
             KeyType: "HASH"
         BillingMode: PAY_PER_REQUEST
-        TableName: P300_USERS
+        TableName: P300-USERS

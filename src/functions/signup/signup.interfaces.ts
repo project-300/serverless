@@ -1,4 +1,4 @@
-export interface SignupResult {
+export interface SignupSuccessResult {
     success: boolean;
 }
 
