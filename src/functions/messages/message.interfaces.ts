@@ -1,3 +1,3 @@
 export interface MessageResult {
-    success: boolean;
+	success: boolean;
 }

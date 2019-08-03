@@ -1,87 +1,87 @@
 export interface LoginResult {
-    success: boolean;
+	success: boolean;
 }
 
 export interface CognitoLoginResponse {
-    attributes: {
-        email?: string;
-        email_verified?: boolean;
-        phone_number?: string;
-        phone_number_verified?: boolean;
-        sub: string;
-    }
+	attributes: {
+		email?: string;
+		email_verified?: boolean;
+		phone_number?: string;
+		phone_number_verified?: boolean;
+		sub: string;
+	}
 
-    authenticationFlowType: string;
+	authenticationFlowType: string;
 
-    client: {
-        endpoint: string;
-        userAgent: string;
-    }
+	client: {
+		endpoint: string;
+		userAgent: string;
+	}
 
-    keyPrefix: string;
+	keyPrefix: string;
 
-    pool: {
-        advancedSecurityDataCollectionFlag: boolean;
+	pool: {
+		advancedSecurityDataCollectionFlag: boolean;
 
-        client: {
-            endpoint: string;
-            userAgent: string;
-        }
+		client: {
+			endpoint: string;
+			userAgent: string;
+		}
 
-        clientId: string;
-        userPoolId: string;
-    }
+		clientId: string;
+		userPoolId: string;
+	}
 
-    preferredMFA: string;
+	preferredMFA: string;
 
-    Session: object | string | null;
+	Session: object | string | null;
 
-    signInUserSession: {
-        accessToken: {
-            jwtToken: string;
+	signInUserSession: {
+		accessToken: {
+			jwtToken: string;
 
-            payload: {
-                auth_time: number;
-                client_id: string;
-                event_id: string;
-                exp: number;
-                iat: number;
-                iss: string;
-                jti: string;
-                scope: string;
-                sub: string;
-                token_user: string;
-                username: string;
-            }
-        }
+			payload: {
+				auth_time: number;
+				client_id: string;
+				event_id: string;
+				exp: number;
+				iat: number;
+				iss: string;
+				jti: string;
+				scope: string;
+				sub: string;
+				token_user: string;
+				username: string;
+			}
+		}
 
-        clockDrift: number;
+		clockDrift: number;
 
-        idToken: {
-            jwtToken: string;
+		idToken: {
+			jwtToken: string;
 
-            payload: {
-                aud: string;
-                auth_time: number;
-                'cognito:username': string;
-                email: string;
-                email_verified: boolean;
-                event_id: string;
-                exp: number;
-                iat: number;
-                iss: string;
-                sub: string;
-                token_user: string;
-            }
-        }
+			payload: {
+				aud: string;
+				auth_time: number;
+				'cognito:username': string;
+				email: string;
+				email_verified: boolean;
+				event_id: string;
+				exp: number;
+				iat: number;
+				iss: string;
+				sub: string;
+				token_user: string;
+			}
+		}
 
-        refreshToken: {
-            token: string;
-        }
-    }
+		refreshToken: {
+			token: string;
+		}
+	}
 
-    userDataKey: string;
+	userDataKey: string;
 
-    username: string;
+	username: string;
 
 }

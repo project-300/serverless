@@ -9,6 +9,6 @@ export type ApiHandler = (event: APIGatewayEvent, context: Context, callback: Ap
 export type ApiResponse = ProxyResult;
 
 export interface ErrorResponseBody {
-  error: ErrorResult;
-  success: boolean;
+	error: ErrorResult;
+	success: boolean;
 }

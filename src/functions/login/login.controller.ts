@@ -9,30 +9,30 @@ import * as UUID from 'uuid/v1';
 
 export class LoginController {
 
-    private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
+	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-    public login: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
-        const result: LoginResult = {
-            success: true
-        };
+	public login: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
+		const result: LoginResult = {
+			success: true
+		};
 
-        this.saveCognitoData(event)
-            .then(() => ResponseBuilder.ok<LoginResult>(result, callback))
-            .catch(err => ResponseBuilder.internalServerError(err, callback));
-    }
+		this.saveCognitoData(event)
+			.then(() => ResponseBuilder.ok<LoginResult>(result, callback))
+			.catch(err => ResponseBuilder.internalServerError(err, callback));
+	}
 
-    private saveCognitoData = (event: ApiEvent): Promise<object> => {
-        const data: CognitoLoginResponse = JSON.parse(event.body);
+	private saveCognitoData = (event: ApiEvent): Promise<object> => {
+		const data: CognitoLoginResponse = JSON.parse(event.body);
 
-        const params = {
-            TableName: COGNITO_DATA_TABLE,
-            Item: {
-                [COGNITO_DATA_INDEX]: UUID(),
-                data
-            }
-        };
+		const params = {
+			TableName: COGNITO_DATA_TABLE,
+			Item: {
+				[COGNITO_DATA_INDEX]: UUID(),
+				data
+			}
+		};
 
-        return this.dynamo.put(params).promise();
-    }
+		return this.dynamo.put(params).promise();
+	}
 
 }

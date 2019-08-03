@@ -1,47 +1,47 @@
 export interface SignupSuccessResult {
-    success: boolean;
+	success: boolean;
 }
 
 export interface CognitoSignupResponse {
-    codeDeliveryDetails: {
-        AttributeName: string;
-        DeliveryMedium: string;
-        Destination: string;
-    }
+	codeDeliveryDetails: {
+		AttributeName: string;
+		DeliveryMedium: string;
+		Destination: string;
+	}
 
-    user: {
-        authenticationFlowType: string;
+	user: {
+		authenticationFlowType: string;
 
-        client: {
-            endpoint: string;
-            userAgent: string;
-        }
+		client: {
+			endpoint: string;
+			userAgent: string;
+		}
 
-        keyPrefix: string;
+		keyPrefix: string;
 
-        pool: {
-            advancedSecurityDataCollectionFlag: boolean;
+		pool: {
+			advancedSecurityDataCollectionFlag: boolean;
 
-            client: {
-                endpoint: string;
-                userAgent: string;
-            }
+			client: {
+				endpoint: string;
+				userAgent: string;
+			}
 
-            clientId: string;
-            userPoolId: string;
-        }
+			clientId: string;
+			userPoolId: string;
+		}
 
-        Session: object | string | null;
+		Session: object | string | null;
 
-        signInUserSession: object | string | null;
+		signInUserSession: object | string | null;
 
-        userDataKey: string;
+		userDataKey: string;
 
-        username: string;
-    }
+		username: string;
+	}
 
-    userConfirmed: boolean;
+	userConfirmed: boolean;
 
-    userSub: string;
+	userSub: string;
 
 }

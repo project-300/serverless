@@ -1,3 +1,3 @@
 export interface ConnectResult {
-    success: boolean;
+	success: boolean;
 }

@@ -9,36 +9,36 @@ import { CognitoSignupResponse, SignupSuccessResult } from './signup.interfaces'
 
 export class SignupController {
 
-    private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
+	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-    public signup: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
-        const result: SignupSuccessResult = {
-            success: true
-        };
+	public signup: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
+		const result: SignupSuccessResult = {
+			success: true
+		};
 
-        this.saveUserDetails(event)
-            .then(() => ResponseBuilder.ok<LoginResult>(result, callback))
-            .catch(err => ResponseBuilder.internalServerError(err, callback, 'Unable to save user details'));
-    }
+		this.saveUserDetails(event)
+			.then(() => ResponseBuilder.ok<LoginResult>(result, callback))
+			.catch(err => ResponseBuilder.internalServerError(err, callback, 'Unable to save user details'));
+	}
 
-    private saveUserDetails = (event: ApiEvent): Promise<object> => {
-        const data: CognitoSignupResponse = JSON.parse(event.body);
-        const userId: string = data.userSub;
-        const confirmed: boolean = data.userConfirmed;
-        const now: string = new Date().toISOString();
+	private saveUserDetails = (event: ApiEvent): Promise<object> => {
+		const data: CognitoSignupResponse = JSON.parse(event.body);
+		const userId: string = data.userSub;
+		const confirmed: boolean = data.userConfirmed;
+		const now: string = new Date().toISOString();
 
-        const params = {
-            TableName: USER_TABLE,
-            Item: {
-                [USERS_INDEX]: userId,
-                confirmed,
-                times: {
-                    signedUp: now
-                }
-            }
-        };
+		const params = {
+			TableName: USER_TABLE,
+			Item: {
+				[USERS_INDEX]: userId,
+				confirmed,
+				times: {
+					signedUp: now
+				}
+			}
+		};
 
-        return this.dynamo.put(params).promise();
-    }
+		return this.dynamo.put(params).promise();
+	}
 
 }

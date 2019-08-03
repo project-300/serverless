@@ -8,35 +8,35 @@ import { ConfirmationResult } from './confirmation.interfaces';
 
 export class ConfirmationController {
 
-    private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
+	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-    public confirmAccount: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
-        const result: ConfirmationResult = {
-            success: true
-        };
+	public confirmAccount: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
+		const result: ConfirmationResult = {
+			success: true
+		};
 
-        this.updateConfirmation(event)
-            .then(() => ResponseBuilder.ok<ConfirmationResult>(result, callback))
-            .catch(err => ResponseBuilder.internalServerError(err, callback));
-    }
+		this.updateConfirmation(event)
+			.then(() => ResponseBuilder.ok<ConfirmationResult>(result, callback))
+			.catch(err => ResponseBuilder.internalServerError(err, callback));
+	}
 
-    private updateConfirmation = (event: ApiEvent): Promise<object> => {
-        const data = JSON.parse(event.body);
+	private updateConfirmation = (event: ApiEvent): Promise<object> => {
+		const data = JSON.parse(event.body);
 
-        const params = {
-            TableName: USER_TABLE,
-            Key: {
-                [USERS_INDEX]: data.userId
-            },
-            UpdateExpression: 'set confirmed = :confirmed, times.confirmed = :now',
-            ExpressionAttributeValues: {
-                ':confirmed': true,
-                ':now': new Date().toISOString()
-            },
-            ReturnValues: 'UPDATED_NEW'
-        };
+		const params = {
+			TableName: USER_TABLE,
+			Key: {
+				[USERS_INDEX]: data.userId
+			},
+			UpdateExpression: 'set confirmed = :confirmed, times.confirmed = :now',
+			ExpressionAttributeValues: {
+				':confirmed': true,
+				':now': new Date().toISOString()
+			},
+			ReturnValues: 'UPDATED_NEW'
+		};
 
-        return this.dynamo.update(params).promise();
-    }
+		return this.dynamo.update(params).promise();
+	}
 
 }

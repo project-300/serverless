@@ -6,25 +6,25 @@ import API from '../lib/api';
 
 export class DefaultController {
 
-    public default: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
-        const result: DefaultResult = {
-            success: true
-        };
+	public default: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
+		const result: DefaultResult = {
+			success: true
+		};
 
-        const params = {
-            ConnectionId: event.requestContext.connectionId,
-            Data: 'No function specified'
-        };
+		const params = {
+			ConnectionId: event.requestContext.connectionId,
+			Data: 'No function specified'
+		};
 
-        API(event)
-            .postToConnection(params)
-            .promise()
-            .then(() => {
-                ResponseBuilder.ok<ConnectResult>(result, callback);
-            })
-            .catch(err => {
-                ResponseBuilder.internalServerError(err, callback);
-            });
-    }
+		API(event)
+			.postToConnection(params)
+			.promise()
+			.then(() => {
+				ResponseBuilder.ok<ConnectResult>(result, callback);
+			})
+			.catch(err => {
+				ResponseBuilder.internalServerError(err, callback);
+			});
+	}
 
 }
