@@ -1,13 +1,12 @@
 import * as AWS from 'aws-sdk';
-import * as UUID from 'uuid/v1';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { COGNITO_DATA_INDEX } from '../../constants/indexes';
-import { COGNITO_DATA_TABLE } from '../../constants/tables';
+import { USERS_INDEX } from '../../constants/indexes';
+import { USER_TABLE } from '../../constants/tables';
 import { PutResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { CognitoLoginResponse, LoginResult } from './login.interfaces';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
-import PutItemInput = DocumentClient.PutItemInput;
+import UpdateItemInput = DocumentClient.UpdateItemInput;
 
 export class LoginController {
 
@@ -29,15 +28,19 @@ export class LoginController {
 	private _saveCognitoData = (event: ApiEvent): PutResult => {
 		const data: CognitoLoginResponse = JSON.parse(event.body);
 
-		const params: PutItemInput = {
-			TableName: COGNITO_DATA_TABLE,
-			Item: {
-				[COGNITO_DATA_INDEX]: UUID(),
-				data
-			}
+		const params: UpdateItemInput = {
+			TableName: USER_TABLE,
+			Key: {
+				[USERS_INDEX]: data.signInUserSession.accessToken.payload.sub
+			},
+			UpdateExpression: 'set times.lastLogin = :now',
+			ExpressionAttributeValues: {
+				':now': new Date().toISOString()
+			},
+			ReturnValues: 'UPDATED_NEW'
 		};
 
-		return this.dynamo.put(params).promise();
+		return this.dynamo.update(params).promise();
 	}
 
 }
