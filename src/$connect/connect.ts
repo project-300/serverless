@@ -1,4 +1,4 @@
-import { ApiHandler } from '../responses/api.interfaces';
+import { ApiHandler } from '../responses/api.types';
 import { ConnectController } from './connect.controller';
 
 const controller: ConnectController = new ConnectController();

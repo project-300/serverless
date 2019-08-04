@@ -1,4 +1,4 @@
-import { ApiHandler } from '../../responses/api.interfaces';
+import { ApiHandler } from '../../responses/api.types';
 import { MessageController } from './message.controller';
 
 const controller: MessageController = new MessageController();

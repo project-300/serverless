@@ -1,7 +1,8 @@
-import { ApiCallback, ApiResponse, ErrorResponseBody } from './api.interfaces';
 import { ErrorCode } from './error-codes';
-import { BadRequestResult, ConfigurationErrorResult, ErrorResult, ForbiddenResult, InternalServerErrorResult, NotFoundResult } from './errors';
 import { HttpStatusCode } from './http-status-codes';
+import { ApiCallback, ApiResponse, ErrorResponseBody } from './api.types';
+import { BadRequestResult, ConfigurationErrorResult, ErrorResult,
+	ForbiddenResult, InternalServerErrorResult, NotFoundResult } from './errors';
 
 export class ResponseBuilder {
 
@@ -21,7 +22,8 @@ export class ResponseBuilder {
 	}
 
 	public static internalServerError(error: Error, callback: ApiCallback, description?: string): void {
-		const errorResult: InternalServerErrorResult = new InternalServerErrorResult(ErrorCode.GeneralError, description || 'Internal Server Error');
+		const errorResult: InternalServerErrorResult =
+			new InternalServerErrorResult(ErrorCode.GeneralError, description || 'Internal Server Error');
 		ResponseBuilder._returnAs<InternalServerErrorResult>(errorResult, HttpStatusCode.InternalServerError, callback);
 	}
 

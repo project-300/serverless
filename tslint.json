@@ -16,7 +16,8 @@
     ],
     "semicolon": [
       true,
-      "always"
+      "always",
+      "ignore-interfaces"
     ],
     "indent": [
       true,
@@ -71,10 +72,7 @@
     "newline-before-return": false,
     "newline-per-chained-call": false,
     "no-angle-bracket-type-assertion": false,
-    "no-implicit-dependencies": [
-      true,
-      "dev"
-    ],
+    "no-implicit-dependencies": false,
     "no-inferrable-types": false,
     "no-object-literal-type-assertion": false,
     "no-parameter-properties": false,
@@ -82,12 +80,7 @@
     "no-use-before-declare": false,
     "no-void-expression": false,
     "only-arrow-functions": false,
-    "ordered-imports": [
-      true,
-      {
-        "grouped-imports": false
-      }
-    ],
+    "ordered-imports": false,
     "prefer-template": [
       true,
       "allow-single-concat"
@@ -96,6 +89,25 @@
     "restrict-plus-operands": false,
     "strict-boolean-expressions": false,
     "variable-name": false,
-    "max-classes-per-file": false
+    "max-classes-per-file": false,
+    "no-default-import": false,
+    "no-default-export": false,
+    "no-submodule-imports": false,
+    "object-literal-sort-keys": false,
+    "no-empty-interface": false,
+    "member-ordering": false,
+    "interface-over-type-literal": false,
+    "typedef": [
+      true,
+      "call-signature",
+      "arrow-call-signature",
+      "parameter",
+      "arrow-parameter",
+      "property-declaration",
+      "member-variable-declaration",
+      "object-destructuring",
+      "array-destructuring",
+      "variable-declaration"
+    ]
   }
 }
