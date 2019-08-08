@@ -1,53 +1,59 @@
+import * as AWS from 'aws-sdk';
+import API from '../../lib/api';
+import { PostToConnectionRequest } from 'aws-sdk/clients/apigatewaymanagementapi';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
+import { ConnectionItem } from '../../$connect/connect.interfaces';
 import { CONNECTION_IDS_INDEX } from '../../constants/indexes';
 import { CONNECTION_IDS_TABLE } from '../../constants/tables';
-import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.interfaces';
 import { ResponseBuilder } from '../../responses/response-builder';
-import { MessageResult } from './message.interfaces';
-import API from '../../lib/api';
-import * as AWS from 'aws-sdk';
+import { MessageData, MessageResult } from './message.interfaces';
+import { ScanResult, ScanResultPromise } from '../../responses/dynamodb.types';
+import { ApiCallback, ApiContext, ApiEvent, ApiHandler, WsPostResult } from '../../responses/api.types';
+import ScanInput = DocumentClient.ScanInput;
 
 export class MessageController {
 
-    private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
+	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-    public sendMessage: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
-        const result: MessageResult = {
-            success: true
-        };
+	public sendMessage: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+		const result: MessageResult = {
+			success: true
+		};
 
-        this.sendMessageToAllConnected(event)
-            .then(() => ResponseBuilder.ok<MessageResult>(result, callback))
-            .catch (err => ResponseBuilder.internalServerError(err, callback));
-    };
+		try {
+			await this._sendMessageToAllConnected(event);
+			ResponseBuilder.ok<MessageResult>(result, callback);
+		} catch (err) {
+			ResponseBuilder.internalServerError(err, callback);
+		}
+	}
 
-    private sendMessageToAllConnected = (event) => {
-        return this.getConnectionIds().then(connectionData => {
-            return connectionData.Items.map(connectionId => {
-                return this.send(event, connectionId.connectionId);
-            });
-        });
-    };
+	private _sendMessageToAllConnected = async (event: ApiEvent): Promise<void> => {
+		const result: ScanResult = await this._getConnectionIds();
 
-    private getConnectionIds = () => {
-        const params = {
-            TableName: CONNECTION_IDS_TABLE,
-            ProjectionExpression: CONNECTION_IDS_INDEX
-        };
+		result.Items.map((connection: ConnectionItem) => this._send(event, connection.connectionId));
+	}
 
-        return this.dynamo.scan(params).promise();
-    };
+	private _getConnectionIds = (): ScanResultPromise => {
+		const params: ScanInput = {
+			TableName: CONNECTION_IDS_TABLE,
+			ProjectionExpression: CONNECTION_IDS_INDEX
+		};
 
-    private send = (event, connectionId) => {
-        const body = JSON.parse(event.body);
-        const postData = body.data;
+		return this.dynamo.scan(params).promise();
+	}
 
-        const params = {
-            ConnectionId: connectionId,
-            Data: postData
-        };
+	private _send = (event: ApiEvent, connectionId: string): Promise<WsPostResult> => {
+		const data: MessageData = JSON.parse(event.body);
 
-        return API(event).postToConnection(params).promise();
-    };
+		const params: PostToConnectionRequest = {
+			ConnectionId: connectionId,
+			Data: data.message
+		};
+
+		return API(event)
+			.postToConnection(params)
+			.promise();
+	}
 
 }

@@ -1,5 +1,5 @@
 import { SignupController } from './signup.controller';
-import { ApiHandler } from '../../responses/api.interfaces';
+import { ApiHandler } from '../../responses/api.types';
 
 const controller: SignupController = new SignupController();
 

@@ -1,4 +1,4 @@
-import { ApiHandler } from '../../responses/api.interfaces';
+import { ApiHandler } from '../../responses/api.types';
 import { LoginController } from './login.controller';
 
 const controller: LoginController = new LoginController();

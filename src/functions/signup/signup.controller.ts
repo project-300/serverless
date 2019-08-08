@@ -1,40 +1,49 @@
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { COGNITO_DATA_INDEX } from '../../constants/indexes';
-import { COGNITO_DATA_TABLE } from '../../constants/tables';
-import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.interfaces';
+import { PutResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { LoginResult } from '../login/login.interfaces';
-import { SignupResult } from './signup.interfaces';
-import * as UUID from 'uuid/v1';
+import { USERS_INDEX } from '../../constants/indexes';
+import { USER_TABLE } from '../../constants/tables';
+import { CognitoSignupResponse, SignupSuccessResult } from './signup.interfaces';
+import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
+import PutItemInput = DocumentClient.PutItemInput;
 
 export class SignupController {
 
-    private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
+	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-    public signup: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
-        const result: SignupResult = {
-            success: true
-        };
+	public signup: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+		const result: SignupSuccessResult = {
+			success: true
+		};
 
-        this.saveUserDetails(event)
-            .then(() => ResponseBuilder.ok<LoginResult>(result, callback))
-            .catch(err => ResponseBuilder.internalServerError(err, callback));
-    }
+		try {
+			await this.saveUserDetails(event);
+			ResponseBuilder.ok<LoginResult>(result, callback);
+		} catch (err) {
+			ResponseBuilder.internalServerError(err, callback, 'Unable to save user details');
+		}
+	}
 
-    private saveUserDetails = (event: ApiEvent): Promise<object> => {
-        const body = JSON.parse(event.body);
-        const data = body.data;
+	private saveUserDetails = (event: ApiEvent): PutResult => {
+		const data: CognitoSignupResponse = JSON.parse(event.body);
+		const userId: string = data.userSub;
+		const confirmed: boolean = data.userConfirmed;
+		const now: string = new Date().toISOString();
 
-        const params = {
-            TableName: COGNITO_DATA_TABLE,
-            Item: {
-                [COGNITO_DATA_INDEX]: UUID(),
-                data
-            }
-        };
+		const params: PutItemInput = {
+			TableName: USER_TABLE,
+			Item: {
+				[USERS_INDEX]: userId,
+				confirmed,
+				times: {
+					signedUp: now
+				}
+			}
+		};
 
-        return this.dynamo.put(params).promise();
-    }
+		return this.dynamo.put(params).promise();
+	}
 
 }

@@ -1,3 +1,3 @@
 export interface DisconnectResult {
-    success: boolean;
+	success: boolean;
 }

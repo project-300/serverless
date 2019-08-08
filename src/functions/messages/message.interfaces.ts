@@ -1,3 +1,7 @@
 export interface MessageResult {
-    success: boolean;
+	success: boolean;
+}
+
+export interface MessageData {
+	message: string;
 }

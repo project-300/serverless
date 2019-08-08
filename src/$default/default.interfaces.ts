@@ -1,3 +1,3 @@
 export interface DefaultResult {
-    success: boolean;
+	success: boolean;
 }

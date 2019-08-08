@@ -1,4 +1,4 @@
-import { ApiHandler } from '../responses/api.interfaces';
+import { ApiHandler } from '../responses/api.types';
 import { DefaultController } from './default.controller';
 
 const controller: DefaultController = new DefaultController();

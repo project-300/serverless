@@ -1,3 +1,9 @@
+import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
+
 export interface ConnectResult {
-    success: boolean;
+	success: boolean;
+}
+
+export interface ConnectionItem extends DocumentClient.AttributeMap {
+	connectionId: string;
 }
