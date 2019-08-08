@@ -1,5 +1,6 @@
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
+import { PutResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { LoginResult } from '../login/login.interfaces';
 import { USERS_INDEX } from '../../constants/indexes';
@@ -25,7 +26,7 @@ export class SignupController {
 		}
 	}
 
-	private saveUserDetails = (event: ApiEvent): Promise<object> => {
+	private saveUserDetails = (event: ApiEvent): PutResult => {
 		const data: CognitoSignupResponse = JSON.parse(event.body);
 		const userId: string = data.userSub;
 		const confirmed: boolean = data.userConfirmed;

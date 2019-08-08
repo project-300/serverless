@@ -2,7 +2,7 @@ import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { USERS_INDEX } from '../../constants/indexes';
 import { USER_TABLE } from '../../constants/tables';
-import { PutResult } from '../../responses/dynamodb.types';
+import { UpdateResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { CognitoLoginResponse, LoginResult } from './login.interfaces';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
@@ -25,7 +25,7 @@ export class LoginController {
 		}
 	}
 
-	private _saveCognitoData = (event: ApiEvent): PutResult => {
+	private _saveCognitoData = (event: ApiEvent): UpdateResult => {
 		const data: CognitoLoginResponse = JSON.parse(event.body);
 
 		const params: UpdateItemInput = {
