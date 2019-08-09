@@ -4,6 +4,19 @@ service:
 plugins:
   - serverless-webpack
 
+custom:
+  allowedHeaders:
+    - Accept
+    - Content-Type
+    - Content-Length
+    - Authorization
+    - X-Amz-Date
+    - X-Api-Key
+    - X-Amz-Security-Token
+    - X-Amz-User-Agent
+    - app_user_id
+    - app_user_name
+
 provider:
   name: aws
   runtime: nodejs10.x
@@ -59,6 +72,15 @@ functions:
     events:
       - websocket:
           route: login
+  getLifts:
+    handler: src/functions/lifts/lifts.liftsHandler
+    events:
+      - http:
+          path: lifts
+          method: get
+          cors:
+            origin: '*'
+            headers: ${self:custom.allowedHeaders}
 
 resources:
   Resources:

@@ -1,0 +1,47 @@
+[
+    {
+      "_id": "5d47116688aa70bf3a69b1a6",
+      "name": {
+        "first": "Beverley",
+        "last": "Miles"
+      },
+      "leavingFrom": "Munjor",
+      "goingTo": "Bagtown"
+    },
+    {
+      "_id": "5d47116678a00491e12d0d6c",
+      "name": {
+        "first": "Aimee",
+        "last": "Beard"
+      },
+      "leavingFrom": "Troy",
+      "goingTo": "Tuskahoma"
+    },
+    {
+      "_id": "5d47116616e073fe57a90b11",
+      "name": {
+        "first": "Deirdre",
+        "last": "Odonnell"
+      },
+      "leavingFrom": "Williamson",
+      "goingTo": "Twilight"
+    },
+    {
+      "_id": "5d471166c9692251f42f7373",
+      "name": {
+        "first": "Cannon",
+        "last": "Wiley"
+      },
+      "leavingFrom": "Wolcott",
+      "goingTo": "Watchtower"
+    },
+    {
+      "_id": "5d471166be6be169298b79bc",
+      "name": {
+        "first": "Cherie",
+        "last": "Craig"
+      },
+      "leavingFrom": "Buxton",
+      "goingTo": "Wattsville"
+    }
+]
