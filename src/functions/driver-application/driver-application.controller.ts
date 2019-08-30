@@ -4,42 +4,40 @@ import { USERS_INDEX } from '../../constants/indexes';
 import { USER_TABLE } from '../../constants/tables';
 import { UpdateResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
-import { CognitoLoginResponse, LoginResult } from './login.interfaces';
+import { DriverApplicationResult } from './driver-application.interfaces';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
 import UpdateItemInput = DocumentClient.UpdateItemInput;
-import UpdateItemOutput = DocumentClient.UpdateItemOutput;
 
-export class LoginController {
+export class DriverApplicationController {
 
 	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-	public login: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
-		const result: LoginResult = {
+	public apply: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+		const result: DriverApplicationResult = {
 			success: true
 		};
 
 		try {
-			const response: UpdateItemOutput = await this._saveCognitoData(event);
-			result.userId = response.Attributes.userId;
-			ResponseBuilder.ok<LoginResult>(result, callback);
+			await this._updateUserType(event);
+			ResponseBuilder.ok<DriverApplicationResult>(result, callback);
 		} catch (err) {
 			ResponseBuilder.internalServerError(err, callback);
 		}
 	}
 
-	private _saveCognitoData = (event: ApiEvent): UpdateResult => {
-		const data: CognitoLoginResponse = JSON.parse(event.body);
+	private _updateUserType = (event: ApiEvent): UpdateResult => {
+		const userId: string = JSON.parse(event.body).userId;
 
 		const params: UpdateItemInput = {
 			TableName: USER_TABLE,
 			Key: {
-				[USERS_INDEX]: data.signInUserSession.accessToken.payload.sub
+				[USERS_INDEX]: userId
 			},
-			UpdateExpression: 'set times.lastLogin = :now',
+			UpdateExpression: 'set userType = :type',
 			ExpressionAttributeValues: {
-				':now': new Date().toISOString()
+				':type': 'Driver'
 			},
-			ReturnValues: 'ALL_NEW'
+			ReturnValues: 'UPDATED_NEW'
 		};
 
 		return this.dynamo.update(params).promise();

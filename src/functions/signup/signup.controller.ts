@@ -37,6 +37,7 @@ export class SignupController {
 			Item: {
 				[USERS_INDEX]: userId,
 				confirmed,
+				userType: 'Passenger',
 				times: {
 					signedUp: now
 				}

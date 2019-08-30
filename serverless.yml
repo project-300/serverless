@@ -71,6 +71,13 @@ functions:
           path: /login
           method: post
           cors: true
+  driverApplicationHandler:
+    handler: src/functions/driver-application/driver-application.driverApplicationHandler
+    events:
+      - http:
+          path: /driver-application
+          method: post
+          cors: true
 
 resources:
   Resources:
