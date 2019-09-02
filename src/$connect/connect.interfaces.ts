@@ -6,4 +6,5 @@ export interface ConnectResult {
 
 export interface ConnectionItem extends DocumentClient.AttributeMap {
 	connectionId: string;
+	subscribedAt: string;
 }
