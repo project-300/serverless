@@ -3,6 +3,7 @@ import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { ConnectionItem } from '../$connect/connect.interfaces';
 import { SUBSCRIPTION_INDEX } from '../constants/indexes';
 import { SUBSCRIPTION_TABLE } from '../constants/tables';
+import { SubscriptionSchema } from '../interfaces/schemas';
 import { ApiEvent } from '../responses/api.types';
 import { GetResult, GetResultPromise, UpdateResult } from '../responses/dynamodb.types';
 import PubManager from './publication';
@@ -14,17 +15,23 @@ class SubscriptionManager {
 
 	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-	public subscribe = async (event: ApiEvent, sub: string, connectionId: string, autoPush: boolean, data?: object | object[]): Promise<void> => {
+	public subscribe = async (event: ApiEvent, sub: string, data?: object | object[], autoPush?: boolean): Promise<void> => {
 		const checkResponse: GetResult = await this._checkForExistingSubscription(sub);
+		const connectionId: string = event.requestContext.connectionId;
+		const userId: string = JSON.parse(event.body).userId;
+		const subscription: SubscriptionSchema = checkResponse.Item as SubscriptionSchema;
 
 		if (checkResponse.Item) {
-			if (this._checkForExistingConnection(checkResponse.Item, connectionId)) return;
-			await this._addSubConnection(sub, connectionId);
+			const connectionExists: boolean = await this._checkForExistingConnection(subscription, connectionId);
+
+			if (connectionExists) return;
+
+			await this._addSubConnection(sub, connectionId, userId);
 		} else {
-			await this._saveSubscription(sub, connectionId);
+			await this._saveSubscription(sub, connectionId, userId);
 		}
 
-		if (autoPush) await PubManager.publish(event, sub, data);
+		if (autoPush) await PubManager.publish(event.requestContext.connectionId, sub, data);
 	}
 
 	public unsubscribe = async (sub: string, connectionId: string): Promise<void> => {
@@ -42,7 +49,7 @@ class SubscriptionManager {
 		return this.dynamo.get(params).promise();
 	}
 
-	private _saveSubscription = (sub: string, connectionId: string): UpdateResult => {
+	private _saveSubscription = (sub: string, connectionId: string, userId: string): UpdateResult => {
 		const now: string = new Date().toISOString();
 
 		const params: PutItemInput = {
@@ -51,6 +58,7 @@ class SubscriptionManager {
 				[SUBSCRIPTION_INDEX]: sub,
 				connections: [ {
 					connectionId,
+					userId,
 					subscribedAt: now
 				} ]
 			}
@@ -59,7 +67,7 @@ class SubscriptionManager {
 		return this.dynamo.put(params).promise();
 	}
 
-	private _addSubConnection = (sub: string, connectionId: string): UpdateResult => {
+	private _addSubConnection = (sub: string, connectionId: string, userId: string): UpdateResult => {
 		const now: string = new Date().toISOString();
 
 		const params: UpdateItemInput = {
@@ -71,6 +79,7 @@ class SubscriptionManager {
 			ExpressionAttributeValues: {
 				':con': [ {
 					connectionId,
+					userId,
 					subscribedAt: now
 				} ]
 			},
@@ -80,13 +89,18 @@ class SubscriptionManager {
 		return this.dynamo.update(params).promise();
 	}
 
-	private _checkForExistingConnection = (storedSub: object, connectionId: string): boolean => {
-		// @ts-ignore
-		return !!storedSub.connections.find((con: ConnectionItem) => con.connectionId === connectionId);
+	private _checkForExistingConnection = async (storedSub: SubscriptionSchema, connectionId: string): Promise<boolean> => {
+		const existingConnection: ConnectionItem = storedSub.connections.find((con: ConnectionItem) =>
+	  		con.connectionId === connectionId
+		);
+
+		return !!existingConnection;
 	}
 
 	private _deleteConnection = async (sub: string, connectionId: string): UpdateResult => {
 		const index: number = await this._getConnectionIndex(sub, connectionId);
+
+		if (index < 0) return;
 
 		const params: UpdateItemInput = {
 			TableName: SUBSCRIPTION_TABLE,
