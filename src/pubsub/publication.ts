@@ -19,23 +19,23 @@ class PublicationManager {
 
 	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-	public publish = (connectionId: string, sub: string, data: object | object[]): void => {
-		this._sendToConnections([ connectionId ], sub, PublishType.QUERY, data);
+	public publish = (connectionId: string, sub: string, objectId: string, data: object | object[], sendCollection: boolean): void => {
+		this._sendToConnections([ connectionId ], sub, PublishType.QUERY, objectId, data, sendCollection);
 	}
 
-	public publishInsert = async (sub: string, data: object | object[]): Promise<void> => {
+	public publishInsert = async (sub: string, objectId: string, data: object | object[]): Promise<void> => {
 		const connectionIds: string[] = await this._getConnectionIds(sub);
-		this._sendToConnections(connectionIds, sub, PublishType.INSERT, data);
+		this._sendToConnections(connectionIds, sub, PublishType.INSERT, objectId, data, false);
 	}
 
-	public publishUpdate = async (sub: string, data: object | object[]): Promise<void> => {
+	public publishUpdate = async (sub: string, objectId: string, data: object | object[]): Promise<void> => {
 		const connectionIds: string[] = await this._getConnectionIds(sub);
-		this._sendToConnections(connectionIds, sub, PublishType.UPDATE, data);
+		this._sendToConnections(connectionIds, sub, PublishType.UPDATE, objectId, data, false);
 	}
 
-	public publishDelete = async (sub: string, data: string | string[]): Promise<void> => {
+	public publishDelete = async (sub: string, objectId: string, data: string | string[]): Promise<void> => {
 		const connectionIds: string[] = await this._getConnectionIds(sub);
-		this._sendToConnections(connectionIds, sub, PublishType.DELETE, data);
+		this._sendToConnections(connectionIds, sub, PublishType.DELETE, objectId, data, false);
 	}
 
 	private _getConnectionIds = async (sub: string): Promise<string[]> => {
@@ -51,21 +51,28 @@ class PublicationManager {
 		return result.Item.connections.map((con: ConnectionItem) => con.connectionId);
 	}
 
-	private _sendToConnections = (connections: string[], sub: string, type: PublishType, data: object | object[] | string | string[]): void => {
+	private _sendToConnections = (connections: string[], sub: string, type: PublishType, objectId: string, data: object | object[] | string | string[], sendCollection: boolean): void => {
 		if (!connections.length) return;
 
+		const isCollection: boolean = sendCollection && data instanceof Array;
+
 		connections.map(async (connectionId: string) => {
-			if (data instanceof Array) data.forEach((item: object | string) => this._sendDataObject(connectionId, sub, type, item));
-			else await this._sendDataObject(connectionId, sub, type, data);
+			if (!sendCollection && data instanceof Array) {
+				data.forEach((item: object | string) => this._sendDataObject(connectionId, sub, type, objectId, item, isCollection));
+			} else {
+				await this._sendDataObject(connectionId, sub, type, objectId, data, isCollection);
+			}
 		});
 	}
 
-	private _sendDataObject = async (connectionId: string, sub: string, type: PublishType, data: object | string): Promise<void> => {
+	private _sendDataObject = async (connectionId: string, sub: string, type: PublishType, objectId: string, data: object | string, isCollection: boolean): Promise<void> => {
 		const params: PostToConnectionRequest = {
 			ConnectionId: connectionId,
 			Data: JSON.stringify({
 				subscription: sub,
 				type,
+				objectId,
+				isCollection,
 				data
 			})
 		};

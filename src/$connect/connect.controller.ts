@@ -58,10 +58,10 @@ export class ConnectController {
 	private _send = (event: ApiEvent, connectionId: string): Promise<WsPostResult> => {
 		const params: PostToConnectionRequest = {
 			ConnectionId: connectionId,
-			Data: `${event.requestContext.connectionId} has joined`
+			Data: { notice: `${event.requestContext.connectionId} has joined` }
 		};
 
-		return API(event)
+		return API()
 			.postToConnection(params)
 			.promise();
 	}

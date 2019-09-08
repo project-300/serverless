@@ -15,7 +15,7 @@ class SubscriptionManager {
 
 	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-	public subscribe = async (event: ApiEvent, sub: string, data?: object | object[], autoPush?: boolean): Promise<void> => {
+	public subscribe = async (event: ApiEvent, sub: string, objectId: string, data?: object | object[], autoPush?: boolean): Promise<void> => {
 		const checkResponse: GetResult = await this._checkForExistingSubscription(sub);
 		const connectionId: string = event.requestContext.connectionId;
 		const userId: string = JSON.parse(event.body).userId;
@@ -31,7 +31,7 @@ class SubscriptionManager {
 			await this._saveSubscription(sub, connectionId, userId);
 		}
 
-		if (autoPush) await PubManager.publish(event.requestContext.connectionId, sub, data);
+		if (autoPush) await PubManager.publish(event.requestContext.connectionId, sub, objectId, data, true);
 	}
 
 	public unsubscribe = async (sub: string, connectionId: string): Promise<void> => {
