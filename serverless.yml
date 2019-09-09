@@ -22,6 +22,7 @@ provider:
         - "dynamodb:DeleteItem"
         - "dynamodb:UpdateItem"
         - "dynamodb:Scan"
+        - "execute-api:Invoke"
       Resource: "*"
     - Effect: Allow
       Action:
@@ -45,11 +46,6 @@ functions:
     events:
       - websocket:
           route: $default
-  sendMessageHandler:
-    handler: src/functions/messages/message.sendMessageHandler
-    events:
-      - websocket:
-          route: sendMessage
   signupHandler:
     handler: src/functions/signup/signup.signupHandler
     events:
@@ -71,6 +67,13 @@ functions:
           path: /login
           method: post
           cors: true
+  driverApplicationCheckHandler:
+    handler: src/functions/driver-application/driver-application.driverApplicationCheckHandler
+    events:
+      - http:
+          path: /driver-application-check
+          method: post
+          cors: true
   driverApplicationHandler:
     handler: src/functions/driver-application/driver-application.driverApplicationHandler
     events:
@@ -78,6 +81,25 @@ functions:
           path: /driver-application
           method: post
           cors: true
+  approveApplicationHandler:
+    handler: src/functions/admin/driver-applications/driver-applications.approveApplicationHandler
+    events:
+      - http:
+          path: /approve-application
+          method: post
+          cors: true
+  deleteApplicationHandler:
+    handler: src/functions/admin/driver-applications/driver-applications.deleteApplicationHandler
+    events:
+      - http:
+          path: /delete-application
+          method: post
+          cors: true
+  driverApplicationsSubscriptionHandler:
+    handler: src/functions/admin/driver-applications/driver-applications.driverApplicationsSubscriptionHandler
+    events:
+      - websocket:
+          route: admin/driver-applications
 
 resources:
   Resources:
@@ -114,3 +136,25 @@ resources:
             KeyType: "HASH"
         BillingMode: PAY_PER_REQUEST
         TableName: P300-USERS
+    DriverApplicationTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "userId"
+            AttributeType: "S"
+        KeySchema:
+          - AttributeName: "userId"
+            KeyType: "HASH"
+        BillingMode: PAY_PER_REQUEST
+        TableName: P300-DRIVER-APPLICATIONS
+    SubscriptionTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "subscriptionName"
+            AttributeType: "S"
+        KeySchema:
+          - AttributeName: "subscriptionName"
+            KeyType: "HASH"
+        BillingMode: PAY_PER_REQUEST
+        TableName: P300-SUBSCRIPTIONS
