@@ -158,3 +158,14 @@ resources:
             KeyType: "HASH"
         BillingMode: PAY_PER_REQUEST
         TableName: P300-SUBSCRIPTIONS
+    LiftsTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "liftId"
+            AttributeType: "S"
+        KeySchema:
+          - AttributeName: "liftId"
+            KeyType: "HASH"
+        BillingMode: PAY_PER_REQUEST
+        TableName: P300-LIFTS
