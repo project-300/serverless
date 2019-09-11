@@ -1,5 +1,4 @@
 import API from '../lib/api';
-import { PostToConnectionRequest } from 'aws-sdk/clients/apigatewaymanagementapi';
 import { ConnectResult } from '../$connect/connect.interfaces';
 import { ResponseBuilder } from '../responses/response-builder';
 import { DefaultResult } from './default.interfaces';
@@ -20,13 +19,7 @@ export class DefaultController {
 		}
 	}
 
-	private _replyWarning = (event: ApiEvent): Promise<WsPostResult> => {
-		const params: PostToConnectionRequest = {
-			ConnectionId: event.requestContext.connectionId,
-			Data: JSON.stringify({ error: 'No function specified' })
-		};
-
-		return API.post(params);
-	}
+	private _replyWarning = (event: ApiEvent): Promise<WsPostResult> =>
+		API.post(event.requestContext.connectionId, { subscription: undefined, error: 'No function specified' })
 
 }

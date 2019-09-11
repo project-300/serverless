@@ -1,6 +1,5 @@
 import * as AWS from 'aws-sdk';
 import API from '../lib/api';
-import { PostToConnectionRequest } from 'aws-sdk/clients/apigatewaymanagementapi';
 import { ScanInput } from 'aws-sdk/clients/dynamodb';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { CONNECTION_IDS_INDEX } from '../constants/indexes';
@@ -55,13 +54,7 @@ export class ConnectController {
 		return this.dynamo.scan(params).promise();
 	}
 
-	private _send = (event: ApiEvent, connectionId: string): Promise<WsPostResult> => {
-		const params: PostToConnectionRequest = {
-			ConnectionId: connectionId,
-			Data: { notice: `${event.requestContext.connectionId} has joined` }
-		};
-
-		return API.post(params);
-	}
+	private _send = (event: ApiEvent, connectionId: string): Promise<WsPostResult> =>
+		API.post(connectionId, { subscription: '$connect', notice: `${event.requestContext.connectionId} has joined` })
 
 }

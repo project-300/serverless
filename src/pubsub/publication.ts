@@ -1,5 +1,4 @@
 import * as AWS from 'aws-sdk';
-import { PostToConnectionRequest } from 'aws-sdk/clients/apigatewaymanagementapi';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { ConnectionItem } from '../$connect/connect.interfaces';
 import { SUBSCRIPTION_INDEX } from '../constants/indexes';
@@ -75,25 +74,19 @@ class PublicationManager {
 
 	private _sendDataObject = async (
 		connectionId: string,
-		sub: string,
+		subscription: string,
 		type: PublishType,
 		objectId: string,
 		data: object | string,
 		isCollection: boolean
-	): Promise<WsPostResult> => {
-		const params: PostToConnectionRequest = {
-			ConnectionId: connectionId,
-			Data: JSON.stringify({
-				subscription: sub,
-				type,
-				objectId,
-				isCollection,
-				data
-			})
-		};
-
-		return API.post(params);
-	}
+	): Promise<WsPostResult> =>
+		API.post(connectionId, {
+			subscription,
+			type,
+			objectId,
+			isCollection,
+			data
+		})
 
 }
 
