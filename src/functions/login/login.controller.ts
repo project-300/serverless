@@ -7,6 +7,7 @@ import { ResponseBuilder } from '../../responses/response-builder';
 import { CognitoLoginResponse, LoginResult } from './login.interfaces';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
 import UpdateItemInput = DocumentClient.UpdateItemInput;
+import UpdateItemOutput = DocumentClient.UpdateItemOutput;
 
 export class LoginController {
 
@@ -18,7 +19,8 @@ export class LoginController {
 		};
 
 		try {
-			await this._saveCognitoData(event);
+			const response: UpdateItemOutput = await this._saveCognitoData(event);
+			result.userId = response.Attributes.userId;
 			ResponseBuilder.ok<LoginResult>(result, callback);
 		} catch (err) {
 			ResponseBuilder.internalServerError(err, callback);
@@ -37,7 +39,7 @@ export class LoginController {
 			ExpressionAttributeValues: {
 				':now': new Date().toISOString()
 			},
-			ReturnValues: 'UPDATED_NEW'
+			ReturnValues: 'ALL_NEW'
 		};
 
 		return this.dynamo.update(params).promise();

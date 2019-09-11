@@ -1,5 +1,17 @@
 export interface LoginResult {
 	success: boolean;
+	userId?: string;
+}
+
+export interface UserSchema {
+	userId: string;
+	userType: string;
+	confirmed: boolean;
+	times: {
+		signedUp: string;
+		confirmed: string;
+		lastLogin: string;
+	}
 }
 
 export interface CognitoLoginResponse {

@@ -6,6 +6,14 @@ export type ScanResult = PromiseResult<DocumentClient.ScanOutput, AWS.AWSError>;
 
 export type ScanResultPromise = Promise<ScanResult>;
 
+export type QueryResult = PromiseResult<DocumentClient.QueryOutput, AWS.AWSError>;
+
+export type QueryResultPromise = Promise<QueryResult>;
+
+export type GetResult = PromiseResult<DocumentClient.GetItemOutput, AWS.AWSError>;
+
+export type GetResultPromise = Promise<GetResult>;
+
 export type PutResult = Promise<PromiseResult<DocumentClient.PutItemOutput, AWS.AWSError>>;
 
 export type UpdateResult = Promise<PromiseResult<DocumentClient.UpdateItemOutput, AWS.AWSError>>;

@@ -23,10 +23,10 @@ export class DefaultController {
 	private _replyWarning = (event: ApiEvent): Promise<WsPostResult> => {
 		const params: PostToConnectionRequest = {
 			ConnectionId: event.requestContext.connectionId,
-			Data: 'No function specified'
+			Data: JSON.stringify({ error: 'No function specified' })
 		};
 
-		return API(event)
+		return API()
 			.postToConnection(params)
 			.promise();
 	}

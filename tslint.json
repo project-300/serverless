@@ -97,6 +97,7 @@
     "no-empty-interface": false,
     "member-ordering": false,
     "interface-over-type-literal": false,
+    "curly": false,
     "typedef": [
       true,
       "call-signature",
