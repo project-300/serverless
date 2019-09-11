@@ -26,9 +26,7 @@ export class DefaultController {
 			Data: JSON.stringify({ error: 'No function specified' })
 		};
 
-		return API()
-			.postToConnection(params)
-			.promise();
+		return API.post(params);
 	}
 
 }

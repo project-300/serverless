@@ -9,7 +9,7 @@ export type ApiEvent = APIGatewayEvent;
 export type ApiHandler = (event: APIGatewayEvent, context: Context, callback: ApiCallback) => void;
 export type ApiResponse = ProxyResult;
 
-export type WsPostResult = PromiseResult<{ }, AWS.AWSError>;
+export type WsPostResult = PromiseResult<{ }, AWS.AWSError> | void;
 
 export interface ErrorResponseBody {
 	error: ErrorResult;

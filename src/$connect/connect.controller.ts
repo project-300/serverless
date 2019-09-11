@@ -61,9 +61,7 @@ export class ConnectController {
 			Data: { notice: `${event.requestContext.connectionId} has joined` }
 		};
 
-		return API()
-			.postToConnection(params)
-			.promise();
+		return API.post(params);
 	}
 
 }

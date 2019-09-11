@@ -5,6 +5,7 @@ import { ConnectionItem } from '../$connect/connect.interfaces';
 import { SUBSCRIPTION_INDEX } from '../constants/indexes';
 import { SUBSCRIPTION_TABLE } from '../constants/tables';
 import API from '../lib/api';
+import { WsPostResult } from '../responses/api.types';
 import { GetResult } from '../responses/dynamodb.types';
 import GetItemInput = DocumentClient.GetItemInput;
 
@@ -51,7 +52,14 @@ class PublicationManager {
 		return result.Item.connections.map((con: ConnectionItem) => con.connectionId);
 	}
 
-	private _sendToConnections = (connections: string[], sub: string, type: PublishType, objectId: string, data: object | object[] | string | string[], sendCollection: boolean): void => {
+	private _sendToConnections = (
+		connections: string[],
+		sub: string,
+		type: PublishType,
+		objectId: string,
+		data: object | object[] | string | string[],
+		sendCollection: boolean
+	): void => {
 		if (!connections.length) return;
 
 		const isCollection: boolean = sendCollection && data instanceof Array;
@@ -65,7 +73,14 @@ class PublicationManager {
 		});
 	}
 
-	private _sendDataObject = async (connectionId: string, sub: string, type: PublishType, objectId: string, data: object | string, isCollection: boolean): Promise<void> => {
+	private _sendDataObject = async (
+		connectionId: string,
+		sub: string,
+		type: PublishType,
+		objectId: string,
+		data: object | string,
+		isCollection: boolean
+	): Promise<WsPostResult> => {
 		const params: PostToConnectionRequest = {
 			ConnectionId: connectionId,
 			Data: JSON.stringify({
@@ -77,9 +92,7 @@ class PublicationManager {
 			})
 		};
 
-		await API()
-			.postToConnection(params)
-			.promise();
+		return API.post(params);
 	}
 
 }
