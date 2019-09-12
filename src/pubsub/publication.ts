@@ -1,3 +1,4 @@
+import { PublishType } from '@project-300/common-types/lib/enums';
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { ConnectionItem } from '../$connect/connect.interfaces';
@@ -7,13 +8,6 @@ import API from '../lib/api';
 import { WsPostResult } from '../responses/api.types';
 import { GetResult } from '../responses/dynamodb.types';
 import GetItemInput = DocumentClient.GetItemInput;
-
-export enum PublishType {
-	QUERY = 'QUERY',
-	INSERT = 'INSERT',
-	UPDATE = 'UPDATE',
-	DELETE = 'DELETE'
-}
 
 class PublicationManager {
 
