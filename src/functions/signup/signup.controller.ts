@@ -2,7 +2,6 @@ import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { PutResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
-import { LoginResult } from '../login/login.interfaces';
 import { USERS_INDEX } from '../../constants/indexes';
 import { USER_TABLE } from '../../constants/tables';
 import { CognitoSignupResponse, SignupSuccessResult } from './signup.interfaces';
@@ -20,7 +19,7 @@ export class SignupController {
 
 		try {
 			await this.saveUserDetails(event);
-			ResponseBuilder.ok<LoginResult>(result, callback);
+			ResponseBuilder.ok<SignupSuccessResult>(result, callback);
 		} catch (err) {
 			ResponseBuilder.internalServerError(err, callback, 'Unable to save user details');
 		}
