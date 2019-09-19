@@ -1,21 +1,27 @@
+import { ResponseBuilder } from './../../responses/response-builder';
+import { ApiCallback } from './../../responses/api.types';
 import * as AWS from 'aws-sdk';
 import { ScanResult, ScanResultPromise } from '../../responses/dynamodb.types';
-import { ApiEvent, ApiHandler } from '../../responses/api.types';
+import { ApiEvent, ApiHandler, ApiContext } from '../../responses/api.types';
 import { DocumentClient, ScanInput } from 'aws-sdk/clients/dynamodb';
 import SubManager from '../../pubsub/subscription';
 import { LIFT_INDEX } from '../../constants/indexes';
 import { LIFT_TABLE } from '../../constants/tables';
-// import * from '@project-300/common-types/lib/index';
+
+export interface LiftsSubscriptionResult {
+	success: boolean;
+}
 
 export class LiftsController {
 
 	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-	public getLifts: ApiHandler = async (event: ApiEvent): Promise<object> => {
+	public getLifts: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+		const result: LiftsSubscriptionResult = {
+			success: true
+		};
 
 		const body = JSON.parse(event.body);
-
-		console.log(body);
 
 		try {
 			const data: ScanResult = await this._lifts();
@@ -31,25 +37,10 @@ export class LiftsController {
 			} else {
 				await SubManager.unsubscribe(body.subscription, event.requestContext.connectionId);
 			}
-
-			return {
-				statusCode: 200,
-				headers: {
-					'Access-Control-Allow-Origin': '*'
-				},
-				body: data
-			};
+			ResponseBuilder.ok<LiftsSubscriptionResult>(result, callback);
 		} catch (err) {
-			return {
-				statusCode: err.statusCode ? err.statusCode : 500,
-				headers: {
-					'Access-Control-Allow-Origin': '*'
-				},
-				body: JSON.stringify({
-					error: err.name ? err.name : 'Exception',
-					message: err.message ? err.message : 'Unknown error'
-				})
-			};
+			console.log(err);
+			ResponseBuilder.internalServerError(err, callback);
 		}
 	}
 
