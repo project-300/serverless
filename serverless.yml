@@ -105,6 +105,13 @@ functions:
     events:
       - websocket:
           route: lifts
+  addLiftHandler:
+    handler: src/functions/lifts/lifts.addLiftHandler
+    events:
+      - http:
+          path: /add-lift
+          method: post
+          cors: true
 
 resources:
   Resources:

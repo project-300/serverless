@@ -9,9 +9,11 @@
   "dependencies": {
     "@project-300/common-types": "^1.0.0",
     "aws-sdk": "^2.492.0",
+    "moment": "^2.24.0",
     "source-map-support": "^0.5.10",
     "tslint": "^5.18.0",
-    "uuid": "^3.3.2"
+    "uuid": "^3.3.2",
+    "uuidv4": "^5.0.1"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.17",
