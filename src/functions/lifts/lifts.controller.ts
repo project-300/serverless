@@ -3,7 +3,8 @@ import { ResponseBuilder } from './../../responses/response-builder';
 import uuidv4 from 'uuidv4';
 import { ApiCallback } from './../../responses/api.types';
 import * as AWS from 'aws-sdk';
-import { ScanResult, ScanResultPromise, PutResult } from '../../responses/dynamodb.types';
+import PubManager from '../../pubsub/publication';
+import { ScanResult, ScanResultPromise, PutResult, GetResult, GetResultPromise } from '../../responses/dynamodb.types';
 import { ApiEvent, ApiHandler, ApiContext } from '../../responses/api.types';
 import { DocumentClient, ScanInput } from 'aws-sdk/clients/dynamodb';
 import SubManager from '../../pubsub/subscription';
@@ -11,6 +12,7 @@ import { LIFT_INDEX } from '../../constants/indexes';
 import { LIFT_TABLE } from '../../constants/tables';
 import { LiftObject } from '@project-300/common-types';
 import PutItemInput = DocumentClient.PutItemInput;
+import GetItemInput = DocumentClient.GetItemInput;
 
 export class LiftsController {
 
@@ -59,7 +61,12 @@ export class LiftsController {
 
 		try {
 			const lift = JSON.parse(event.body);
-			await this._addLift(lift)
+			lift.liftId = uuidv4();
+			await this._addLift(lift);
+
+			const updatedLifts: GetResult = await this._getLift(lift);
+			console.log(updatedLifts);
+			await PubManager.publishUpdate('lifts', 'd8690f0f-0211-4534-ac11-db71736e5696', updatedLifts.Item);
 
 			ResponseBuilder.ok<LiftAddedResult>(result, callback);
 		} catch (err) {
@@ -67,9 +74,22 @@ export class LiftsController {
 		}
 	}
 
+	private _getLift({ liftId }: LiftObject): GetResultPromise {
+		const params: GetItemInput = {
+			TableName: LIFT_TABLE,
+			Key: {
+				liftId
+			}
+		};
+
+		console.log(this.dynamo.get(params).promise());
+
+		return this.dynamo.get(params).promise();
+	}
+
 	private _addLift(lift: LiftObject): PutResult {
-		lift.liftId = uuidv4();
-		lift.times.createdAt = Date.now().toString();
+
+		// lift.times.createdAt = Date.now().toString();
 		const params: PutItemInput = {
 			TableName: LIFT_TABLE,
 			Item: lift
