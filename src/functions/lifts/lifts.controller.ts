@@ -65,8 +65,7 @@ export class LiftsController {
 			await this._addLift(lift);
 
 			const updatedLifts: GetResult = await this._getLift(lift);
-			console.log(updatedLifts);
-			await PubManager.publishUpdate('lifts', 'd8690f0f-0211-4534-ac11-db71736e5696', updatedLifts.Item);
+			await PubManager.publishUpdate('lifts', LIFT_INDEX, updatedLifts.Item);
 
 			ResponseBuilder.ok<LiftAddedResult>(result, callback);
 		} catch (err) {
