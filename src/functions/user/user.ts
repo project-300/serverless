@@ -5,3 +5,4 @@ const controller: UserController = new UserController();
 
 export const userProfileSubscriptionHandler: ApiHandler = controller.getUser;
 export const userUpdateEmailHandler: ApiHandler = controller.updateEmail;
+export const userUpdateAvatarHandler: ApiHandler = controller.updateAvatar;

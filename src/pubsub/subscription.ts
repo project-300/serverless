@@ -1,3 +1,4 @@
+import { CollectionItem } from '@project-300/common-types';
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { ConnectionItem } from '../$connect/connect.interfaces';
@@ -15,7 +16,7 @@ class SubscriptionManager {
 
 	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-	public subscribe = async (event: ApiEvent, sub: string, objectId: string, data?: object | object[], autoPush?: boolean): Promise<void> => {
+	public subscribe = async (event: ApiEvent, sub: string, objectId: string, data?: CollectionItem | CollectionItem[], autoPush?: boolean): Promise<void> => {
 		const checkResponse: GetResult = await this._checkForExistingSubscription(sub);
 		const connectionId: string = event.requestContext.connectionId;
 		const userId: string = JSON.parse(event.body).userId;

@@ -95,4 +95,39 @@ export class UserController {
 		return this.dynamo.update(params).promise();
 	}
 
+	public updateAvatar: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback) => {
+		const result: UpdateAvatarSuccessResult = {
+			success: true
+		};
+
+		const body: HTTPRequest = JSON.parse(event.body);
+		const { userId, avatarURL }: HTTPRequest = body;
+
+		try {
+			await this._updateAvatar(userId, avatarURL);
+			const res: GetResult = await this._getUser(userId);
+			await PubManager.publishUpdate('user/profile', 'userId', res.Item);
+
+			ResponseBuilder.ok<UpdateAvatarSuccessResult>(result, callback);
+		} catch (err) {
+			ResponseBuilder.internalServerError(err, callback, 'Unable to update avatar');
+		}
+	}
+
+	private _updateAvatar = (userId: string, avatarURL: string): UpdateResult => {
+		const params: UpdateItemInput = {
+			TableName: USER_TABLE,
+			Key: {
+				[USERS_INDEX]: userId
+			},
+			UpdateExpression: 'set avatar = :url',
+			ExpressionAttributeValues: {
+				':url': avatarURL
+			},
+			ReturnValues: 'UPDATED_NEW'
+		};
+
+		return this.dynamo.update(params).promise();
+	}
+
 }

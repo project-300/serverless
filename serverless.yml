@@ -112,6 +112,13 @@ functions:
           path: /user/update-email
           method: post
           cors: true
+  updateAvatarHandler:
+    handler: src/functions/user/user.userUpdateAvatarHandler
+    events:
+      - http:
+          path: /user/update-avatar
+          method: post
+          cors: true
 
 resources:
   Resources:

@@ -5,3 +5,7 @@ export interface GetUserSuccessResult {
 export interface UpdateEmailSuccessResult {
 	success: boolean;
 }
+
+export interface UpdateAvatarSuccessResult {
+	success: boolean;
+}
