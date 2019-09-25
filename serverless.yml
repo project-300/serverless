@@ -105,6 +105,13 @@ functions:
     events:
       - websocket:
           route: user/profile
+  updateEmailHandler:
+    handler: src/functions/user/user.userUpdateEmailHandler
+    events:
+      - http:
+          path: /user/update-email
+          method: post
+          cors: true
 
 resources:
   Resources:
