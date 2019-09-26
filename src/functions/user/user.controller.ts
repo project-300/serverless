@@ -11,6 +11,7 @@ import { ResponseBuilder } from '../../responses/response-builder';
 import { GetUserSuccessResult, UpdateAvatarSuccessResult, UpdateEmailSuccessResult } from './user.interfaces';
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
+import * as EmailValidator from 'email-validator';
 
 export class UserController {
 
@@ -67,6 +68,9 @@ export class UserController {
 
 		const body: HTTPRequest = JSON.parse(event.body);
 		const { userId, email }: HTTPRequest = body;
+
+		if (!EmailValidator.validate(email))
+			return ResponseBuilder.internalServerError(Error('Invalid Email'), callback, 'Unable to update email address');
 
 		try {
 			await this._updateEmail(userId, email);
