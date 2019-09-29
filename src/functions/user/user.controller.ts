@@ -8,7 +8,7 @@ import SubManager from '../../pubsub/subscription';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
 import { GetResult, GetResultPromise, UpdateResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
-import { GetUserSuccessResult, UpdateAvatarSuccessResult, UpdateEmailSuccessResult } from './user.interfaces';
+import { GetUserSuccessResult, UpdateAvatarSuccessResult, UpdateFieldSuccessResult } from './user.interfaces';
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import * as EmailValidator from 'email-validator';
@@ -61,23 +61,26 @@ export class UserController {
 		return this.dynamo.get(params).promise();
 	}
 
-	public updateEmail: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback) => {
-		const result: UpdateEmailSuccessResult = {
+	public updateUserField: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback) => {
+		const result: UpdateFieldSuccessResult = {
 			success: true
 		};
 
 		const body: HTTPRequest = JSON.parse(event.body);
-		const { userId, email }: HTTPRequest = body;
+		const { userId, email, firstName, lastName }: HTTPRequest = body;
 
-		if (!EmailValidator.validate(email))
+		if (email && !EmailValidator.validate(email))
 			return ResponseBuilder.internalServerError(Error('Invalid Email'), callback, 'Unable to update email address');
 
 		try {
-			await this._updateEmail(userId, email);
+			if (email) await this._updateEmail(userId, email);
+			if (firstName) await this._updateFirstName(userId, firstName);
+			if (lastName) await this._updateLastName(userId, lastName);
+
 			const res: GetResult = await this._getUser(userId);
 			await PubManager.publishUpdate('user/profile', 'userId', res.Item);
 
-			ResponseBuilder.ok<UpdateEmailSuccessResult>(result, callback);
+			ResponseBuilder.ok<UpdateFieldSuccessResult>(result, callback);
 		} catch (err) {
 			ResponseBuilder.internalServerError(err, callback, 'Unable to update email address');
 		}
@@ -92,6 +95,38 @@ export class UserController {
 			UpdateExpression: 'set email = :email',
 			ExpressionAttributeValues: {
 				':email': email
+			},
+			ReturnValues: 'UPDATED_NEW'
+		};
+
+		return this.dynamo.update(params).promise();
+	}
+
+	private _updateFirstName = (userId: string, firstName: string): UpdateResult => {
+		const params: UpdateItemInput = {
+			TableName: USER_TABLE,
+			Key: {
+				[USERS_INDEX]: userId
+			},
+			UpdateExpression: 'set firstName = :fn',
+			ExpressionAttributeValues: {
+				':fn': firstName
+			},
+			ReturnValues: 'UPDATED_NEW'
+		};
+
+		return this.dynamo.update(params).promise();
+	}
+
+	private _updateLastName = (userId: string, lastName: string): UpdateResult => {
+		const params: UpdateItemInput = {
+			TableName: USER_TABLE,
+			Key: {
+				[USERS_INDEX]: userId
+			},
+			UpdateExpression: 'set lastName = :ln',
+			ExpressionAttributeValues: {
+				':ln': lastName
 			},
 			ReturnValues: 'UPDATED_NEW'
 		};

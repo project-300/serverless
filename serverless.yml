@@ -105,11 +105,11 @@ functions:
     events:
       - websocket:
           route: user/profile
-  updateEmailHandler:
-    handler: src/functions/user/user.userUpdateEmailHandler
+  userUpdateFieldHandler:
+    handler: src/functions/user/user.userUpdateFieldHandler
     events:
       - http:
-          path: /user/update-email
+          path: /user/update-field
           method: post
           cors: true
   updateAvatarHandler:

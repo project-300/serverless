@@ -2,7 +2,7 @@ export interface GetUserSuccessResult {
 	success: boolean;
 }
 
-export interface UpdateEmailSuccessResult {
+export interface UpdateFieldSuccessResult {
 	success: boolean;
 }
 
