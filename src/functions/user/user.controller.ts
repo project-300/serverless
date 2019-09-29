@@ -92,7 +92,7 @@ export class UserController {
 			Key: {
 				[USERS_INDEX]: userId
 			},
-			UpdateExpression: 'set email = :email',
+			UpdateExpression: 'set unconfirmedEmail = :email',
 			ExpressionAttributeValues: {
 				':email': email
 			},

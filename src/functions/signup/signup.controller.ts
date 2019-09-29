@@ -36,7 +36,7 @@ export class SignupController {
 			TableName: USER_TABLE,
 			Item: {
 				[USERS_INDEX]: userId,
-				email,
+				unconfirmedEmail: email,
 				username,
 				confirmed,
 				userType: 'Passenger',

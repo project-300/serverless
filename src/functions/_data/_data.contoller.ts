@@ -1,13 +1,14 @@
+import { AWS_S3_SECRET_KEY } from '../../../environment/env';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { SecretKeyResult } from './_data.interfaces';
 import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
 
 export class DataController {
 
-	public s3KeyRequestHandler: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public s3KeyRequestHandler: ApiHandler = (event: ApiEvent, context: ApiContext, callback: ApiCallback): void => {
 		const key: SecretKeyResult = {
 			success: true,
-			secretKey: 'tRtsLus5ZF35rXhiBZjFDw6wp6XkfLLz2KZKv8zU'
+			secretKey: AWS_S3_SECRET_KEY
 		};
 
 		try {
