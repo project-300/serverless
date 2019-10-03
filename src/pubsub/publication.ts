@@ -1,3 +1,4 @@
+import { CollectionItem, SubscriptionPayload, SubscriptionPayloadData } from '@project-300/common-types';
 import { PublishType } from '@project-300/common-types/lib/enums';
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
@@ -13,16 +14,16 @@ class PublicationManager {
 
 	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
 
-	public publish = (connectionId: string, sub: string, objectId: string, data: object | object[], sendCollection: boolean): void => {
+	public publish = (connectionId: string, sub: string, objectId: string, data: CollectionItem | CollectionItem[], sendCollection: boolean): void => {
 		this._sendToConnections([ connectionId ], sub, PublishType.QUERY, objectId, data, sendCollection);
 	}
 
-	public publishInsert = async (sub: string, objectId: string, data: object | object[]): Promise<void> => {
+	public publishInsert = async (sub: string, objectId: string, data: CollectionItem | CollectionItem[]): Promise<void> => {
 		const connectionIds: string[] = await this._getConnectionIds(sub);
 		this._sendToConnections(connectionIds, sub, PublishType.INSERT, objectId, data, false);
 	}
 
-	public publishUpdate = async (sub: string, objectId: string, data: object | object[]): Promise<void> => {
+	public publishUpdate = async (sub: string, objectId: string, data: CollectionItem | CollectionItem[]): Promise<void> => {
 		const connectionIds: string[] = await this._getConnectionIds(sub);
 		this._sendToConnections(connectionIds, sub, PublishType.UPDATE, objectId, data, false);
 	}
@@ -47,10 +48,10 @@ class PublicationManager {
 
 	private _sendToConnections = (
 		connections: string[],
-		sub: string,
+		subscription: string,
 		type: PublishType,
 		objectId: string,
-		data: object | object[] | string | string[],
+		data: SubscriptionPayloadData,
 		sendCollection: boolean
 	): void => {
 		if (!connections.length) return;
@@ -59,28 +60,15 @@ class PublicationManager {
 
 		connections.map(async (connectionId: string) => {
 			if (!sendCollection && data instanceof Array) {
-				data.forEach((item: object | string) => this._sendDataObject(connectionId, sub, type, objectId, item, isCollection));
+				data.forEach((item: CollectionItem | string) =>
+					this._sendDataObject(connectionId, { subscription, type, objectId, data: item, isCollection }));
 			} else {
-				await this._sendDataObject(connectionId, sub, type, objectId, data, isCollection);
+				await this._sendDataObject(connectionId, { subscription, type, objectId, data, isCollection });
 			}
 		});
 	}
 
-	private _sendDataObject = async (
-		connectionId: string,
-		subscription: string,
-		type: PublishType,
-		objectId: string,
-		data: object | string,
-		isCollection: boolean
-	): Promise<WsPostResult> =>
-		API.post(connectionId, {
-			subscription,
-			type,
-			objectId,
-			isCollection,
-			data
-		})
+	private _sendDataObject = async (connectionId: string, data: SubscriptionPayload): Promise<WsPostResult> => API.post(connectionId, data);
 
 }
 

@@ -61,8 +61,7 @@
     ],
     "completed-docs": false,
     "file-name-casing": [
-      true,
-      "kebab-case"
+      true
     ],
     "interface-name": [
       true,

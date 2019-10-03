@@ -10,3 +10,5 @@ jspm_packages
 
 # IDE
 .idea
+
+environment/env.ts

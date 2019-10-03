@@ -1,4 +1,4 @@
-import { WebsocketResponse } from '@project-300/common-types';
+import { SubscriptionError, SubscriptionPayload } from '@project-300/common-types';
 import * as AWS from 'aws-sdk';
 import { PostToConnectionRequest } from 'aws-sdk/clients/apigatewaymanagementapi';
 import { WEBSOCKET_ENDPOINT } from '../../environment/env';
@@ -13,7 +13,7 @@ class API {
 		endpoint: WEBSOCKET_ENDPOINT
 	});
 
-	public static post = async (connectionId: string, data: WebsocketResponse): Promise<WsPostResult> => {
+	public static post = async (connectionId: string, data: SubscriptionPayload | SubscriptionError): Promise<WsPostResult> => {
 		const params: PostToConnectionRequest = {
 			ConnectionId: connectionId,
 			Data: JSON.stringify(data)

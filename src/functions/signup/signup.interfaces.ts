@@ -2,6 +2,12 @@ export interface SignupSuccessResult {
 	success: boolean;
 }
 
+export interface SignupPayload {
+	auth: CognitoSignupResponse,
+	email: string,
+	username: string
+}
+
 export interface CognitoSignupResponse {
 	codeDeliveryDetails: {
 		AttributeName: string;

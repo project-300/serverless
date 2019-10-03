@@ -1,3 +1,4 @@
+import { SubscriptionRequest } from '@project-300/common-types';
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import PubManager from '../../../pubsub/publication';
@@ -26,7 +27,7 @@ export class DriverApplicationController {
 			success: true
 		};
 
-		const body = JSON.parse(event.body);
+		const body: SubscriptionRequest = JSON.parse(event.body);
 
 		try {
 			if (body.subscribe) {

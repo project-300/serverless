@@ -100,6 +100,32 @@ functions:
     events:
       - websocket:
           route: admin/driver-applications
+  userProfileSubscriptionHandler:
+    handler: src/functions/user/user.userProfileSubscriptionHandler
+    events:
+      - websocket:
+          route: user/profile
+  userUpdateFieldHandler:
+    handler: src/functions/user/user.userUpdateFieldHandler
+    events:
+      - http:
+          path: /user/update-field
+          method: post
+          cors: true
+  updateAvatarHandler:
+    handler: src/functions/user/user.userUpdateAvatarHandler
+    events:
+      - http:
+          path: /user/update-avatar
+          method: post
+          cors: true
+  s3KeyRequestHandler:
+    handler: src/functions/_data/_data.s3KeyRequestHandler
+    events:
+      - http:
+          path: /aws/s3-key
+          method: post
+          cors: true
 
 resources:
   Resources:
