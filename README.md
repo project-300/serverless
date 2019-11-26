@@ -15,5 +15,9 @@
 
 ## Serverless Offline
 
-Running locally currently doesn't work for Websockets. Not sure why this is, but
-general HTTP requests and DynamoDB operations work.
+If you are running the API offline, to allow websockets to work, you need to have
+`https://localhost:3001` as the offline URL in the .env file.
+
+```
+    sls offline start
+```
