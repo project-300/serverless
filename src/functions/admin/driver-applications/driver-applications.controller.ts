@@ -20,7 +20,9 @@ import GetItemInput = DocumentClient.GetItemInput;
 
 export class DriverApplicationController {
 
-	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
+	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient(
+		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
+	);
 
 	public getApplications: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
 		const result: DriverApplicationsSubscriptionResult = {

@@ -21,7 +21,9 @@ export class UserController {
 		This will be changed with the new updates to the Websocket pub/sub system
 	*/
 
-	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
+	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient(
+		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
+	);
 
 	public getUser: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
 		const result: GetUserSuccessResult = {

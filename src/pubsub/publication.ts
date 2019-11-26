@@ -12,7 +12,9 @@ import GetItemInput = DocumentClient.GetItemInput;
 
 class PublicationManager {
 
-	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
+	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient(
+		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
+	);
 
 	public publish = (connectionId: string, sub: string, objectId: string, data: CollectionItem | CollectionItem[], sendCollection: boolean): void => {
 		this._sendToConnections([ connectionId ], sub, PublishType.QUERY, objectId, data, sendCollection);

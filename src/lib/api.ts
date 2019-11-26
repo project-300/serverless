@@ -9,9 +9,10 @@ class API {
 
 	private static APIManager: AWS.ApiGatewayManagementApi =
 		new AWS.ApiGatewayManagementApi({
-		apiVersion: '2018-11-29',
-		endpoint: WEBSOCKET_ENDPOINT
-	});
+			apiVersion: '2018-11-29',
+			endpoint: WEBSOCKET_ENDPOINT
+		}
+	);
 
 	public static post = async (connectionId: string, data: SubscriptionPayload | SubscriptionError): Promise<WsPostResult> => {
 		const params: PostToConnectionRequest = {
@@ -23,7 +24,8 @@ class API {
 			await API.APIManager
 				.postToConnection(params)
 				.promise()
-				.catch(() => {
+				.catch((e: Error) => {
+					console.log(e);
 					SubManager.unsubscribe(data.subscription, connectionId);
 				});
 

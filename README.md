@@ -12,3 +12,8 @@
 - Declare an instance of your class in your main file (Not the controller or interfaces file)
 - Export a handler that refers to the public function within your class. This will be your endpoint handler (entry point)
 - Add your endpoint to the `serverles.yml` file (Websocket or HTTP)
+
+## Serverless Offline
+
+Running locally currently doesn't work for Websockets. Not sure why this is, but
+general HTTP requests and DynamoDB operations work.

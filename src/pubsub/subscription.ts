@@ -14,7 +14,9 @@ import UpdateItemInput = DocumentClient.UpdateItemInput;
 
 class SubscriptionManager {
 
-	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
+	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient(
+		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
+	);
 
 	public subscribe = async (event: ApiEvent, sub: string, objectId: string, data?: CollectionItem | CollectionItem[], autoPush?: boolean): Promise<void> => {
 		const checkResponse: GetResult = await this._checkForExistingSubscription(sub);
@@ -100,8 +102,7 @@ class SubscriptionManager {
 
 	private _deleteConnection = async (sub: string, connectionId: string): UpdateResult => {
 		const index: number = await this._getConnectionIndex(sub, connectionId);
-
-		if (index < 0) return;
+		if (index === undefined || index < 0) return;
 
 		const params: UpdateItemInput = {
 			TableName: SUBSCRIPTION_TABLE,
@@ -124,7 +125,7 @@ class SubscriptionManager {
 		};
 
 		const res: GetResult = await this.dynamo.get(params).promise();
-		return res.Item.connections.map((con: ConnectionItem) => con.connectionId).indexOf(connectionId);
+		return res.Item && res.Item.connections.map((con: ConnectionItem) => con.connectionId).indexOf(connectionId);
 	}
 
 }

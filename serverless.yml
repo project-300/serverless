@@ -3,6 +3,8 @@ service:
 
 plugins:
   - serverless-webpack
+  - serverless-dynamodb-local
+  - serverless-offline
 
 provider:
   name: aws
@@ -11,6 +13,17 @@ provider:
   stage: dev
   tags:
     project: project300
+  environment:
+    DYNAMODB_USER_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Users
+
+custom:
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
 
   iamRoleStatements:
     - Effect: Allow
