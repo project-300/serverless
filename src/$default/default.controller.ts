@@ -1,21 +1,20 @@
 import API from '../lib/api';
-import { ConnectResult } from '../$connect/connect.interfaces';
 import { ResponseBuilder } from '../responses/response-builder';
 import { DefaultResult } from './default.interfaces';
-import { ApiCallback, ApiContext, ApiEvent, ApiHandler, WsPostResult } from '../responses/api.types';
+import { ApiEvent, ApiHandler, ApiResponse, WsPostResult } from '../responses/api.types';
 
 export class DefaultController {
 
-	public default: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public default: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: DefaultResult = {
 			success: true
 		};
 
 		try {
 			await this._replyWarning(event);
-			ResponseBuilder.ok<ConnectResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback);
+			return ResponseBuilder.internalServerError(err);
 		}
 	}
 

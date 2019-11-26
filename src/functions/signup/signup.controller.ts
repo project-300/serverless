@@ -5,7 +5,7 @@ import { ResponseBuilder } from '../../responses/response-builder';
 import { USERS_INDEX } from '../../constants/indexes';
 import { USER_TABLE } from '../../constants/tables';
 import { SignupPayload, SignupSuccessResult } from './signup.interfaces';
-import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
+import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 import PutItemInput = DocumentClient.PutItemInput;
 
 export class SignupController {
@@ -14,16 +14,16 @@ export class SignupController {
 		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
 	);
 
-	public signup: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public signup: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: SignupSuccessResult = {
 			success: true
 		};
 
 		try {
 			await this.saveUserDetails(event);
-			ResponseBuilder.ok<SignupSuccessResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback, 'Unable to save user details');
+			return ResponseBuilder.internalServerError(err, 'Unable to save user details');
 		}
 	}
 

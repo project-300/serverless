@@ -5,7 +5,7 @@ import { USER_TABLE } from '../../constants/tables';
 import { UpdateResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { CognitoLoginResponse, LoginResult } from './login.interfaces';
-import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
+import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import UpdateItemOutput = DocumentClient.UpdateItemOutput;
 
@@ -15,7 +15,7 @@ export class LoginController {
 		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
 	);
 
-	public login: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public login: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: LoginResult = {
 			success: true
 		};
@@ -23,9 +23,9 @@ export class LoginController {
 		try {
 			const response: UpdateItemOutput = await this._saveCognitoData(event);
 			result.userId = response.Attributes.userId;
-			ResponseBuilder.ok<LoginResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback);
+			return ResponseBuilder.internalServerError(err);
 		}
 	}
 

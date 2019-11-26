@@ -12,7 +12,7 @@ import {
 	DriverApplicationDeleteResult,
 	DriverApplicationsSubscriptionResult
 } from './driver-applications.interfaces';
-import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../../responses/api.types';
+import { ApiEvent, ApiHandler, ApiResponse } from '../../../responses/api.types';
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import ScanInput = DocumentClient.ScanInput;
 import DeleteItemInput = DocumentClient.DeleteItemInput;
@@ -24,7 +24,7 @@ export class DriverApplicationController {
 		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
 	);
 
-	public getApplications: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public getApplications: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: DriverApplicationsSubscriptionResult = {
 			success: true
 		};
@@ -45,9 +45,9 @@ export class DriverApplicationController {
 				await SubManager.unsubscribe(body.subscription, event.requestContext.connectionId);
 			}
 
-			ResponseBuilder.ok<DriverApplicationsSubscriptionResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback);
+			return ResponseBuilder.internalServerError(err);
 		}
 	}
 
@@ -59,7 +59,7 @@ export class DriverApplicationController {
 		return this.dynamo.scan(params).promise();
 	}
 
-	public approveApplication: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public approveApplication: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: DriverApplicationApprovalResult = {
 			success: true
 		};
@@ -72,9 +72,9 @@ export class DriverApplicationController {
 			const updatedApplication: GetResult = await this._retrieveApplication(userId);
 			await PubManager.publishUpdate('admin/driver-applications', DRIVER_APPLICATION_INDEX, updatedApplication.Item);
 
-			ResponseBuilder.ok<DriverApplicationApprovalResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback, err.message);
+			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}
 
@@ -124,7 +124,7 @@ export class DriverApplicationController {
 		return this.dynamo.update(params).promise();
 	}
 
-	public deleteApplication: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public deleteApplication: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: DriverApplicationDeleteResult = {
 			success: true
 		};
@@ -134,9 +134,9 @@ export class DriverApplicationController {
 		try {
 			await this._deleteApplication(userId);
 			await PubManager.publishDelete('admin/driver-applications', DRIVER_APPLICATION_INDEX, userId);
-			ResponseBuilder.ok<DriverApplicationApprovalResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback, err.message);
+			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}
 

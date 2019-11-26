@@ -7,7 +7,7 @@ import { CONNECTION_IDS_TABLE } from '../constants/tables';
 import { ResponseBuilder } from '../responses/response-builder';
 import { ConnectionItem, ConnectResult } from './connect.interfaces';
 import { PutResult, ScanResult, ScanResultPromise } from '../responses/dynamodb.types';
-import { ApiCallback, ApiContext, ApiEvent, ApiHandler, WsPostResult } from '../responses/api.types';
+import { ApiEvent, ApiHandler, ApiResponse, WsPostResult } from '../responses/api.types';
 import PutItemInput = DocumentClient.PutItemInput;
 
 export class ConnectController {
@@ -16,7 +16,7 @@ export class ConnectController {
 		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
 	);
 
-	public connect: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public connect: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: ConnectResult = {
 			success: true
 		};
@@ -24,9 +24,9 @@ export class ConnectController {
 		try {
 			await this._addConnection(event.requestContext.connectionId);
 			await this._alertUsers(event);
-			ResponseBuilder.ok<ConnectResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback);
+			return ResponseBuilder.internalServerError(err);
 		}
 	}
 

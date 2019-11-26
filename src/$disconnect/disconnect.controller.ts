@@ -5,7 +5,7 @@ import { CONNECTION_IDS_TABLE } from '../constants/tables';
 import { DeleteResult } from '../responses/dynamodb.types';
 import { ResponseBuilder } from '../responses/response-builder';
 import { DisconnectResult } from './disconnect.interfaces';
-import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../responses/api.types';
+import { ApiEvent, ApiHandler, ApiResponse } from '../responses/api.types';
 import DeleteItemInput = DocumentClient.DeleteItemInput;
 
 export class DisconnectController {
@@ -14,16 +14,16 @@ export class DisconnectController {
 		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
 	);
 
-	public disconnect: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public disconnect: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: DisconnectResult = {
 			success: true
 		};
 
 		try {
 			await this._deleteConnection(event.requestContext.connectionId);
-			ResponseBuilder.ok<DisconnectResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback);
+			return ResponseBuilder.internalServerError(err);
 		}
 	}
 

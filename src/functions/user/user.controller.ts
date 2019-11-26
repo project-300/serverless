@@ -5,7 +5,7 @@ import { USERS_INDEX } from '../../constants/indexes';
 import { USER_TABLE } from '../../constants/tables';
 import PubManager from '../../pubsub/publication';
 import SubManager from '../../pubsub/subscription';
-import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
+import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 import { GetResult, GetResultPromise, UpdateResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { GetUserSuccessResult, UpdateAvatarSuccessResult, UpdateFieldSuccessResult } from './user.interfaces';
@@ -25,7 +25,7 @@ export class UserController {
 		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
 	);
 
-	public getUser: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public getUser: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: GetUserSuccessResult = {
 			success: true
 		};
@@ -46,9 +46,9 @@ export class UserController {
 				await SubManager.unsubscribe(body.subscription, event.requestContext.connectionId);
 			}
 
-			ResponseBuilder.ok<GetUserSuccessResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback, 'Unable to subscribe to User Profile');
+			return ResponseBuilder.internalServerError(err, 'Unable to subscribe to User Profile');
 		}
 	}
 
@@ -63,7 +63,7 @@ export class UserController {
 		return this.dynamo.get(params).promise();
 	}
 
-	public updateUserField: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback) => {
+	public updateUserField: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: UpdateFieldSuccessResult = {
 			success: true
 		};
@@ -72,7 +72,7 @@ export class UserController {
 		const { userId, email, firstName, lastName }: HTTPRequest = body;
 
 		if (email && !EmailValidator.validate(email))
-			return ResponseBuilder.internalServerError(Error('Invalid Email'), callback, 'Unable to update email address');
+			return ResponseBuilder.internalServerError(Error('Invalid Email'), 'Unable to update email address');
 
 		try {
 			if (email) await this._updateEmail(userId, email);
@@ -82,9 +82,9 @@ export class UserController {
 			const res: GetResult = await this._getUser(userId);
 			await PubManager.publishUpdate('user/profile', 'userId', res.Item);
 
-			ResponseBuilder.ok<UpdateFieldSuccessResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback, 'Unable to update email address');
+			return ResponseBuilder.internalServerError(err, 'Unable to update email address');
 		}
 	}
 
@@ -136,7 +136,7 @@ export class UserController {
 		return this.dynamo.update(params).promise();
 	}
 
-	public updateAvatar: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback) => {
+	public updateAvatar: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: UpdateAvatarSuccessResult = {
 			success: true
 		};
@@ -149,9 +149,9 @@ export class UserController {
 			const res: GetResult = await this._getUser(userId);
 			await PubManager.publishUpdate('user/profile', 'userId', res.Item);
 
-			ResponseBuilder.ok<UpdateAvatarSuccessResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback, 'Unable to update avatar');
+			return ResponseBuilder.internalServerError(err, 'Unable to update avatar');
 		}
 	}
 

@@ -5,7 +5,7 @@ import { USER_TABLE } from '../../constants/tables';
 import { GetResult, GetResultPromise, UpdateResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { ConfirmationData, ConfirmationResult } from './confirmation.interfaces';
-import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
+import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import GetItemInput = DocumentClient.GetItemInput;
 
@@ -15,7 +15,7 @@ export class ConfirmationController {
 		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
 	);
 
-	public confirmAccount: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public confirmAccount: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: ConfirmationResult = {
 			success: true
 		};
@@ -24,11 +24,11 @@ export class ConfirmationController {
 
 		try {
 			const email: GetResult = await this._getUnconfirmedEmail(data.userId);
-			if (!email.Item) ResponseBuilder.notFound('User not found', 'User not found', callback);
+			if (!email.Item) ResponseBuilder.notFound('User not found', 'User not found');
 			await this._updateConfirmation(data.userId, email.Item.unconfirmedEmail);
-			ResponseBuilder.ok<ConfirmationResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback);
+			return ResponseBuilder.internalServerError(err);
 		}
 	}
 

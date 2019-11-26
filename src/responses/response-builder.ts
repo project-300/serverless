@@ -1,55 +1,57 @@
 import { ErrorCode } from './error-codes';
 import { HttpStatusCode } from './http-status-codes';
-import { ApiCallback, ApiResponse, ErrorResponseBody } from './api.types';
-import { BadRequestResult, ConfigurationErrorResult, ErrorResult,
-	ForbiddenResult, InternalServerErrorResult, NotFoundResult } from './errors';
+import { ApiResponse } from './api.types';
+import {
+	BadRequestResult,
+	ConfigurationErrorResult,
+	ErrorResult,
+	ForbiddenResult,
+	InternalServerErrorResult,
+	NotFoundResult
+} from './errors';
 
 export class ResponseBuilder {
 
-	public static badRequest(code: string, description: string, callback: ApiCallback): void {
+	public static badRequest = (code: string, description: string): ApiResponse => {
 		const errorResult: BadRequestResult = new BadRequestResult(code, description);
-		ResponseBuilder._returnAs<BadRequestResult>(errorResult, HttpStatusCode.BadRequest, callback);
+		return ResponseBuilder.createResponse(HttpStatusCode.BadRequest, errorResult);
 	}
 
-	public static configurationError(code: string, description: string, callback: ApiCallback): void {
+	public static configurationError = (code: string, description: string): ApiResponse => {
 		const errorResult: ConfigurationErrorResult = new ConfigurationErrorResult(code, description);
-		ResponseBuilder._returnAs<ConfigurationErrorResult>(errorResult, HttpStatusCode.ConfigurationError, callback);
+		return ResponseBuilder.createResponse(HttpStatusCode.ConfigurationError, errorResult);
 	}
 
-	public static forbidden(code: string, description: string, callback: ApiCallback): void {
+	public static forbidden = (code: string, description: string): ApiResponse => {
 		const errorResult: ForbiddenResult = new ForbiddenResult(code, description);
-		ResponseBuilder._returnAs<ForbiddenResult>(errorResult, HttpStatusCode.Forbidden, callback);
+		return ResponseBuilder.createResponse(HttpStatusCode.Forbidden, errorResult);
 	}
 
-	public static internalServerError(error: Error, callback: ApiCallback, description?: string): void {
+	public static internalServerError = (error: Error, description?: string): ApiResponse => {
 		const errorResult: InternalServerErrorResult =
 			new InternalServerErrorResult(ErrorCode.GeneralError, description || 'Internal Server Error');
-		ResponseBuilder._returnAs<InternalServerErrorResult>(errorResult, HttpStatusCode.InternalServerError, callback);
+		return ResponseBuilder.createResponse(HttpStatusCode.InternalServerError, errorResult);
 	}
 
-	public static notFound(code: string, description: string, callback: ApiCallback): void {
+	public static notFound = (code: string, description: string): ApiResponse => {
 		const errorResult: NotFoundResult = new NotFoundResult(code, description);
-		ResponseBuilder._returnAs<NotFoundResult>(errorResult, HttpStatusCode.NotFound, callback);
+		return ResponseBuilder.createResponse(HttpStatusCode.NotFound, errorResult);
 	}
 
-	public static ok<T>(result: T, callback: ApiCallback): void {
-		ResponseBuilder._returnAs<T>(result, HttpStatusCode.Ok, callback);
-	}
+	public static ok = (result: any): ApiResponse => ResponseBuilder.createResponse(HttpStatusCode.Ok, result);
 
-	private static _returnAs<T>(result: T, statusCode: number, callback: ApiCallback): void {
-		const bodyObject: ErrorResponseBody | T = result instanceof ErrorResult
-			? { error: result, success: false }
-			: result;
+	private static createResponse = (statusCode: number, obj: ErrorResult | any): ApiResponse => {
+		const bodyObject: any = obj instanceof ErrorResult
+			? { error: obj, success: false }
+			: obj;
 
-		const response: ApiResponse = {
+		return {
+			statusCode,
 			body: JSON.stringify(bodyObject),
 			headers: {
-				'Access-Control-Allow-Origin': '*'  // This is required to make CORS work with AWS API Gateway Proxy Integration.
-			},
-			statusCode
+				'Access-Control-Allow-Origin': '*'
+			}
 		};
-
-		callback(undefined, response);
 	}
 
 }

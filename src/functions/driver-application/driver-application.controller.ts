@@ -6,7 +6,7 @@ import PubManager from '../../pubsub/publication';
 import { GetResult, GetResultPromise, PutResult, QueryResult, QueryResultPromise } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { DriverApplicationResult, DriverApplicationCheckResult } from './driver-application.interfaces';
-import { ApiCallback, ApiContext, ApiEvent, ApiHandler } from '../../responses/api.types';
+import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 import PutItemInput = DocumentClient.PutItemInput;
 import QueryInput = DocumentClient.QueryInput;
 import GetItemInput = DocumentClient.GetItemInput;
@@ -17,7 +17,7 @@ export class DriverApplicationController {
 		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
 	);
 
-	public check: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public check: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		try {
 			const userId: string = JSON.parse(event.body).userId;
 			const response: QueryResult = await this._checkForPreviousApplication(userId);
@@ -27,13 +27,13 @@ export class DriverApplicationController {
 				alreadyApplied: !!response.Count
 			};
 
-			ResponseBuilder.ok<DriverApplicationResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback, err.message);
+			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}
 
-	public apply: ApiHandler = async (event: ApiEvent, context: ApiContext, callback: ApiCallback): Promise<void> => {
+	public apply: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: DriverApplicationResult = {
 			success: true
 		};
@@ -50,9 +50,9 @@ export class DriverApplicationController {
 
 			result.newApplication = newApplication;
 
-			ResponseBuilder.ok<DriverApplicationResult>(result, callback);
+			return ResponseBuilder.ok(result);
 		} catch (err) {
-			ResponseBuilder.internalServerError(err, callback, err.message);
+			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}
 
