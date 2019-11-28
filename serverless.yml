@@ -13,17 +13,17 @@ provider:
   stage: dev
   tags:
     project: project300
-  environment:
-    DYNAMODB_USER_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Users
-
-custom:
-  dynamodb:
-    stages:
-      - dev
-    start:
-      port: 8000
-      inMemory: true
-      migrate: true
+#  environment:
+#    DYNAMODB_USER_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Users
+#
+#custom:
+#  dynamodb:
+#    stages:
+#      - dev
+#    start:
+#      port: 8000
+#      inMemory: true
+#      migrate: true
 
   iamRoleStatements:
     - Effect: Allow
@@ -139,6 +139,13 @@ functions:
           path: /aws/s3-key
           method: post
           cors: true
+  myJourneysHandler:
+    handler: src/functions/driver/journeys/journeys.myJourneysHandler
+    events:
+      - http:
+          path: /driver/my-journeys
+          method: post
+          cors: true
 
 resources:
   Resources:
@@ -186,6 +193,17 @@ resources:
             KeyType: "HASH"
         BillingMode: PAY_PER_REQUEST
         TableName: P300-DRIVER-APPLICATIONS
+    JourneyTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: "journeyId"
+            AttributeType: "S"
+        KeySchema:
+          - AttributeName: "journeyId"
+            KeyType: "HASH"
+        BillingMode: PAY_PER_REQUEST
+        TableName: P300-JOURNEYS
     SubscriptionTable:
       Type: "AWS::DynamoDB::Table"
       Properties:

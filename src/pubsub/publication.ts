@@ -30,7 +30,7 @@ class PublicationManager {
 		this._sendToConnections(connectionIds, sub, PublishType.UPDATE, objectId, data, false);
 	}
 
-	public publishDelete = async (sub: string, objectId: string, data: string | string[]): Promise<void> => {
+	public publishDelete = async (sub: string, objectId: string, data: string): Promise<void> => {
 		const connectionIds: string[] = await this._getConnectionIds(sub);
 		this._sendToConnections(connectionIds, sub, PublishType.DELETE, objectId, data, false);
 	}
