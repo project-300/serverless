@@ -21,3 +21,65 @@ If you are running the API offline, to allow websockets to work, you need to hav
 ```
     sls offline start
 ```
+
+```
+{
+    journeyId: 'journey123',
+    driver: {
+        userId: 'user212',
+        username: 'james',
+        firstName: 'James',
+        lastName: 'test',
+        userType: 'Driver'
+    },
+    passengers: [],
+    times: {
+        createdAt: '2019-11-18T00:36:31.155Z',
+        leavingAt: '2019-12-25T18:00:00.000Z',
+        estimatedArrival: '2019-12-25T20:00:00.000Z'
+    },
+    destination: {
+        lat: '54.269077',
+        long: '-8.475793',
+        name: 'Sligo',
+    },
+    origin: {
+        lat: '53.282509',
+        long: '-9.043263',
+        name: 'Galway'
+    },
+    totalNoOfSeats: 3,
+    seatsLeft: 3,
+    pricePerSeat: 21
+}
+
+{
+        journeyId: 'journey155',
+        driver: {
+            userId: 'user212',
+            username: 'james',
+            firstName: 'James',
+            lastName: 'test',
+            userType: 'Driver'
+        },
+        passengers: [],
+        times: {
+            createdAt: '2019-11-18T00:51:31.155Z',
+            leavingAt: '2019-12-31T12:00:00.000Z',
+            estimatedArrival: '2019-12-31T14:15:00.000Z'
+        },
+        origin: {
+            lat: '54.269077',
+            long: '-8.475793',
+            name: 'Sligo',
+        },
+        destination: {
+            lat: '53.282509',
+            long: '-9.043263',
+            name: 'Galway'
+        },
+        totalNoOfSeats: 2,
+        seatsLeft: 2,
+        pricePerSeat: 17
+    }
+```

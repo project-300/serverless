@@ -146,6 +146,13 @@ functions:
           path: /driver/my-journeys
           method: post
           cors: true
+  journeyDetailsHandler:
+    handler: src/functions/driver/journeys/journeys.journeyDetailsHandler
+    events:
+      - http:
+          path: /journey/get-details
+          method: post
+          cors: true
 
 resources:
   Resources:
