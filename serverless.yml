@@ -160,6 +160,13 @@ functions:
           path: /journey/start
           method: post
           cors: true
+  endJourneyHandler:
+    handler: src/functions/driver/journeys/journeys.endJourneyHandler
+    events:
+      - http:
+          path: /journey/end
+          method: post
+          cors: true
 
 resources:
   Resources:

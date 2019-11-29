@@ -42,14 +42,23 @@ export class JourneyController {
 	public startJourney: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const data: JourneyDetailsData = JSON.parse(event.body);
 
-		console.log(data);
-
 		try {
-			const response: UpdateItemOutput = await this._startJourney(data.journeyId);
+			const response: UpdateItemOutput = await this._changeJourneyStatus(data.journeyId, 'STARTED');
 
 			return ResponseBuilder.ok({ success: true, response });
 		} catch (err) {
-			console.log(err);
+			return ResponseBuilder.internalServerError(err);
+		}
+	}
+
+	public endJourney: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		const data: JourneyDetailsData = JSON.parse(event.body);
+
+		try {
+			const response: UpdateItemOutput = await this._changeJourneyStatus(data.journeyId, 'FINISHED');
+
+			return ResponseBuilder.ok({ success: true, response });
+		} catch (err) {
 			return ResponseBuilder.internalServerError(err);
 		}
 	}
@@ -81,7 +90,7 @@ export class JourneyController {
 		return this.dynamo.get(params).promise();
 	}
 
-	private _startJourney = (journeyId: string): Promise<UpdateItemOutput> => {
+	private _changeJourneyStatus = (journeyId: string, status: string): Promise<UpdateItemOutput> => {
 		const params: UpdateItemInput = {
 			TableName: JOURNEY_TABLE,
 			Key: {
@@ -89,7 +98,7 @@ export class JourneyController {
 			},
 			UpdateExpression: 'SET journeyStatus = :status',
 			ExpressionAttributeValues: {
-				':status': 'STARTED'
+				':status': status
 			},
 			ReturnValues: 'UPDATED_NEW'
 		};
