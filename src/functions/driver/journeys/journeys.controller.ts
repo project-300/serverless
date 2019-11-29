@@ -8,6 +8,8 @@ import { JourneyDetailsData, MyJourneysData } from './journeys.interfaces';
 import { JOURNEY_INDEX } from '../../../constants/indexes';
 import ScanInput = DocumentClient.ScanInput;
 import GetItemInput = DocumentClient.GetItemInput;
+import UpdateItemInput = DocumentClient.UpdateItemInput;
+import UpdateItemOutput = DocumentClient.UpdateItemOutput;
 
 export class JourneyController {
 
@@ -37,6 +39,21 @@ export class JourneyController {
 		}
 	}
 
+	public startJourney: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		const data: JourneyDetailsData = JSON.parse(event.body);
+
+		console.log(data);
+
+		try {
+			const response: UpdateItemOutput = await this._startJourney(data.journeyId);
+
+			return ResponseBuilder.ok({ success: true, response });
+		} catch (err) {
+			console.log(err);
+			return ResponseBuilder.internalServerError(err);
+		}
+	}
+
 	private _getMyJourneys = (userId: string): GetResultPromise => {
 		const params: ScanInput = {
 			TableName: JOURNEY_TABLE,
@@ -62,6 +79,22 @@ export class JourneyController {
 		};
 
 		return this.dynamo.get(params).promise();
+	}
+
+	private _startJourney = (journeyId: string): Promise<UpdateItemOutput> => {
+		const params: UpdateItemInput = {
+			TableName: JOURNEY_TABLE,
+			Key: {
+				[JOURNEY_INDEX]: journeyId
+			},
+			UpdateExpression: 'SET journeyStatus = :status',
+			ExpressionAttributeValues: {
+				':status': 'STARTED'
+			},
+			ReturnValues: 'UPDATED_NEW'
+		};
+
+		return this.dynamo.update(params).promise();
 	}
 
 }
