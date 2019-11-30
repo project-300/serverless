@@ -4,12 +4,14 @@ import { ResponseBuilder } from '../../../responses/response-builder';
 import { ApiEvent, ApiHandler, ApiResponse } from '../../../responses/api.types';
 import { GetResult, GetResultPromise, ScanResult } from '../../../responses/dynamodb.types';
 import { JOURNEY_TABLE } from '../../../constants/tables';
-import { JourneyDetailsData, MyJourneysData } from './journeys.interfaces';
+import { DriverMovementData, JourneyDetailsData, MyJourneysData } from './journeys.interfaces';
 import { JOURNEY_INDEX } from '../../../constants/indexes';
 import ScanInput = DocumentClient.ScanInput;
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import UpdateItemOutput = DocumentClient.UpdateItemOutput;
+import { Coords, Journey } from '@project-300/common-types';
+import _ from 'lodash';
 
 export class JourneyController {
 
@@ -20,8 +22,16 @@ export class JourneyController {
 
 		try {
 			const response: ScanResult = await this._getMyJourneys(data.userId);
+			const allJourneys: Journey[] = response.Items as Journey[];
 
-			return ResponseBuilder.ok({ success: true, journeys: response.Items });
+			const journeys: { current: Journey[]; previous: Journey[] } = _.reduce(allJourneys,
+				(journeyMemo: { previous: Journey[]; current: Journey[] }, journey: Journey) => {
+					if (journey.journeyStatus === 'FINISHED') journeyMemo.previous.push(journey);
+					else journeyMemo.current.push(journey);
+					return journeyMemo;
+			}, { previous: [], current: [] });
+
+			return ResponseBuilder.ok({ success: true, journeys });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err);
 		}
@@ -43,9 +53,9 @@ export class JourneyController {
 		const data: JourneyDetailsData = JSON.parse(event.body);
 
 		try {
-			const response: UpdateItemOutput = await this._changeJourneyStatus(data.journeyId, 'STARTED');
+			const response: UpdateItemOutput = await this._startJourney(data.journeyId);
 
-			return ResponseBuilder.ok({ success: true, response });
+			return ResponseBuilder.ok({ success: true, journey: response.Attributes });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err);
 		}
@@ -55,10 +65,23 @@ export class JourneyController {
 		const data: JourneyDetailsData = JSON.parse(event.body);
 
 		try {
-			const response: UpdateItemOutput = await this._changeJourneyStatus(data.journeyId, 'FINISHED');
+			const response: UpdateItemOutput = await this._endJourney(data.journeyId);
 
-			return ResponseBuilder.ok({ success: true, response });
+			return ResponseBuilder.ok({ success: true, journey: response.Attributes });
 		} catch (err) {
+			return ResponseBuilder.internalServerError(err);
+		}
+	}
+
+	public driverMovement: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		const data: DriverMovementData = JSON.parse(event.body);
+
+		try {
+			const response: UpdateItemOutput = await this._addDriverMovement(data.journeyId, data.coords);
+
+			return ResponseBuilder.ok({ success: true, journey: response.Attributes });
+		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err);
 		}
 	}
@@ -66,6 +89,7 @@ export class JourneyController {
 	private _getMyJourneys = (userId: string): GetResultPromise => {
 		const params: ScanInput = {
 			TableName: JOURNEY_TABLE,
+			ProjectionExpression: 'journeyId, journeyStatus, passengers, times, destination, origin, totalNoOfSeats, seatsLeft, pricePerSeat',
 			FilterExpression: '#d.#u = :userId',
 			ExpressionAttributeNames: {
 				'#d': 'driver',
@@ -90,17 +114,52 @@ export class JourneyController {
 		return this.dynamo.get(params).promise();
 	}
 
-	private _changeJourneyStatus = (journeyId: string, status: string): Promise<UpdateItemOutput> => {
+	private _startJourney = (journeyId: string): Promise<UpdateItemOutput> => {
 		const params: UpdateItemInput = {
 			TableName: JOURNEY_TABLE,
 			Key: {
 				[JOURNEY_INDEX]: journeyId
 			},
-			UpdateExpression: 'SET journeyStatus = :status',
+			UpdateExpression: 'SET journeyStatus = :status, times.started = :now, times.updatedAt = :now',
 			ExpressionAttributeValues: {
-				':status': status
+				':status': 'STARTED',
+				':now': new Date().toISOString()
 			},
-			ReturnValues: 'UPDATED_NEW'
+			ReturnValues: 'ALL_NEW'
+		};
+
+		return this.dynamo.update(params).promise();
+	}
+
+	private _endJourney = (journeyId: string): Promise<UpdateItemOutput> => {
+		const params: UpdateItemInput = {
+			TableName: JOURNEY_TABLE,
+			Key: {
+				[JOURNEY_INDEX]: journeyId
+			},
+			UpdateExpression: 'SET journeyStatus = :status, times.finished = :now, times.updatedAt = :now',
+			ExpressionAttributeValues: {
+				':status': 'FINISHED',
+				':now': new Date().toISOString()
+			},
+			ReturnValues: 'ALL_NEW'
+		};
+
+		return this.dynamo.update(params).promise();
+	}
+
+	private _addDriverMovement = (journeyId: string, coords: Coords): Promise<UpdateItemOutput> => {
+		const params: UpdateItemInput = {
+			TableName: JOURNEY_TABLE,
+			Key: {
+				[JOURNEY_INDEX]: journeyId
+			},
+			UpdateExpression: 'SET routeTravelled = list_append(routeTravelled, :c), times.updatedAt = :now',
+			ExpressionAttributeValues: {
+				':c': [ coords ],
+				':now': new Date().toISOString()
+			},
+			ReturnValues: 'ALL_NEW'
 		};
 
 		return this.dynamo.update(params).promise();

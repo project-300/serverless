@@ -7,3 +7,4 @@ export const myJourneysHandler: ApiHandler = controller.myJourneys;
 export const journeyDetailsHandler: ApiHandler = controller.getJourneyDetails;
 export const startJourneyHandler: ApiHandler = controller.startJourney;
 export const endJourneyHandler: ApiHandler = controller.endJourney;
+export const driverMovementHandler: ApiHandler = controller.driverMovement;

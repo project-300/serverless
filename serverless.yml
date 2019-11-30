@@ -167,6 +167,13 @@ functions:
           path: /journey/end
           method: post
           cors: true
+  driverMovementHandler:
+    handler: src/functions/driver/journeys/journeys.driverMovementHandler
+    events:
+      - http:
+          path: /journey/driver-movement
+          method: post
+          cors: true
 
 resources:
   Resources:
