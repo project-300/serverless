@@ -139,11 +139,18 @@ functions:
           path: /aws/s3-key
           method: post
           cors: true
-  myJourneysHandler:
-    handler: src/functions/driver/journeys/journeys.myJourneysHandler
+  driverJourneysHandler:
+    handler: src/functions/driver/journeys/journeys.driverJourneysHandler
     events:
       - http:
-          path: /driver/my-journeys
+          path: /driver/journeys
+          method: post
+          cors: true
+  passengerJourneysHandler:
+    handler: src/functions/driver/journeys/journeys.passengerJourneysHandler
+    events:
+      - http:
+          path: /passenger/journeys
           method: post
           cors: true
   journeyDetailsHandler:

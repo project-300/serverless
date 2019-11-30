@@ -4,7 +4,7 @@ import { USERS_INDEX } from '../../constants/indexes';
 import { USER_TABLE } from '../../constants/tables';
 import { UpdateResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
-import { CognitoLoginResponse, LoginResult } from './login.interfaces';
+import { CognitoLoginResponse } from './login.interfaces';
 import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import UpdateItemOutput = DocumentClient.UpdateItemOutput;
@@ -16,14 +16,10 @@ export class LoginController {
 	);
 
 	public login: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
-		const result: LoginResult = {
-			success: true
-		};
-
 		try {
 			const response: UpdateItemOutput = await this._saveCognitoData(event);
-			result.userId = response.Attributes.userId;
-			return ResponseBuilder.ok(result);
+
+			return ResponseBuilder.ok({ success: true, userId: response.Attributes.userId, userType: response.Attributes.userType });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err);
 		}
