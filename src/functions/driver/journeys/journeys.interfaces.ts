@@ -12,3 +12,9 @@ export interface DriverMovementData {
 	journeyId: string;
 	coords: Coords;
 }
+
+export interface DriverSubscriptionData {
+	subscription: string;
+	subscribe: boolean;
+	journeyId: string;
+}

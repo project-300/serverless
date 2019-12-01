@@ -4,14 +4,16 @@ import { ResponseBuilder } from '../../../responses/response-builder';
 import { ApiEvent, ApiHandler, ApiResponse } from '../../../responses/api.types';
 import { GetResult, GetResultPromise, QueryResult, ScanResult, ScanResultPromise } from '../../../responses/dynamodb.types';
 import { JOURNEY_TABLE, USER_TABLE } from '../../../constants/tables';
-import { DriverMovementData, JourneyDetailsData, MyJourneysData } from './journeys.interfaces';
+import { DriverMovementData, DriverSubscriptionData, JourneyDetailsData, MyJourneysData } from './journeys.interfaces';
 import { JOURNEY_INDEX, USERS_INDEX } from '../../../constants/indexes';
 import ScanInput = DocumentClient.ScanInput;
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import UpdateItemOutput = DocumentClient.UpdateItemOutput;
-import { Coords, Journey, Passenger } from '@project-300/common-types';
+import { CollectionItem, Coords, Journey, Passenger } from '@project-300/common-types';
 import _ from 'lodash';
+import SubManager from '../../../pubsub/subscription';
+import PubManager from '../../../pubsub/publication';
 
 export class JourneyController {
 
@@ -42,7 +44,7 @@ export class JourneyController {
 
 		try {
 			const journeyIds: string[] = await this._getPassengerJourneyIds(data.userId);
-			console.log(journeyIds);
+
 			if (!journeyIds || !journeyIds.length) return ResponseBuilder.ok({
 				success: true,
 					journeys: {
@@ -52,7 +54,6 @@ export class JourneyController {
 				journeyCount: 0
 			});
 
-			console.log('has ids');
 			const response: QueryResult = await this._getPassengerJourneys(journeyIds);
 			const allJourneys: Journey[] = response.Items as Journey[];
 
@@ -63,11 +64,8 @@ export class JourneyController {
 					return journeyMemo;
 			}, { previous: [], current: [] });
 
-			console.log('done');
-
 			return ResponseBuilder.ok({ success: true, journeys, journeyCount: allJourneys.length });
 		} catch (err) {
-			console.log(err);
 			return ResponseBuilder.internalServerError(err);
 		}
 	}
@@ -113,8 +111,32 @@ export class JourneyController {
 
 		try {
 			const response: UpdateItemOutput = await this._addDriverMovement(data.journeyId, data.coords);
+			await PubManager.publishInsert(`journey/driver-location/#${data.journeyId}`, JOURNEY_INDEX,
+				{ journeyId: data.journeyId, location: data.coords } as CollectionItem);
 
 			return ResponseBuilder.ok({ success: true, journey: response.Attributes });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err);
+		}
+	}
+
+	public subscribeDriverLocation: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		const data: DriverSubscriptionData = JSON.parse(event.body);
+
+		try {
+			if (data.subscribe) {
+				await SubManager.subscribe(
+					event,
+					data.subscription,
+					JOURNEY_INDEX,
+					undefined,
+					false
+				);
+			} else {
+				await SubManager.unsubscribe(data.subscription, event.requestContext.connectionId);
+			}
+
+			return ResponseBuilder.ok({ success: true });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err);
 		}
@@ -154,7 +176,7 @@ export class JourneyController {
 	private _getPassengerJourneys = (journeyIds: string[]): ScanResultPromise => {
 		const keysObj: object = { };
 		let index: number = 0;
-		console.log(journeyIds);
+
 		journeyIds.forEach((id: string) => {
 			index += 1;
 			const titleKey: string = ':idVal' + index;
@@ -224,7 +246,7 @@ export class JourneyController {
 			Key: {
 				[JOURNEY_INDEX]: journeyId
 			},
-			UpdateExpression: 'SET routeTravelled = list_append(routeTravelled, :c), times.updatedAt = :now',
+			UpdateExpression: 'SET routeTravelled = list_append(routeTravelled, :c), driver.lastLocation = :c, times.updatedAt = :now',
 			ExpressionAttributeValues: {
 				':c': [ coords ],
 				':now': new Date().toISOString()

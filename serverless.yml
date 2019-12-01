@@ -181,6 +181,11 @@ functions:
           path: /journey/driver-movement
           method: post
           cors: true
+  driverLocationSubscriptionHandler:
+    handler: src/functions/driver/journeys/journeys.driverLocationSubscriptionHandler
+    events:
+      - websocket:
+          route: journey/driver-location
 
 resources:
   Resources:
