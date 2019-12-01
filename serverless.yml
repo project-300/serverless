@@ -13,35 +13,35 @@ provider:
   stage: dev
   tags:
     project: project300
-#  environment:
-#    DYNAMODB_USER_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Users
-#
-#custom:
-#  dynamodb:
-#    stages:
-#      - dev
-#    start:
-#      port: 8000
-#      inMemory: true
-#      migrate: true
+  #  environment:
+  #    DYNAMODB_USER_TABLE: ${self:service}-${opt:stage, self:provider.stage}-Users
+  #
+  #custom:
+  #  dynamodb:
+  #    stages:
+  #      - dev
+  #    start:
+  #      port: 8000
+  #      inMemory: true
+  #      migrate: true
 
   iamRoleStatements:
     - Effect: Allow
       Action:
-        - "dynamodb:Query"
-        - "dynamodb:Scan"
-        - "dynamodb:PutItem"
-        - "dynamodb:GetItem"
-        - "dynamodb:DeleteItem"
-        - "dynamodb:UpdateItem"
-        - "dynamodb:Scan"
-        - "execute-api:Invoke"
-      Resource: "*"
+        - 'dynamodb:Query'
+        - 'dynamodb:Scan'
+        - 'dynamodb:PutItem'
+        - 'dynamodb:GetItem'
+        - 'dynamodb:DeleteItem'
+        - 'dynamodb:UpdateItem'
+        - 'dynamodb:Scan'
+        - 'execute-api:Invoke'
+      Resource: '*'
     - Effect: Allow
       Action:
-        - "execute-api:ManageConnections"
+        - 'execute-api:ManageConnections'
       Resource:
-        - "arn:aws:execute-api:*:*:**/@connections/*"
+        - 'arn:aws:execute-api:*:*:**/@connections/*'
 
 functions:
   connectHandler:
@@ -146,72 +146,79 @@ functions:
           path: /driver/my-journeys
           method: post
           cors: true
+  allJourneysHandler:
+    handler: src/functions/journey/journey.allJourneysHandler
+    events:
+      - http:
+          path: /all-journeys
+          method: get
+          cors: true
 
 resources:
   Resources:
     ConnectionTable:
-      Type: "AWS::DynamoDB::Table"
+      Type: 'AWS::DynamoDB::Table'
       Properties:
         AttributeDefinitions:
-          - AttributeName: "connectionId"
-            AttributeType: "S"
+          - AttributeName: 'connectionId'
+            AttributeType: 'S'
         KeySchema:
-          - AttributeName: "connectionId"
-            KeyType: "HASH"
+          - AttributeName: 'connectionId'
+            KeyType: 'HASH'
         BillingMode: PAY_PER_REQUEST
         TableName: ConnectionIds
     CognitoTable:
-      Type: "AWS::DynamoDB::Table"
+      Type: 'AWS::DynamoDB::Table'
       Properties:
         AttributeDefinitions:
-          - AttributeName: "cognitoId"
-            AttributeType: "S"
+          - AttributeName: 'cognitoId'
+            AttributeType: 'S'
         KeySchema:
-          - AttributeName: "cognitoId"
-            KeyType: "HASH"
+          - AttributeName: 'cognitoId'
+            KeyType: 'HASH'
         BillingMode: PAY_PER_REQUEST
         TableName: CognitoData
     UserTable:
-      Type: "AWS::DynamoDB::Table"
+      Type: 'AWS::DynamoDB::Table'
       Properties:
         AttributeDefinitions:
-          - AttributeName: "userId"
-            AttributeType: "S"
+          - AttributeName: 'userId'
+            AttributeType: 'S'
         KeySchema:
-          - AttributeName: "userId"
-            KeyType: "HASH"
+          - AttributeName: 'userId'
+            KeyType: 'HASH'
         BillingMode: PAY_PER_REQUEST
         TableName: P300-USERS
     DriverApplicationTable:
-      Type: "AWS::DynamoDB::Table"
+      Type: 'AWS::DynamoDB::Table'
       Properties:
         AttributeDefinitions:
-          - AttributeName: "userId"
-            AttributeType: "S"
+          - AttributeName: 'userId'
+            AttributeType: 'S'
         KeySchema:
-          - AttributeName: "userId"
-            KeyType: "HASH"
+          - AttributeName: 'userId'
+            KeyType: 'HASH'
         BillingMode: PAY_PER_REQUEST
         TableName: P300-DRIVER-APPLICATIONS
     JourneyTable:
-      Type: "AWS::DynamoDB::Table"
+      Type: 'AWS::DynamoDB::Table'
       Properties:
         AttributeDefinitions:
-          - AttributeName: "journeyId"
-            AttributeType: "S"
+          - AttributeName: 'journeyId'
+            AttributeType: 'S'
         KeySchema:
-          - AttributeName: "journeyId"
-            KeyType: "HASH"
+          - AttributeName: 'journeyId'
+            KeyType: 'HASH'
         BillingMode: PAY_PER_REQUEST
         TableName: P300-JOURNEYS
     SubscriptionTable:
-      Type: "AWS::DynamoDB::Table"
+      Type: 'AWS::DynamoDB::Table'
       Properties:
         AttributeDefinitions:
-          - AttributeName: "subscriptionName"
-            AttributeType: "S"
+          - AttributeName: 'subscriptionName'
+            AttributeType: 'S'
         KeySchema:
-          - AttributeName: "subscriptionName"
-            KeyType: "HASH"
+          - AttributeName: 'subscriptionName'
+            KeyType: 'HASH'
         BillingMode: PAY_PER_REQUEST
         TableName: P300-SUBSCRIPTIONS
