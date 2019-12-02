@@ -10,3 +10,4 @@ export const startJourneyHandler: ApiHandler = controller.startJourney;
 export const endJourneyHandler: ApiHandler = controller.endJourney;
 export const driverMovementHandler: ApiHandler = controller.driverMovement;
 export const driverLocationSubscriptionHandler: ApiHandler = controller.subscribeDriverLocation;
+export const cancelPassengerAcceptedJourneyHandler: ApiHandler = controller.cancelPassengerAcceptedJourney;

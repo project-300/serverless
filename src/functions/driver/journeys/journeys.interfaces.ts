@@ -8,6 +8,11 @@ export interface JourneyDetailsData {
 	journeyId: string;
 }
 
+export interface CancelPassengerAcceptedJourneyData {
+	journeyId: string;
+	userId: string;
+}
+
 export interface DriverMovementData {
 	journeyId: string;
 	coords: Coords;
