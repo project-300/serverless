@@ -9,8 +9,10 @@ import {
 import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 import ScanInput = DocumentClient.ScanInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
-import { JOURNEY_TABLE } from '../../constants/tables';
-import { JOURNEY_INDEX } from '../../constants/indexes';
+import GetItemInput = DocumentClient.GetItemInput;
+import { JOURNEY_TABLE, USER_TABLE } from '../../constants/tables';
+import { JOURNEY_INDEX, USERS_INDEX } from '../../constants/indexes';
+import { JourneyErrorChecks } from './journey.interfaces';
 
 export class JourneyController {
   private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
@@ -19,25 +21,22 @@ export class JourneyController {
     event: ApiEvent
   ): Promise<ApiResponse> => {
     const data = JSON.parse(event.body);
-
-    if (data.seatsLeft <= 0) {
-      return ResponseBuilder.internalServerError(
-        Error('No Seats Available'),
-        'Unable to update journey'
-      );
-    }
-
-    if (data.journey.driver.userId === data.userId) {
-      return ResponseBuilder.internalServerError(
-        Error('Driver cannot join own journey'),
-        'Unable to update journey'
-      );
-    }
+    const { userId, journey } = data;
 
     try {
-      await this._updateJourney(data.journey.journeyId, data.userId);
+      const isValid = await this._journeyErrorChecks(journey.journeyId, userId);
 
-      return ResponseBuilder.ok({ success: true });
+      if (isValid.result) {
+        await this._updateJourney(journey.journeyId, userId);
+        await this._updateJourneyAsPassenger(journey.journeyId, userId);
+
+        return ResponseBuilder.ok({ success: true });
+      }
+
+      return ResponseBuilder.internalServerError(
+        Error('Unable to update journey'),
+        isValid.errorDescription
+      );
     } catch (err) {
       return ResponseBuilder.internalServerError(
         err,
@@ -46,17 +45,81 @@ export class JourneyController {
     }
   };
 
-  private _updateJourney = (journeyId, userId): UpdateResult => {
+  private _journeyErrorChecks = async (
+    journeyId: string,
+    userId: string
+  ): Promise<JourneyErrorChecks> => {
+    try {
+      const { Item: journey } = await this._getJourney(journeyId);
+
+      if (journey.seatsLeft <= 0) {
+        return { result: false, errorDescription: 'No Seats Available' };
+      }
+
+      if (journey.driver.userId === userId) {
+        return {
+          result: false,
+          errorDescription: 'Driver cannot join own journey'
+        };
+      }
+
+      if (journey.passengers.includes(userId)) {
+        return {
+          result: false,
+          errorDescription: 'User is already a passenger'
+        };
+      }
+
+      return { result: true };
+    } catch (err) {
+      return {
+        result: false,
+        errorDescription: err.description
+      };
+    }
+  };
+
+  private _getJourney = (journeyId: string): GetResultPromise => {
+    const params: GetItemInput = {
+      TableName: JOURNEY_TABLE,
+      Key: {
+        [JOURNEY_INDEX]: journeyId
+      }
+    };
+
+    return this.dynamo.get(params).promise();
+  };
+
+  private _updateJourneyAsPassenger = (journeyId, userId): UpdateResult => {
+    const params: UpdateItemInput = {
+      TableName: USER_TABLE,
+      Key: {
+        [USERS_INDEX]: userId
+      },
+      UpdateExpression:
+        'set journeysAsPassenger = list_append(journeysAsPassenger, :journeyId)',
+      ExpressionAttributeValues: {
+        ':journeyId': [journeyId]
+      },
+      ReturnValues: 'UPDATED_NEW'
+    };
+    return this.dynamo.update(params).promise();
+  };
+
+  private _updateJourney = (
+    journeyId: string,
+    userId: string
+  ): UpdateResult => {
     const params: UpdateItemInput = {
       TableName: JOURNEY_TABLE,
       Key: {
         [JOURNEY_INDEX]: journeyId
       },
       UpdateExpression:
-        'set seatsLeft - :seat, passengers = list_append(passengers, :newPassenger)',
+        'set seatsLeft = seatsLeft - :seat, passengers = list_append(passengers, :newPassenger)',
       ExpressionAttributeValues: {
         ':seat': 1,
-        ':newPassenger': userId
+        ':newPassenger': [userId]
       },
       ReturnValues: 'UPDATED_NEW'
     };

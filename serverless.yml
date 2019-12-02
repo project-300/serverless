@@ -153,6 +153,13 @@ functions:
           path: /journeys/all
           method: get
           cors: true
+  userJoinedJourneyHandler:
+    handler: src/functions/journey/journey.userJoinedJourneyHandler
+    events:
+      - http:
+          path: /journeys/add-passenger
+          method: patch
+          cors: true
 
 resources:
   Resources:
