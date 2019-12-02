@@ -317,7 +317,10 @@ export class JourneyController {
 			Key: {
 				[JOURNEY_INDEX]: journeyId
 			},
-			UpdateExpression: `REMOVE passengers[${passengerIndex}]`,
+			UpdateExpression: `SET seatsLeft = seatsLeft + :inc REMOVE passengers[${passengerIndex}]`,
+			ExpressionAttributeValues: {
+				':inc': 1
+			},
 			ReturnValues: 'NONE'
 		};
 

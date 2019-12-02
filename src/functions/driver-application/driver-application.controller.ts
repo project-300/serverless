@@ -1,15 +1,16 @@
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { DRIVER_APPLICATION_INDEX } from '../../constants/indexes';
-import { DRIVER_APPLICATION_TABLE } from '../../constants/tables';
+import { DRIVER_APPLICATION_INDEX, USERS_INDEX } from '../../constants/indexes';
+import { DRIVER_APPLICATION_TABLE, USER_TABLE } from '../../constants/tables';
 import PubManager from '../../pubsub/publication';
-import { GetResult, GetResultPromise, PutResult, QueryResult, QueryResultPromise } from '../../responses/dynamodb.types';
+import { GetResult, GetResultPromise, PutResult, QueryResult, QueryResultPromise, UpdateResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { DriverApplicationResult, DriverApplicationCheckResult } from './driver-application.interfaces';
 import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 import PutItemInput = DocumentClient.PutItemInput;
 import QueryInput = DocumentClient.QueryInput;
 import GetItemInput = DocumentClient.GetItemInput;
+import UpdateItemInput = DocumentClient.UpdateItemInput;
 
 export class DriverApplicationController {
 
@@ -45,6 +46,7 @@ export class DriverApplicationController {
 			if (response.Count) throw Error('You have already made an application');
 
 			await this._createApplication(userId);
+			await this._updateUserType(userId); // ************ Temporarily auto approve application
 			const newApplication: GetResult = await this._retrieveApplication(userId);
 			await PubManager.publishInsert('admin/driver-applications', DRIVER_APPLICATION_INDEX, newApplication.Item);
 
@@ -94,6 +96,22 @@ export class DriverApplicationController {
 		};
 
 		return this.dynamo.get(params).promise();
+	}
+
+	private _updateUserType = (userId: string): UpdateResult => {
+		const params: UpdateItemInput = {
+			TableName: USER_TABLE,
+			Key: {
+				[USERS_INDEX]: userId
+			},
+			UpdateExpression: 'SET userType = :type',
+			ExpressionAttributeValues: {
+				':type': 'Driver'
+			},
+			ReturnValues: 'UPDATED_NEW'
+		};
+
+		return this.dynamo.update(params).promise();
 	}
 
 }
