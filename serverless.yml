@@ -150,7 +150,7 @@ functions:
     handler: src/functions/journey/journey.allJourneysHandler
     events:
       - http:
-          path: /all-journeys
+          path: /journeys/all
           method: get
           cors: true
 
