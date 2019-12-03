@@ -131,8 +131,9 @@ export class JourneyController {
   public allJourneys: ApiHandler = async (
     event: ApiEvent
   ): Promise<ApiResponse> => {
+    const userId = event.pathParameters.userId;
     try {
-      const response: ScanResult = await this._getAllJourneys();
+      const response: ScanResult = await this._getAllJourneys(userId);
       // const journeys = response.Items.sort(
       //   (a, b) => new Date(b.times.createdAt) - new Date(a.times.createdAt)
       // );
@@ -140,17 +141,20 @@ export class JourneyController {
 
       return ResponseBuilder.ok({ success: true, journeys });
     } catch (err) {
+      console.log(err);
       return ResponseBuilder.internalServerError(err);
     }
   };
 
-  private _getAllJourneys = (): GetResultPromise => {
+  private _getAllJourneys = (userId): GetResultPromise => {
     const params: ScanInput = {
       TableName: JOURNEY_TABLE,
-      FilterExpression: 'journeyStatus = :status and seatsLeft > :value',
+      FilterExpression:
+        'journeyStatus = :status and seatsLeft > :value and NOT contains(passengers, :userId)',
       ExpressionAttributeValues: {
         ':status': 'NOT_STARTED',
-        ':value': 0
+        ':value': 0,
+        ':userId': userId
       }
     };
 
