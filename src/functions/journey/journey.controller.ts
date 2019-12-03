@@ -13,6 +13,7 @@ import GetItemInput = DocumentClient.GetItemInput;
 import { JOURNEY_TABLE, USER_TABLE } from '../../constants/tables';
 import { JOURNEY_INDEX, USERS_INDEX } from '../../constants/indexes';
 import { JourneyErrorChecks } from './journey.interfaces';
+// import { Journey } from '@project-300/common-types';
 
 export class JourneyController {
   private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
@@ -132,8 +133,12 @@ export class JourneyController {
   ): Promise<ApiResponse> => {
     try {
       const response: ScanResult = await this._getAllJourneys();
+      // const journeys = response.Items.sort(
+      //   (a, b) => new Date(b.times.createdAt) - new Date(a.times.createdAt)
+      // );
+      const journeys = response.Items;
 
-      return ResponseBuilder.ok({ success: true, journeys: response.Items });
+      return ResponseBuilder.ok({ success: true, journeys });
     } catch (err) {
       return ResponseBuilder.internalServerError(err);
     }
