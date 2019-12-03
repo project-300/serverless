@@ -14,7 +14,9 @@ export type GetResult = PromiseResult<DocumentClient.GetItemOutput, AWS.AWSError
 
 export type GetResultPromise = Promise<GetResult>;
 
-export type PutResult = Promise<PromiseResult<DocumentClient.PutItemOutput, AWS.AWSError>>;
+export type PutResultPromise = Promise<PromiseResult<DocumentClient.PutItemOutput, AWS.AWSError>>;
+
+export type PutResult = PromiseResult<DocumentClient.PutItemOutput, AWS.AWSError>;
 
 export type UpdateResult = Promise<PromiseResult<DocumentClient.UpdateItemOutput, AWS.AWSError>>;
 

@@ -63,6 +63,18 @@ export class UserController {
 		return this.dynamo.get(params).promise();
 	}
 
+	public getUserBrief = async (userId: string): Promise<GetResult> => {
+		const params: GetItemInput = {
+			TableName: USER_TABLE,
+			Key: {
+				[USERS_INDEX]: userId
+			},
+			ProjectionExpression: 'userId, username, firstName, lastName, avatar, userType'
+		};
+
+		return this.dynamo.get(params).promise();
+	}
+
 	public updateUserField: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const result: UpdateFieldSuccessResult = {
 			success: true

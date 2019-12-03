@@ -3,7 +3,14 @@ import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { DRIVER_APPLICATION_INDEX, USERS_INDEX } from '../../constants/indexes';
 import { DRIVER_APPLICATION_TABLE, USER_TABLE } from '../../constants/tables';
 import PubManager from '../../pubsub/publication';
-import { GetResult, GetResultPromise, PutResult, QueryResult, QueryResultPromise, UpdateResult } from '../../responses/dynamodb.types';
+import {
+	GetResult,
+	GetResultPromise,
+	PutResultPromise,
+	QueryResult,
+	QueryResultPromise,
+	UpdateResult
+} from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { DriverApplicationResult, DriverApplicationCheckResult } from './driver-application.interfaces';
 import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
@@ -70,7 +77,7 @@ export class DriverApplicationController {
 		return this.dynamo.query(params).promise();
 	}
 
-	private _createApplication = (userId: string): PutResult => {
+	private _createApplication = (userId: string): PutResultPromise => {
 		const now: string = new Date().toISOString();
 
 		const params: PutItemInput = {

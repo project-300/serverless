@@ -2,10 +2,19 @@ import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { ResponseBuilder } from '../../../responses/response-builder';
 import { ApiEvent, ApiHandler, ApiResponse } from '../../../responses/api.types';
-import { GetResult, GetResultPromise, QueryResult, ScanResult, ScanResultPromise } from '../../../responses/dynamodb.types';
+import {
+	GetResult,
+	GetResultPromise,
+	PutResult,
+	PutResultPromise,
+	QueryResult,
+	ScanResult,
+	ScanResultPromise
+} from '../../../responses/dynamodb.types';
 import { JOURNEY_TABLE, USER_TABLE } from '../../../constants/tables';
 import {
 	CancelPassengerAcceptedJourneyData,
+	CreateJourneyData,
 	DriverMovementData,
 	DriverSubscriptionData,
 	JourneyDetailsData,
@@ -16,14 +25,44 @@ import ScanInput = DocumentClient.ScanInput;
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import UpdateItemOutput = DocumentClient.UpdateItemOutput;
-import { CollectionItem, Coords, Journey, Passenger, PassengerBrief } from '@project-300/common-types';
+import {
+	CollectionItem,
+	Coords,
+	CreateJourney,
+	DriverBrief,
+	Journey,
+	Passenger,
+	PassengerBrief,
+	UserBrief
+} from '@project-300/common-types';
 import _ from 'lodash';
 import SubManager from '../../../pubsub/subscription';
 import PubManager from '../../../pubsub/publication';
+import uuidv4 from 'uuid/v4';
+import { UserController } from '../../user/user.controller';
+import PutItemInput = DocumentClient.PutItemInput;
 
 export class JourneyController {
 
 	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
+	private userController: UserController = new UserController();
+
+	public createJourney: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		const data: CreateJourneyData = JSON.parse(event.body);
+
+		try {
+			const driverResult: GetResult = await this.userController.getUserBrief(data.userId);
+			const user: UserBrief = driverResult.Item as UserBrief;
+			const driver: DriverBrief =	{ ...user, lastLocation: { latitude: 0, longitude: 0} };
+			const journey: Journey = this._formJourneyObject(data.journey, driver);
+			const response: PutResult = await this._insertJourney(journey);
+
+			return ResponseBuilder.ok({ success: true, response });
+		} catch (err) {
+			console.log(err);
+			return ResponseBuilder.internalServerError(err);
+		}
+	}
 
 	public driverJourneys: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const data: MyJourneysData = JSON.parse(event.body);
@@ -115,6 +154,35 @@ export class JourneyController {
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err);
 		}
+	}
+
+	private _formJourneyObject = (j: CreateJourney, driver: DriverBrief): Journey => {
+		let { leavingAt }: { leavingAt: Date | string } = j.times;
+		if (leavingAt instanceof Date) leavingAt = leavingAt.toISOString();
+
+		return {
+			...j,
+			journeyId: uuidv4(),
+			journeyStatus: 'NOT_STARTED',
+			passengers: [],
+			routeTravelled: [],
+			plannedRoute: [],
+			seatsLeft: j.totalNoOfSeats,
+			driver,
+			times: {
+				leavingAt,
+				createdAt: new Date().toISOString()
+			}
+		};
+	}
+
+	private _insertJourney = (journey: Journey): PutResultPromise => {
+		const params: PutItemInput = {
+			TableName: JOURNEY_TABLE,
+			Item: journey
+		};
+
+		return this.dynamo.put(params).promise();
 	}
 
 	private _getDriverJourneys = (userId: string): GetResultPromise => {
@@ -236,7 +304,6 @@ export class JourneyController {
 
 			return ResponseBuilder.ok({ success: true, journeys });
 		} catch (err) {
-			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'An error occurred while attempting to cancel journey');
 		}
 	}

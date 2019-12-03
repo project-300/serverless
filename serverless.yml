@@ -193,6 +193,13 @@ functions:
           path: /passenger/journey/cancel
           method: post
           cors: true
+  createJourneyHandler:
+    handler: src/functions/driver/journeys/journeys.createJourneyHandler
+    events:
+      - http:
+          path: /journey/create
+          method: post
+          cors: true
 
 resources:
   Resources:
