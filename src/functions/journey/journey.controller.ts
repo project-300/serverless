@@ -13,7 +13,7 @@ import GetItemInput = DocumentClient.GetItemInput;
 import { JOURNEY_TABLE, USER_TABLE } from '../../constants/tables';
 import { JOURNEY_INDEX, USERS_INDEX } from '../../constants/indexes';
 import { JourneyErrorChecks } from './journey.interfaces';
-// import { Journey } from '@project-300/common-types';
+import { Journey } from '@project-300/common-types';
 
 export class JourneyController {
   private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient();
@@ -52,6 +52,7 @@ export class JourneyController {
   ): Promise<JourneyErrorChecks> => {
     try {
       const { Item: journey } = await this._getJourney(journeyId);
+      // const { Item: user } = await this._getUser(userId);
 
       if (journey.seatsLeft <= 0) {
         return { result: false, errorDescription: 'No Seats Available' };
@@ -79,6 +80,16 @@ export class JourneyController {
       };
     }
   };
+
+  // private _getUser = (userId: string): GetResultPromise => {
+  //   const params: GetItemInput = {
+  //     TableName: USER_TABLE,
+  //     Key: {
+  //       [USERS_INDEX]: userId
+  //     }
+  //   };
+  //   return this.dynamo.get(params).promise();
+  // };
 
   private _getJourney = (journeyId: string): GetResultPromise => {
     const params: GetItemInput = {
@@ -134,10 +145,16 @@ export class JourneyController {
     const userId = event.pathParameters.userId;
     try {
       const response: ScanResult = await this._getAllJourneys(userId);
-      // const journeys = response.Items.sort(
-      //   (a, b) => new Date(b.times.createdAt) - new Date(a.times.createdAt)
-      // );
-      const journeys = response.Items;
+      let journeys: Journey[] = response.Items as Journey[];
+
+      journeys.sort((a, b) => {
+        if (new Date(a.times.leavingAt) > new Date(b.times.leavingAt)) return 1;
+
+        if (new Date(a.times.leavingAt) < new Date(b.times.leavingAt))
+          return -1;
+
+        return 0;
+      });
 
       return ResponseBuilder.ok({ success: true, journeys });
     } catch (err) {
