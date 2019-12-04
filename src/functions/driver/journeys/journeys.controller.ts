@@ -120,6 +120,8 @@ export class JourneyController {
 
 		try {
 			const response: UpdateItemOutput = await this._endJourney(data.journeyId);
+			await PubManager.publishUpdate(`journey/driver-location/#${data.journeyId}`, JOURNEY_INDEX,
+				{ journeyId: data.journeyId, ended: true } as CollectionItem);
 
 			return ResponseBuilder.ok({ success: true, journey: response.Attributes });
 		} catch (err) {
@@ -132,7 +134,7 @@ export class JourneyController {
 
 		try {
 			const response: UpdateItemOutput = await this._addDriverMovement(data.journeyId, data.coords);
-			await PubManager.publishInsert(`journey/driver-location/#${data.journeyId}`, JOURNEY_INDEX,
+			await PubManager.publishUpdate(`journey/driver-location/#${data.journeyId}`, JOURNEY_INDEX,
 				{ journeyId: data.journeyId, location: data.coords } as CollectionItem);
 
 			return ResponseBuilder.ok({ success: true, journey: response.Attributes });
