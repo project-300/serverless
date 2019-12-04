@@ -22,7 +22,6 @@ class PublicationManager {
 
 	public publishInsert = async (sub: string, objectId: string, data: CollectionItem | CollectionItem[]): Promise<void> => {
 		const connectionIds: string[] = await this._getConnectionIds(sub);
-		console.log(connectionIds);
 		this._sendToConnections(connectionIds, sub, PublishType.INSERT, objectId, data, false);
 	}
 
@@ -46,6 +45,7 @@ class PublicationManager {
 		};
 
 		const result: GetResult = await this.dynamo.get(params).promise();
+		if (!result.Item) return [];
 		return result.Item.connections.map((con: ConnectionItem) => con.connectionId);
 	}
 
