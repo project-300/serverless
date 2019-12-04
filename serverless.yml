@@ -139,6 +139,27 @@ functions:
           path: /aws/s3-key
           method: post
           cors: true
+  myJourneysHandler:
+    handler: src/functions/driver/journeys/journeys.myJourneysHandler
+    events:
+      - http:
+          path: /driver/my-journeys
+          method: post
+          cors: true
+  allJourneysHandler:
+    handler: src/functions/journey/journey.allJourneysHandler
+    events:
+      - http:
+          path: /journeys/all/{userId}
+          method: get
+          cors: true
+  userJoinedJourneyHandler:
+    handler: src/functions/journey/journey.userJoinedJourneyHandler
+    events:
+      - http:
+          path: /journeys/add-passenger
+          method: patch
+          cors: true
 
 resources:
   Resources:

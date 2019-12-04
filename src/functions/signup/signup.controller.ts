@@ -9,7 +9,6 @@ import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 import PutItemInput = DocumentClient.PutItemInput;
 
 export class SignupController {
-
 	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient(
 		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
 	);
@@ -23,7 +22,10 @@ export class SignupController {
 			await this.saveUserDetails(event);
 			return ResponseBuilder.ok(result);
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, 'Unable to save user details');
+			return ResponseBuilder.internalServerError(
+				err,
+				'Unable to save user details'
+			);
 		}
 	}
 
@@ -33,6 +35,7 @@ export class SignupController {
 		const userId: string = auth.userSub;
 		const confirmed: boolean = auth.userConfirmed;
 		const now: string = new Date().toISOString();
+		const journeysAsPassenger: string[] = [];
 
 		const params: PutItemInput = {
 			TableName: USER_TABLE,
@@ -41,6 +44,7 @@ export class SignupController {
 				unconfirmedEmail: email,
 				username,
 				confirmed,
+				journeysAsPassenger,
 				userType: 'Passenger',
 				times: {
 					signedUp: now
