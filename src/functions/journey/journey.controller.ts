@@ -119,8 +119,8 @@ export class JourneyController {
 			const journeys: Journey[] = response.Items as Journey[];
 
 			journeys.sort((a: Journey, b: Journey) => {
-				if (a.times.leavingAt > b.times.leavingAt) return 1;
-				if (a.times.leavingAt < b.times.leavingAt) return -1;
+				if (a.times.createdAt > b.times.createdAt) return -1;
+				if (a.times.createdAt < b.times.createdAt) return 1;
 				return 0;
 			});
 

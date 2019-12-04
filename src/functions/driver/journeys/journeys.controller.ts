@@ -86,8 +86,8 @@ export class JourneyController {
 	}
 
 	private _sortJourneysByCreatedAt = (j1: Journey, j2: Journey): number => {
-		if (j1.times.createdAt > j2.times.leavingAt) return -1;
-		if (j1.times.createdAt < j2.times.leavingAt) return 1;
+		if (j1.times.createdAt > j2.times.createdAt) return -1;
+		if (j1.times.createdAt < j2.times.createdAt) return 1;
 		return 0;
 	}
 
@@ -174,7 +174,6 @@ export class JourneyController {
 			journeyStatus: 'NOT_STARTED',
 			passengers: [],
 			routeTravelled: [],
-			plannedRoute: [],
 			seatsLeft: j.totalNoOfSeats,
 			driver,
 			times: {
@@ -244,7 +243,7 @@ export class JourneyController {
 			Key: {
 				[JOURNEY_INDEX]: journeyId
 			},
-			UpdateExpression: 'SET journeyStatus = :status, times.finished = :now, times.updatedAt = :now',
+			UpdateExpression: 'SET journeyStatus = :status, times.endedAt = :now, times.updatedAt = :now',
 			ExpressionAttributeValues: {
 				':status': 'FINISHED',
 				':now': new Date().toISOString()
@@ -261,9 +260,10 @@ export class JourneyController {
 			Key: {
 				[JOURNEY_INDEX]: journeyId
 			},
-			UpdateExpression: 'SET routeTravelled = list_append(routeTravelled, :c), driver.lastLocation = :c, times.updatedAt = :now',
+			UpdateExpression: 'SET routeTravelled = list_append(routeTravelled, :c), driver.lastLocation = :l, times.updatedAt = :now',
 			ExpressionAttributeValues: {
 				':c': [ coords ],
+				':l': coords,
 				':now': new Date().toISOString()
 			},
 			ReturnValues: 'ALL_NEW'
