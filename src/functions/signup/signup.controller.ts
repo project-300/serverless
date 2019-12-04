@@ -9,51 +9,50 @@ import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 import PutItemInput = DocumentClient.PutItemInput;
 
 export class SignupController {
-  private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient(
-    process.env.IS_OFFLINE
-      ? { region: 'localhost', endpoint: 'http://localhost:8000' }
-      : {}
-  );
+	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient(
+		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
+	);
 
-  public signup: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
-    const result: SignupSuccessResult = {
-      success: true
-    };
+	public signup: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		const result: SignupSuccessResult = {
+			success: true
+		};
 
-    try {
-      await this.saveUserDetails(event);
-      return ResponseBuilder.ok(result);
-    } catch (err) {
-      return ResponseBuilder.internalServerError(
-        err,
-        'Unable to save user details'
-      );
-    }
-  };
+		try {
+			await this.saveUserDetails(event);
+			return ResponseBuilder.ok(result);
+		} catch (err) {
+			return ResponseBuilder.internalServerError(
+				err,
+				'Unable to save user details'
+			);
+		}
+	}
 
-  private saveUserDetails = (event: ApiEvent): PutResult => {
-    const data: SignupPayload = JSON.parse(event.body);
-    const { auth, email, username }: SignupPayload = data;
-    const userId: string = auth.userSub;
-    const confirmed: boolean = auth.userConfirmed;
-    const now: string = new Date().toISOString();
-    const journeysAsPassenger: string[] = [];
+	private saveUserDetails = (event: ApiEvent): PutResult => {
+		const data: SignupPayload = JSON.parse(event.body);
+		const { auth, email, username }: SignupPayload = data;
+		const userId: string = auth.userSub;
+		const confirmed: boolean = auth.userConfirmed;
+		const now: string = new Date().toISOString();
+		const journeysAsPassenger: string[] = [];
 
-    const params: PutItemInput = {
-      TableName: USER_TABLE,
-      Item: {
-        [USERS_INDEX]: userId,
-        unconfirmedEmail: email,
-        username,
-        confirmed,
-        journeysAsPassenger,
-        userType: 'Passenger',
-        times: {
-          signedUp: now
-        }
-      }
-    };
+		const params: PutItemInput = {
+			TableName: USER_TABLE,
+			Item: {
+				[USERS_INDEX]: userId,
+				unconfirmedEmail: email,
+				username,
+				confirmed,
+				journeysAsPassenger,
+				userType: 'Passenger',
+				times: {
+					signedUp: now
+				}
+			}
+		};
 
-    return this.dynamo.put(params).promise();
-  };
+		return this.dynamo.put(params).promise();
+	}
+
 }
