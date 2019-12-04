@@ -71,7 +71,8 @@ export class JourneyController {
 			const response: ScanResult = await this._getDriverJourneys(data.userId);
 			const allJourneys: Journey[] = response.Items as Journey[];
 
-			const journeys: { current: Journey[]; previous: Journey[] } = _.reduce(allJourneys,
+			const journeys: { current: Journey[]; previous: Journey[] } =
+				_.reduce(allJourneys.sort(this._sortJourneysByCreatedAt),
 				(journeyMemo: { previous: Journey[]; current: Journey[] }, journey: Journey) => {
 					if (journey.journeyStatus === 'FINISHED') journeyMemo.previous.push(journey);
 					else journeyMemo.current.push(journey);
@@ -82,6 +83,12 @@ export class JourneyController {
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err);
 		}
+	}
+
+	private _sortJourneysByCreatedAt = (j1: Journey, j2: Journey): number => {
+		if (j1.times.createdAt > j2.times.leavingAt) return -1;
+		if (j1.times.createdAt < j2.times.leavingAt) return 1;
+		return 0;
 	}
 
 	public getJourneyDetails: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
@@ -130,6 +137,7 @@ export class JourneyController {
 
 			return ResponseBuilder.ok({ success: true, journey: response.Attributes });
 		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err);
 		}
 	}
@@ -281,7 +289,7 @@ export class JourneyController {
 	}
 
 	private _sortJourneys = (allJourneys: Journey[]): { previous: Journey[]; current: Journey[] } => {
-		const journeys: { current: Journey[]; previous: Journey[] } = _.reduce(allJourneys,
+		const journeys: { current: Journey[]; previous: Journey[] } = _.reduce(allJourneys.sort(this._sortJourneysByCreatedAt),
 			(journeyMemo: { previous: Journey[]; current: Journey[] }, journey: Journey) => {
 			if (journey.journeyStatus === 'FINISHED') journeyMemo.previous.push(journey);
 			else journeyMemo.current.push(journey);
