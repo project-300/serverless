@@ -1,6 +1,6 @@
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { PutResult } from '../../responses/dynamodb.types';
+import { PutResultPromise } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
 import { USERS_INDEX } from '../../constants/indexes';
 import { USER_TABLE } from '../../constants/tables';
@@ -29,7 +29,7 @@ export class SignupController {
 		}
 	}
 
-	private saveUserDetails = (event: ApiEvent): PutResult => {
+	private saveUserDetails = (event: ApiEvent): PutResultPromise => {
 		const data: SignupPayload = JSON.parse(event.body);
 		const { auth, email, username }: SignupPayload = data;
 		const userId: string = auth.userSub;

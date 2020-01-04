@@ -8,7 +8,7 @@ import SubManager from '../../pubsub/subscription';
 import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 import { GetResult, GetResultPromise, UpdateResult } from '../../responses/dynamodb.types';
 import { ResponseBuilder } from '../../responses/response-builder';
-import { GetUserSuccessResult, UpdateAvatarSuccessResult, UpdateFieldSuccessResult } from './user.interfaces';
+import { UpdateAvatarSuccessResult, UpdateFieldSuccessResult } from './user.interfaces';
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import * as EmailValidator from 'email-validator';
@@ -25,10 +25,10 @@ export class UserController {
 		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
 	);
 
-	public getUser: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
-		const result: GetUserSuccessResult = {
-			success: true
-		};
+	public getUser: ApiHandler = async (event: ApiEvent): Promise<void> => {
+		// const result: GetUserSuccessResult = {
+		// 	success: true
+		// };
 
 		const body: SubscriptionRequest = JSON.parse(event.body);
 
@@ -46,9 +46,9 @@ export class UserController {
 				await SubManager.unsubscribe(body.subscription, event.requestContext.connectionId);
 			}
 
-			return ResponseBuilder.ok(result);
+			// return ResponseBuilder.ok(result);
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, 'Unable to subscribe to User Profile');
+			// return ResponseBuilder.internalServerError(err, 'Unable to subscribe to User Profile');
 		}
 	}
 
@@ -58,6 +58,18 @@ export class UserController {
 			Key: {
 				[USERS_INDEX]: userId
 			}
+		};
+
+		return this.dynamo.get(params).promise();
+	}
+
+	public getUserBrief = async (userId: string): Promise<GetResult> => {
+		const params: GetItemInput = {
+			TableName: USER_TABLE,
+			Key: {
+				[USERS_INDEX]: userId
+			},
+			ProjectionExpression: 'userId, username, firstName, lastName, avatar, userType'
 		};
 
 		return this.dynamo.get(params).promise();

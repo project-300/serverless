@@ -16,23 +16,23 @@ class PublicationManager {
 		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
 	);
 
-	public publish = (connectionId: string, sub: string, objectId: string, data: CollectionItem | CollectionItem[], sendCollection: boolean): void => {
-		this._sendToConnections([ connectionId ], sub, PublishType.QUERY, objectId, data, sendCollection);
+	public publish = async (connectionId: string, sub: string, objectId: string, data: CollectionItem | CollectionItem[], sendCollection: boolean): Promise<void> => {
+		await this._sendToConnections([connectionId], sub, PublishType.QUERY, objectId, data, sendCollection);
 	}
 
 	public publishInsert = async (sub: string, objectId: string, data: CollectionItem | CollectionItem[]): Promise<void> => {
 		const connectionIds: string[] = await this._getConnectionIds(sub);
-		this._sendToConnections(connectionIds, sub, PublishType.INSERT, objectId, data, false);
+		await this._sendToConnections(connectionIds, sub, PublishType.INSERT, objectId, data, false);
 	}
 
 	public publishUpdate = async (sub: string, objectId: string, data: CollectionItem | CollectionItem[]): Promise<void> => {
 		const connectionIds: string[] = await this._getConnectionIds(sub);
-		this._sendToConnections(connectionIds, sub, PublishType.UPDATE, objectId, data, false);
+		await this._sendToConnections(connectionIds, sub, PublishType.UPDATE, objectId, data, false);
 	}
 
 	public publishDelete = async (sub: string, objectId: string, data: string): Promise<void> => {
 		const connectionIds: string[] = await this._getConnectionIds(sub);
-		this._sendToConnections(connectionIds, sub, PublishType.DELETE, objectId, data, false);
+		await this._sendToConnections(connectionIds, sub, PublishType.DELETE, objectId, data, false);
 	}
 
 	private _getConnectionIds = async (sub: string): Promise<string[]> => {
@@ -45,29 +45,30 @@ class PublicationManager {
 		};
 
 		const result: GetResult = await this.dynamo.get(params).promise();
+		if (!result.Item) return [];
 		return result.Item.connections.map((con: ConnectionItem) => con.connectionId);
 	}
 
-	private _sendToConnections = (
+	private _sendToConnections = async (
 		connections: string[],
 		subscription: string,
 		type: PublishType,
 		objectId: string,
 		data: SubscriptionPayloadData,
 		sendCollection: boolean
-	): void => {
+	): Promise<void> => {
 		if (!connections.length) return;
 
 		const isCollection: boolean = sendCollection && data instanceof Array;
 
-		connections.map(async (connectionId: string) => {
+		await Promise.all(connections.map(async (connectionId: string) => {
 			if (!sendCollection && data instanceof Array) {
 				data.forEach((item: CollectionItem | string) =>
-					this._sendDataObject(connectionId, { subscription, type, objectId, data: item, isCollection }));
+								 this._sendDataObject(connectionId, { subscription, type, objectId, data: item, isCollection }));
 			} else {
 				await this._sendDataObject(connectionId, { subscription, type, objectId, data, isCollection });
 			}
-		});
+		}));
 	}
 
 	private _sendDataObject = async (connectionId: string, data: SubscriptionPayload): Promise<WsPostResult> => API.post(connectionId, data);

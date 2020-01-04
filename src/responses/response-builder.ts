@@ -27,7 +27,7 @@ export class ResponseBuilder {
 		return ResponseBuilder.createResponse(HttpStatusCode.Forbidden, errorResult);
 	}
 
-	public static internalServerError = (error: Error, description?: string): ApiResponse => {
+	public static internalServerError = (error: Error | { [k: string]: any }, description?: string): ApiResponse => {
 		const errorResult: InternalServerErrorResult =
 			new InternalServerErrorResult(ErrorCode.GeneralError, description || 'Internal Server Error');
 		return ResponseBuilder.createResponse(HttpStatusCode.InternalServerError, errorResult);

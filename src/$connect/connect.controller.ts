@@ -6,7 +6,7 @@ import { CONNECTION_IDS_INDEX } from '../constants/indexes';
 import { CONNECTION_IDS_TABLE } from '../constants/tables';
 import { ResponseBuilder } from '../responses/response-builder';
 import { ConnectionItem, ConnectResult } from './connect.interfaces';
-import { PutResult, ScanResult, ScanResultPromise } from '../responses/dynamodb.types';
+import { PutResultPromise, ScanResult, ScanResultPromise } from '../responses/dynamodb.types';
 import { ApiEvent, ApiHandler, ApiResponse, WsPostResult } from '../responses/api.types';
 import PutItemInput = DocumentClient.PutItemInput;
 
@@ -30,7 +30,7 @@ export class ConnectController {
 		}
 	}
 
-	private _addConnection = (connectionId: string): PutResult => {
+	private _addConnection = (connectionId: string): PutResultPromise => {
 		const params: PutItemInput = {
 			TableName: CONNECTION_IDS_TABLE,
 			Item: {
