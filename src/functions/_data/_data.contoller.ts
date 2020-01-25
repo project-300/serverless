@@ -5,7 +5,7 @@ import { ApiEvent, ApiHandler, ApiResponse } from '../../responses/api.types';
 
 export class DataController {
 
-	public s3KeyRequestHandler: ApiHandler = (event: ApiEvent): ApiResponse => {
+	public s3KeyRequestHandler: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		const key: SecretKeyResult = {
 			success: true,
 			secretKey: AWS_S3_SECRET_KEY
