@@ -5,7 +5,3 @@ export interface DriverApplicationApprovalResult {
 export interface DriverApplicationDeleteResult {
 	success: boolean;
 }
-
-export interface DriverApplicationsSubscriptionResult {
-	success: boolean;
-}

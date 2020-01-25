@@ -1,16 +1,13 @@
-import { SubscriptionRequest } from '@project-300/common-types';
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import PubManager from '../../../pubsub/publication';
-import SubManager from '../../../pubsub/subscription';
 import { DeleteResult, GetResult, GetResultPromise, ScanResult, ScanResultPromise, UpdateResult } from '../../../responses/dynamodb.types';
 import { DRIVER_APPLICATION_INDEX, USERS_INDEX } from '../../../constants/indexes';
 import { DRIVER_APPLICATION_TABLE, USER_TABLE } from '../../../constants/tables';
 import { ResponseBuilder } from '../../../responses/response-builder';
 import {
 	DriverApplicationApprovalResult,
-	DriverApplicationDeleteResult,
-	DriverApplicationsSubscriptionResult
+	DriverApplicationDeleteResult
 } from './driver-applications.interfaces';
 import { ApiEvent, ApiHandler, ApiResponse } from '../../../responses/api.types';
 import UpdateItemInput = DocumentClient.UpdateItemInput;
@@ -25,27 +22,10 @@ export class DriverApplicationController {
 	);
 
 	public getApplications: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
-		const result: DriverApplicationsSubscriptionResult = {
-			success: true
-		};
-
-		const body: SubscriptionRequest = JSON.parse(event.body);
-
 		try {
-			if (body.subscribe) {
-				const data: ScanResult = await this._applications();
-				await SubManager.subscribe(
-					event,
-					body.subscription,
-					DRIVER_APPLICATION_INDEX,
-					data.Items,
-					true
-				);
-			} else {
-				await SubManager.unsubscribe(body.subscription, event.requestContext.connectionId);
-			}
+			const data: ScanResult = await this._applications();
 
-			return ResponseBuilder.ok(result);
+			return ResponseBuilder.ok({ success: true, applications: data.Items });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err);
 		}

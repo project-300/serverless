@@ -108,11 +108,13 @@ functions:
           path: /delete-application
           method: post
           cors: true
-  driverApplicationsSubscriptionHandler:
+  driverApplicationsHandler:
     handler: src/functions/admin/driver-applications/driver-applications.driverApplicationsSubscriptionHandler
     events:
-      - websocket:
-          route: admin/driver-applications
+      - http:
+          path: /admin/driver-applications
+          method: post
+          cors: true
   userProfileSubscriptionHandler:
     handler: src/functions/user/user.userProfileSubscriptionHandler
     events:
