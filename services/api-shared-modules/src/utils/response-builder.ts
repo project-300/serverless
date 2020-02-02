@@ -1,6 +1,6 @@
-import { ErrorCode } from './error-codes';
-import { HttpStatusCode } from './http-status-codes';
-import { ApiResponse } from './api.types';
+import { ErrorCode } from '../types/error-codes';
+import { HttpStatusCode } from '../types/http-status-codes';
+import { ApiResponse } from '../types/api.types';
 import {
 	BadRequestResult,
 	ConfigurationErrorResult,
@@ -8,7 +8,7 @@ import {
 	ForbiddenResult,
 	InternalServerErrorResult,
 	NotFoundResult
-} from './errors';
+} from '../types/errors';
 
 export class ResponseBuilder {
 

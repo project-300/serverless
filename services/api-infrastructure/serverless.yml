@@ -1,0 +1,19 @@
+service: api-infrastructure
+frameworkVersion: ">=1.60.0"
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  region: eu-west-1
+  stage: dev
+  tags:
+    project: project300
+    
+custom:
+  # Our stage is based on what is passed in when running serverless
+  # commands. Or falls back to what we have set in the provider section.
+  stage: ${opt.stage, self:provider.stage}
+  generalTableName: P300-GENERAL
+
+resources:
+  - ${file(resources/dynamodb-tables.yml)}

@@ -5,6 +5,7 @@ type ErrorCodeTypes = {
 	MissingEnv: string;
 	MissingId: string;
 	MissingPermission: string;
+	BadRequest: string;
 };
 
 export const ErrorCode: ErrorCodeTypes = {
@@ -13,5 +14,6 @@ export const ErrorCode: ErrorCodeTypes = {
 	InvalidName: 'INVALID_NAME',
 	MissingEnv: 'MISSING_ENV',
 	MissingId: 'MISSING_ID',
-	MissingPermission: 'MISSING_PERMISSION'
+	MissingPermission: 'MISSING_PERMISSION',
+	BadRequest: 'INVALID_PARAM'
 };

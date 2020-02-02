@@ -16,7 +16,7 @@
     "uuid": "^3.3.2"
   },
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.17",
+    "@types/aws-lambda": "8.10.39",
     "@types/node": "^10.12.18",
     "serverless-dynamodb-local": "^0.2.38",
     "serverless-offline": "^5.12.0",
