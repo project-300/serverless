@@ -63,10 +63,7 @@
     "file-name-casing": [
       true
     ],
-    "interface-name": [
-      true,
-      "never-prefix"
-    ],
+    "interface-name": false,
     "linebreak-style": false,
     "newline-before-return": false,
     "newline-per-chained-call": false,

@@ -3,11 +3,12 @@ import { User } from '@project-300/common-types';
 import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
+import { Entity } from '../interfaces';
 
 export class UserRepository extends Repository {
 
 	public async getAll(): Promise<User[]> {
-		const keyCondition = {
+		const keyCondition: Entity = {
 			entity: 'user'
 		};
 		const queryOptions: QueryOptions = {
