@@ -28,19 +28,42 @@ provider:
 
 plugins:
   - serverless-offline
+  - serverless-webpack
 
 functions:
-  getUserById:
-    handler: src/handler.getUserById
-    events:
-      - http:
-          path: /user/{UserId}
-          method: get
-          cors: true
-  helloWorld:
-    handler: helloWorld.main
+  getAllUsers:
+    handler: src/handler.getAllUsers
     events:
       - http:
           path: /users
           method: get
           cors: true
+  getUserById:
+    handler: src/handler.getUserById
+    events:
+      - http:
+          path: /users/{userId}
+          method: get
+          cors: true
+  createUser:
+    handler: src/handler.createUser
+    events:
+      - http:
+          path: /users
+          method: post
+          cors: true
+  updateUser:
+    handler: src/handler.updateUser
+    events:
+      - http:
+          path: /users
+          method: patch
+          cors: true
+  deleteUser:
+    handler: src/handler.deleteUser
+    events:
+      - http:
+          path: /users/{userId}
+          method: delete
+          cors: true
+
