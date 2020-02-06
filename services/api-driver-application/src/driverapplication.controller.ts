@@ -128,3 +128,4 @@ export class DriverApplicationController {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}
+}
