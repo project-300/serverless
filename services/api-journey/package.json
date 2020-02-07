@@ -13,5 +13,9 @@
     "ts-loader": "^5.3.3",
     "typescript": "^3.2.4",
     "webpack": "^4.29.0"
+  },
+  "dependencies": {
+    "@project-300/common-types": "^2.1.6",
+    "lodash": "^4.17.15"
   }
 }

@@ -45,4 +45,10 @@ export class UserItem extends DynamoDbItem implements User {
 		createdAt: Date | string;
 		lastLogin?: Date | string;
 	};
+
+	@attribute()
+	public journeysAsPassenger: string[];
+
+	@attribute()
+	public isDriving: boolean;
 }

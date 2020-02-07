@@ -66,4 +66,46 @@ functions:
           path: /journeys/{journeyId}
           method: delete
           cors: true
+  addUserToJourney:
+    handler: src/handler.addUserToJourney
+    events:
+      - http:
+          path: /journeys/add-user
+          method: patch
+          cors: true
+  getDriverJourneys:
+    handler: src/handler.getDriverJourneys
+    events:
+      - http:
+          path: /journeys/driver/{userId}
+          method: patch
+          cors: true
+  getPassengerJourneys:
+    handler: src/handler.getPassengerJourneys
+    events:
+      - http:
+          path: /journeys/passenger/{userId}
+          method: patch
+          cors: true
+  startJourney:
+    handler: src/handler.startJourney
+    events:
+      - http:
+          path: /journeys/start/{journeyId}
+          method: patch
+          cors: true
+  endJourney:
+    handler: src/handler.endJourney
+    events:
+      - http:
+          path: /journeys/end/{journeyId}
+          method: patch
+          cors: true
+  cancelPassengerAcceptedJourney:
+    handler: src/handler.cancelPassengerAcceptedJourney
+    events:
+      - http:
+          path: /journeys/passenger-cancel
+          method: patch
+          cors: true
 

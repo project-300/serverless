@@ -31,6 +31,15 @@ export class JourneyRepository extends Repository {
 		}));
 	}
 
+	public async getByIdWithProjection(journeyId: string, projection?: string[]): Promise<Journey> {
+		return this.db.get(Object.assign(new JourneyItem(), {
+			pk: `journey#${journeyId}`,
+			sk: `journey#${journeyId}`
+		}), {
+			projection
+		});
+	}
+
 	public async create(toCreate: Partial<Journey>): Promise<Journey> {
 		const id: string = uuid();
 
@@ -39,6 +48,11 @@ export class JourneyRepository extends Repository {
 			journeyId: id,
 			pk: `journey#${id}`,
 			sk: `journey#${id}`,
+			passengers: [],
+			journeyStatus: 'NOT_STARTED',
+			routeTravelled: [],
+			seatsLeft: toCreate.totalNoOfSeats,
+			lastLocation: { latitude: 0, longitude: 0 },
 			...toCreate
 		}));
 	}

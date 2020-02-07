@@ -1,4 +1,4 @@
-import { Coords, CreateJourney } from '@project-300/common-types';
+import { Coords, Journey } from '@project-300/common-types';
 
 export interface MyJourneysData {
 	userId: string;
@@ -6,7 +6,7 @@ export interface MyJourneysData {
 
 export interface CreateJourneyData {
 	userId: string;
-	journey: CreateJourney;
+	journey: Partial<Journey>;
 }
 
 export interface JourneyDetailsData {
