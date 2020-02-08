@@ -6,4 +6,5 @@ export interface IUserRepository {
 	create(toCreate: Partial<User>): Promise<User>;
 	update(userId: string, changes: Partial<User>): Promise<User>;
 	delete(userId: string): Promise<User | undefined>;
+	createAfterSignUp(userId: string, toCreate: Partial<User>): Promise<User>;
 }

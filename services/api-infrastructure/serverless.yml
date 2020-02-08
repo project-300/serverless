@@ -16,6 +16,26 @@ custom:
   generalTableName: P300-GENERAL
   projectName: P300
 
+plugins:
+  - serverless-offline
+  - serverless-webpack
+
+functions:
+  preSignUp:
+    handler: src/handler.preSignUp
+    events:
+      - cognitoUserPool:
+          pool: ${self:custom.stage}-${self:custom.projectName}Pool
+          trigger: PreSignUp
+          existing: true
+  postConfirmation:
+    handler: src/handler.postConfirmation
+    events:
+      - cognitoUserPool:
+          pool: ${self:custom.stage}-${self:custom.projectName}Pool
+          trigger: PostConfirmation
+          existing: true
+
 resources:
   - ${file(resources/dynamodb-tables.yml)}
   - ${file(resources/cognito.yml)}

@@ -12,8 +12,6 @@ provider:
   runtime: nodejs10.x
   stage: dev
   region: eu-west-1
-  environment:
-    tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
   apiGateway:
     restApiId:
       'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiId

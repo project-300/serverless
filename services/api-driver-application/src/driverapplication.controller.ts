@@ -8,10 +8,6 @@ import {
 	UnitOfWork
   } from '../../api-shared-modules/src';
 
-export interface QueryStringParams {
-	[approved: string]: string;
-}
-
 export class DriverApplicationController {
 
 	public constructor(private unitOfWork: UnitOfWork) { }
