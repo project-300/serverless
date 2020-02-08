@@ -42,6 +42,8 @@ Resources:
           AttributeType: 'S'
         - AttributeName: 'entity'
           AttributeType: 'S'
+        - AttributeName: 'createdBy'
+          AttributeType: 'S'
       KeySchema:
         - AttributeName: 'pk'
           KeyType: 'HASH'
@@ -58,7 +60,14 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: "ALL"
-
+        - IndexName: created-by-index
+          KeySchema:
+            - AttributeName: entity
+              KeyType: HASH
+            - AttributeName: createdBy
+              KeyType: RANGE
+          Projection:
+            ProjectionType: "ALL"
 
 Outputs:
   ConnectionTable:
@@ -81,4 +90,3 @@ Outputs:
       Ref: GeneralTable
     Export:
       Name: ${self:custom.stage}-${self:custom.generalTableName}
-  

@@ -134,7 +134,7 @@ export class JourneyController {
 		const params: ScanInput = {
 			TableName: JOURNEY_TABLE,
 			FilterExpression:
-				'journeyStatus = :status and seatsLeft > :value and NOT contains(passengers, :userId)',
+				'journeyStatus = :status and seatsLeft > :value and NOT containcontains(passengers, :userId)',
 			ExpressionAttributeValues: {
 				':status': 'NOT_STARTED',
 				':value': 0,

@@ -16,3 +16,5 @@ environment/env.ts
 
 # Local DynamodDB
 .dynamodb
+
+.DS_Store

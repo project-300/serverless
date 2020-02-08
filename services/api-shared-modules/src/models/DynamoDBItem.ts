@@ -4,6 +4,7 @@ export interface DynamoDbItem {
 	pk: string;
 	sk: string;
 	entity: string;
+	createdBy: string;
 }
 
 // TODO: Implement a mechanism to change this automatically based on environment
@@ -17,4 +18,7 @@ export class DynamoDbItem implements DynamoDbItem {
 
 	@attribute()
 	public entity!: string;
+
+	@rangeKey()
+	public createdBy!: string;
 }

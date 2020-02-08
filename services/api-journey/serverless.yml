@@ -78,14 +78,14 @@ functions:
     events:
       - http:
           path: /journeys/driver/{userId}
-          method: patch
+          method: get
           cors: true
   getPassengerJourneys:
     handler: src/handler.getPassengerJourneys
     events:
       - http:
           path: /journeys/passenger/{userId}
-          method: patch
+          method: get
           cors: true
   startJourney:
     handler: src/handler.startJourney

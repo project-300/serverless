@@ -8,7 +8,6 @@ import {
 	ApiContext,
 	UnitOfWork
   } from '../../api-shared-modules/src';
-import _ from 'lodash';
 import { CreateJourneyData } from '../../../src/functions/driver/journeys/journeys.interfaces';
 
 export class JourneyController {
@@ -116,9 +115,10 @@ export class JourneyController {
 			const journey: Partial<Journey> =
 				await this.unitOfWork.Journeys.getByIdWithProjection(
 					data.journeyId,
-					[ 'journeyId', 'passengers', 'seatsLeft', 'driver' ]
+					[ 'journeyId', 'passengers', 'seatsLeft', 'driver', 'journeyStatus' ]
 				);
 
+			if (!journey) throw Error('Journey not found');
 			if (journey.journeyStatus !== 'NOT_STARTED') throw Error('Unable to join journey - Journey has started');
 			if (journey.seatsLeft <= 0) throw Error('Unable to join journey - No seats available');
 			if (journey.passengers.find((p: PassengerBrief) => p.userId === data.userId))
@@ -142,7 +142,7 @@ export class JourneyController {
 
 			return ResponseBuilder.ok(result);
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, 'Unable to add user to Journey');
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to add user to Journey');
 		}
 	}
 
@@ -163,10 +163,8 @@ export class JourneyController {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 
 		try {
-			const journeys: Journey[] = await this.unitOfWork.Journeys.getAll();
+			const journeys: Journey[] = await this.unitOfWork.Journeys.getUserJourneys(event.pathParameters.userId);
 			if (!journeys) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Journeys');
-
-			// Update to filter by driver - Waiting for new index
 
 			return ResponseBuilder.ok(journeys);
 		} catch (err) {
@@ -179,14 +177,16 @@ export class JourneyController {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 
 		try {
-			const journeys: Journey[] = await this.unitOfWork.Journeys.getAll();
-			if (!journeys) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Journeys');
+			const passenger: Passenger = await this.unitOfWork.Users.getById(event.pathParameters.userId);
+			if (!passenger) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'User does not exist');
+			if (!passenger.journeysAsPassenger) return ResponseBuilder.ok([ ]); // Return empty array - No journeys yet
 
-			// Update to filter by passenger - Waiting for new index
+			const journeys: Journey[] = await this.unitOfWork.Journeys.getJourneysWithIds(passenger.journeysAsPassenger);
+			if (!journeys) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Journeys');
 
 			return ResponseBuilder.ok(journeys);
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, 'Unable to retrieve Journeys');
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to retrieve Journeys');
 		}
 	}
 

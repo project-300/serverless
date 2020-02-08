@@ -2,6 +2,8 @@ import { Journey } from '@project-300/common-types';
 
 export interface IJourneyRepository {
 	getAll(): Promise<Journey[]>;
+	getUserJourneys(userId: string): Promise<Journey[]>;
+	getJourneysWithIds(journeyIds: string[]): Promise<Journey[]>;
 	getById(journeyId: string): Promise<Journey>;
 	getByIdWithProjection(journeyId: string, projection: string[]): Promise<Journey>;
 	create(toCreate: Partial<Journey>): Promise<Journey>;

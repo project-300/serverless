@@ -2,13 +2,14 @@ import { Journey } from '@project-300/common-types';
 import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
-import { Entity } from '../interfaces';
+import { QueryKey } from '../interfaces';
 import { JourneyItem } from '../../models/core';
+import { ConditionExpression, inList, MembershipExpressionPredicate } from '@aws/dynamodb-expressions';
 
 export class JourneyRepository extends Repository {
 
 	public async getAll(): Promise<Journey[]> {
-		const keyCondition: Entity = {
+		const keyCondition: QueryKey = {
 			entity: 'journey'
 		};
 
@@ -18,9 +19,53 @@ export class JourneyRepository extends Repository {
 
 		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
 		const journeys: Journey[] = [];
-		for await (const journey of queryIterator) {
-			journeys.push(journey);
-		}
+
+		for await (const journey of queryIterator) journeys.push(journey);
+
+		return journeys;
+	}
+
+	public async getUserJourneys(userId: string): Promise<Journey[]> {
+		const keyCondition: QueryKey = {
+			entity: 'journey',
+			createdBy: `user#${userId}`
+		};
+
+		const queryOptions: QueryOptions = {
+			indexName: 'created-by-index'
+		};
+
+		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
+		const journeys: Journey[] = [];
+
+		for await (const journey of queryIterator) journeys.push(journey);
+
+		return journeys;
+	}
+
+	public async getJourneysWithIds(journeyIds: string[]): Promise<Journey[]> {
+		const ids: string[] = journeyIds.map((jid: string) => `journey#${jid}`);
+		const equalsExpressionPredicate: MembershipExpressionPredicate = inList(...ids);
+
+		const equalsExpression: ConditionExpression = {
+			...equalsExpressionPredicate,
+			subject: 'pk'
+		};
+
+		const keyCondition: QueryKey = {
+			entity: 'journey'
+		};
+
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk-index',
+			filter: equalsExpression
+		};
+
+		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
+		const journeys: Journey[] = [];
+
+		for await (const journey of queryIterator) journeys.push(journey);
+
 		return journeys;
 	}
 
@@ -48,6 +93,7 @@ export class JourneyRepository extends Repository {
 			journeyId: id,
 			pk: `journey#${id}`,
 			sk: `journey#${id}`,
+			createdBy: `user#${toCreate.driver.userId}`,
 			passengers: [],
 			journeyStatus: 'NOT_STARTED',
 			routeTravelled: [],
