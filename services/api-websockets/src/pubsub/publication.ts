@@ -6,7 +6,7 @@ import { ConnectionItem } from '../$connect/connect.interfaces';
 import { SUBSCRIPTION_INDEX } from '../constants/indexes';
 import { SUBSCRIPTION_TABLE } from '../constants/tables';
 import API from '../lib/api';
-import { WsPostResult, GetResult } from '../..';
+import { WsPostResult, GetResult } from '../../../api-shared-modules/src';
 import GetItemInput = DocumentClient.GetItemInput;
 
 class PublicationManager {

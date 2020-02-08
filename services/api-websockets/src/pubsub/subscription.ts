@@ -5,7 +5,7 @@ import { ConnectionItem } from '../$connect/connect.interfaces';
 import { SUBSCRIPTION_INDEX } from '../constants/indexes';
 import { SUBSCRIPTION_TABLE } from '../constants/tables';
 import { SubscriptionSchema } from '../interfaces/schemas';
-import { ApiEvent, GetResult, GetResultPromise, UpdateResult } from '../..';
+import { ApiEvent, GetResult, GetResultPromise, UpdateResult } from '../../../api-shared-modules/src';
 import PubManager from './publication';
 import GetItemInput = DocumentClient.GetItemInput;
 import PutItemInput = DocumentClient.PutItemInput;

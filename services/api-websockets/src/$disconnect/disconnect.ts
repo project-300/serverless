@@ -1,4 +1,4 @@
-import { ApiHandler } from '../..';
+import { ApiHandler } from '../../../api-shared-modules/src';
 import { DisconnectController } from './disconnect.controller';
 
 const controller: DisconnectController = new DisconnectController();

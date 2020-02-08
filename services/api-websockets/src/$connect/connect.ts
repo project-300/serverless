@@ -1,4 +1,4 @@
-import { ApiHandler } from '../../';
+import { ApiHandler } from '../../../api-shared-modules/src';
 import { ConnectController } from './connect.controller';
 
 const controller: ConnectController = new ConnectController();

@@ -3,10 +3,18 @@ import API from '../lib/api';
 import { ScanInput } from 'aws-sdk/clients/dynamodb';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import { CONNECTION_IDS_INDEX, CONNECTION_IDS_TABLE } from '../constants';
-import { ResponseBuilder } from '../../utils/response-builder';
 import { ConnectionItem, ConnectResult } from './connect.interfaces';
-import { ApiEvent, ApiHandler, ApiResponse, WsPostResult, PutResultPromise, ScanResult, ScanResultPromise } from '../..';
 import PutItemInput = DocumentClient.PutItemInput;
+import {
+	ApiEvent,
+	ApiHandler,
+	ApiResponse,
+	WsPostResult,
+	PutResultPromise,
+	ScanResult,
+	ScanResultPromise,
+	ResponseBuilder
+} from '../../../api-shared-modules/src';
 
 export class ConnectController {
 

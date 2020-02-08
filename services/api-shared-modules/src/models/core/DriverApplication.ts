@@ -7,7 +7,7 @@ export class DriverApplicationItem extends DynamoDbItem implements DriverApplica
 	public userId!: string;
 
 	@attribute()
-	public user: UserBrief
+	public user: UserBrief;
 
 	@attribute()
 	public approved?: boolean;

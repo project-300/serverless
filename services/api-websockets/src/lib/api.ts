@@ -1,9 +1,9 @@
 import { SubscriptionError, SubscriptionPayload } from '@project-300/common-types';
 import * as AWS from 'aws-sdk';
 import { PostToConnectionRequest } from 'aws-sdk/clients/apigatewaymanagementapi';
-import { WEBSOCKET_ENDPOINT } from '../../../../../environment/env';
+import { WEBSOCKET_ENDPOINT } from '../../../../environment/env';
 import SubManager from '../pubsub/subscription';
-import { WsPostResult } from '../..';
+import { WsPostResult } from '../../../api-shared-modules/src';
 
 export default class API {
 

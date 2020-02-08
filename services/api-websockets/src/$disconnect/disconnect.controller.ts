@@ -1,8 +1,7 @@
 import * as AWS from 'aws-sdk';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { CONNECTION_IDS_INDEX } from '../constants/indexes';
-import { CONNECTION_IDS_TABLE } from '../constants/tables';
-import { DeleteResult, ResponseBuilder, ApiEvent, ApiHandler, ApiResponse } from '../..';
+import { CONNECTION_IDS_INDEX, CONNECTION_IDS_TABLE } from '../constants';
+import { DeleteResult, ResponseBuilder, ApiEvent, ApiHandler, ApiResponse } from '../../../api-shared-modules/src';
 import { DisconnectResult } from './disconnect.interfaces';
 import DeleteItemInput = DocumentClient.DeleteItemInput;
 

@@ -1,5 +1,5 @@
 import API from '../lib/api';
-import { ResponseBuilder, ApiEvent, ApiHandler, ApiResponse, WsPostResult } from '../..';
+import { ResponseBuilder, ApiEvent, ApiHandler, ApiResponse, WsPostResult } from '../../../api-shared-modules/src';
 import { DefaultResult } from './default.interfaces';
 
 export class DefaultController {
