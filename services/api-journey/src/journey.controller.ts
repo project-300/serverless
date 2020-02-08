@@ -8,7 +8,7 @@ import {
 	ApiContext,
 	UnitOfWork
   } from '../../api-shared-modules/src';
-import { CreateJourneyData } from '../../../src/functions/driver/journeys/journeys.interfaces';
+import { CreateJourneyData } from './interfaces';
 
 export class JourneyController {
 

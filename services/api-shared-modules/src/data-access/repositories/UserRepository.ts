@@ -3,12 +3,12 @@ import { DriverBrief, User, UserBrief } from '@project-300/common-types';
 import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
-import { Entity } from '../interfaces';
+import { QueryKey } from '../interfaces';
 
 export class UserRepository extends Repository {
 
 	public async getAll(): Promise<User[]> {
-		const keyCondition: Entity = {
+		const keyCondition: QueryKey = {
 			entity: 'user'
 		};
 		const queryOptions: QueryOptions = {
