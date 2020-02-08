@@ -4,7 +4,7 @@ import { DriverApplicationController } from './driverapplication.controller';
 const unitOfWork: UnitOfWork = new UnitOfWork();
 const controller: DriverApplicationController = new DriverApplicationController(unitOfWork);
 
-export const getAllNonConfirmedApplications: ApiHandler = controller.getAllNonConfirmedApplications;
+export const getAllApplications: ApiHandler = controller.getAllApplications;
 export const getApplicationByUserId: ApiHandler = controller.getApplicationByUserId;
 export const approveApplication: ApiHandler = controller.approveApplication;
 export const deleteApplication: ApiHandler = controller.deleteApplication;

@@ -8,6 +8,10 @@ import {
 	UnitOfWork
   } from '../../api-shared-modules/src';
 
+export interface QueryStringParams {
+	[approved: string]: string;
+}
+
 export class DriverApplicationController {
 
 	public constructor(private unitOfWork: UnitOfWork) { }
@@ -30,9 +34,14 @@ export class DriverApplicationController {
 		}
 	}
 
-	public getAllNonConfirmedApplications: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+	public getAllApplications: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		if (!event.queryStringParameters || !event.queryStringParameters.approved) {
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+		}
+		const { approved }: { [approved: string]: string } = event.queryStringParameters;
+
 		try {
-			const applications: DriverApplicationObject[] = await this.unitOfWork.DriverApplications.getAllNotConfirmed();
+			const applications: DriverApplicationObject[] = await this.unitOfWork.DriverApplications.getAll(approved);
 			if (!applications) {
 				return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Applications');
 			}

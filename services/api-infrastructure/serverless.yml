@@ -14,6 +14,9 @@ custom:
   # commands. Or falls back to what we have set in the provider section.
   stage: ${opt.stage, self:provider.stage}
   generalTableName: P300-GENERAL
+  projectName: P300
 
 resources:
   - ${file(resources/dynamodb-tables.yml)}
+  - ${file(resources/cognito.yml)}
+  - ${file(resources/api-gateway.yml)}
