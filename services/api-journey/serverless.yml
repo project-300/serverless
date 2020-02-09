@@ -5,6 +5,7 @@ custom:
   # Our stage is based on what is passed in when running serverless
   # commands. Or falls back to what we have set in the provider section.
   stage: ${opt:stage, self:provider.stage}
+  projectName: P300
 
 provider:
   name: aws

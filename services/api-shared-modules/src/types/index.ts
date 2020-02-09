@@ -12,3 +12,4 @@ export {
  } from './api.types';
 export { ErrorCode } from './error-codes';
 export * from './dynamodb.types';
+export * from './api.types';

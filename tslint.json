@@ -24,7 +24,7 @@
       "tabs",
       4
     ],
-    "no-any": true,
+    "no-any": false,
     "whitespace": [
       true,
       "check-branch",

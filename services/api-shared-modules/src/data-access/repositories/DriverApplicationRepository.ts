@@ -3,12 +3,13 @@ import { beginsWith, equals } from '@aws/dynamodb-expressions';
 import { Repository } from './Repository';
 import { DriverApplicationObject } from '@project-300/common-types';
 import { DriverApplicationItem } from '../../models';
+import { QueryKey } from '../interfaces';
 
 export class DriverApplicationRepository extends Repository {
 	// REMEMBER ABOUT ProjectionExpression to take out pk, sk and entity!!!!
 
 	public async getAll(approved: string): Promise<DriverApplicationObject[]> {
-		const keyCondition = {
+		const keyCondition: QueryKey = {
 			entity: 'driverApplication'
 		};
 		const queryOptions: QueryOptions = {

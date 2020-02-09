@@ -10,7 +10,7 @@ export class AuthController {
 	public constructor(private unitOfWork: UnitOfWork) { }
 
 	public postSignUp: TriggerCognitoHandler = async (event: TriggerCognitoEvent) => {
-		const cognitoUser = event.request.userAttributes;
+		const cognitoUser: { [key: string]: string } = event.request.userAttributes;
 		const user: Partial<User> = {
 			email: cognitoUser.email
 			// firstName: cognitoUser.given_name,
@@ -28,7 +28,7 @@ export class AuthController {
 	}
 
 	public postConfirmation: TriggerCognitoHandler = async (event: TriggerCognitoEvent) => {
-		const cognitoUser = event.request.userAttributes;
+		const cognitoUser: { [key: string]: string } = event.request.userAttributes;
 		const user: Partial<User> = {
 			confirmed: true
 		};
