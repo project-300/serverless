@@ -62,6 +62,8 @@ export class UserRepository extends Repository {
 		return this.db.put(Object.assign(new UserItem(), {
 			entity: 'user',
 			confirmed: false,
+			userId,
+			userType: 'Passenger',
 			pk: `user#${userId}`,
 			sk: `user#${userId}`,
 			...toCreate
