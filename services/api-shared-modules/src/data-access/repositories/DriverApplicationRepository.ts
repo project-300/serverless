@@ -7,14 +7,14 @@ import { DriverApplicationItem } from '../../models';
 export class DriverApplicationRepository extends Repository {
 	// REMEMBER ABOUT ProjectionExpression to take out pk, sk and entity!!!!
 
-	public async getAllNotConfirmed(): Promise<DriverApplicationObject[]> {
+	public async getAll(approved: string): Promise<DriverApplicationObject[]> {
 		const keyCondition = {
 			entity: 'driverApplication'
 		};
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk-index',
 			filter: {
-				...equals(false),
+				...equals(approved),
 				subject: 'confirmed'
 			}
 		};

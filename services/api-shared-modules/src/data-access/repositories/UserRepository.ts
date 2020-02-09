@@ -58,6 +58,16 @@ export class UserRepository extends Repository {
 		}));
 	}
 
+	public async createAfterSignUp(userId: string, toCreate: Partial<User>): Promise<User> {
+		return this.db.put(Object.assign(new UserItem(), {
+			entity: 'user',
+			confirmed: false,
+			pk: `user#${userId}`,
+			sk: `user#${userId}`,
+			...toCreate
+		}));
+	}
+
 	public async update(userId: string, changes: Partial<User>): Promise<User> {
 		return this.db.update(Object.assign(new UserItem(), {
 			pk: `user#${userId}`,
