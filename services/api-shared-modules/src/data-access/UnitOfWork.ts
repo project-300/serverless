@@ -1,8 +1,7 @@
 import { UserRepository, JourneyRepository, SubscriptionRepository } from './repositories';
-import { IUserRepository, IJourneyRepository } from './interfaces';
+import { IUserRepository, IJourneyRepository, ISubscriptionRepository } from './interfaces';
 import { DataMapper } from '@aws/dynamodb-data-mapper';
 import { DynamoDB } from 'aws-sdk';
-import { ISubscriptionRepository } from './interfaces/ISubscriptionRepository';
 
 export class UnitOfWork {
 

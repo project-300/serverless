@@ -1,5 +1,4 @@
-import { ApiEvent, ApiHandler, ApiResponse, ResponseBuilder, UnitOfWork, WsPostResult } from '../../api-shared-modules/src';
-import { DefaultResult } from './interfaces';
+import { ApiEvent, ApiHandler, ApiResponse, ResponseBuilder, UnitOfWork } from '../../api-shared-modules/src';
 import { PublishType, SubscriptionConnection } from '@project-300/common-types';
 import SubscriptionManager from './pubsub/subscription';
 import API from './lib/api';
