@@ -1,3 +1,4 @@
+export { IDriverApplicationRepository } from './IDriverApplicationRepository';
 export { IUserRepository } from './IUserRepository';
 export { IJourneyRepository } from './IJourneyRepository';
 export { ISubscriptionRepository } from './ISubscriptionRepository';

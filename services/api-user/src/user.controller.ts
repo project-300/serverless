@@ -22,7 +22,7 @@ export class UserController {
 
 			return ResponseBuilder.ok(users);
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, 'Unable to get users');
+			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}
 
@@ -42,7 +42,7 @@ export class UserController {
 
 			return ResponseBuilder.ok(user);
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, 'Unable to get user');
+			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}
 
@@ -50,7 +50,7 @@ export class UserController {
 		if (!event.body) {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
 		}
-		const user: Partial<User> = JSON.parse(event.body);
+		const user: Partial<User> = JSON.parse(event.body) as Partial<User>;
 
 		try {
 			const result: User = await this.unitOfWork.Users.create({ ...user});
@@ -61,7 +61,7 @@ export class UserController {
 
 			return ResponseBuilder.ok(result);
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, 'Unable to create a new user');
+			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}
 
@@ -70,7 +70,7 @@ export class UserController {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
 		}
 
-		const user: Partial<User> = JSON.parse(event.body);
+		const user: Partial<User> = JSON.parse(event.body) as Partial<User>;
 
 		try {
 			const result: User = await this.unitOfWork.Users.update(user.userId, { ...user});
@@ -80,7 +80,7 @@ export class UserController {
 
 			return ResponseBuilder.ok(result);
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, 'Unable to update user');
+			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}
 
@@ -100,7 +100,7 @@ export class UserController {
 
 			return ResponseBuilder.ok(result);
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err);
+			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}
 

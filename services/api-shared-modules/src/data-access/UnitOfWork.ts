@@ -1,5 +1,7 @@
 import { UserRepository, JourneyRepository, SubscriptionRepository } from './repositories';
 import { IUserRepository, IJourneyRepository, ISubscriptionRepository } from './interfaces';
+import { IDriverApplicationRepository } from './interfaces/IDriverApplicationRepository';
+import { DriverApplicationRepository } from './repositories/DriverApplicationRepository';
 import { DataMapper } from '@aws/dynamodb-data-mapper';
 import { DynamoDB } from 'aws-sdk';
 
@@ -8,6 +10,7 @@ export class UnitOfWork {
 	public Users: IUserRepository;
 	public Journeys: IJourneyRepository;
 	public Subscriptions: ISubscriptionRepository;
+	public DriverApplications: IDriverApplicationRepository;
 
 	public constructor() {
 		const db: DataMapper = new DataMapper({ client: new DynamoDB({ region: 'eu-west-1' }) });
@@ -15,6 +18,7 @@ export class UnitOfWork {
 		this.Users = new UserRepository(db);
 		this.Journeys = new JourneyRepository(db);
 		this.Subscriptions = new SubscriptionRepository(db);
+		this.DriverApplications = new DriverApplicationRepository(db);
 	}
 
 }
