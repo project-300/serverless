@@ -1,0 +1,58 @@
+service: api-websockets-service
+frameworkVersion: ">=1.44.0"
+
+custom:
+  # Our stage is based on what is passed in when running serverless
+  # commands. Or falls back to what we have set in the provider section.
+  stage: ${opt:stage, self:provider.stage}
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: dev
+  region: eu-west-1
+  environment:
+    tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
+    ENVIRONMENT: ${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - '*'
+    - Effect: Allow
+      Action:
+        - 'execute-api:ManageConnections'
+      Resource:
+        - 'arn:aws:execute-api:*:*:**/@connections/*'
+
+plugins:
+  - serverless-offline
+  - serverless-webpack
+
+functions:
+  connect:
+    handler: src/handler.$wsConnect
+    events:
+      - websocket:
+          route: $connect
+  disconnect:
+    handler: src/handler.$wsDisconnect
+    events:
+      - websocket:
+          route: $disconnect
+  default:
+    handler: src/handler.$wsDefault
+    events:
+      - websocket:
+          route: $default
+#  cleanupConnections:
+#    handler: src/handler.cleanupConnections
+#    events:
+#      - schedule: rate(1 minute)

@@ -1,0 +1,111 @@
+service: api-journey-service
+frameworkVersion: ">=1.44.0"
+
+custom:
+  # Our stage is based on what is passed in when running serverless
+  # commands. Or falls back to what we have set in the provider section.
+  stage: ${opt:stage, self:provider.stage}
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: dev
+  region: eu-west-1
+  environment:
+    tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - '*'
+
+plugins:
+  - serverless-offline
+  - serverless-webpack
+
+functions:
+  getAllJourneys:
+    handler: src/handler.getAllJourneys
+    events:
+      - http:
+          path: /journeys
+          method: get
+          cors: true
+  getJourneyById:
+    handler: src/handler.getJourneyById
+    events:
+      - http:
+          path: /journeys/{journeyId}
+          method: get
+          cors: true
+  createJourney:
+    handler: src/handler.createJourney
+    events:
+      - http:
+          path: /journeys
+          method: post
+          cors: true
+  updateJourney:
+    handler: src/handler.updateJourney
+    events:
+      - http:
+          path: /journeys
+          method: patch
+          cors: true
+  deleteJourney:
+    handler: src/handler.deleteJourney
+    events:
+      - http:
+          path: /journeys/{journeyId}
+          method: delete
+          cors: true
+  addUserToJourney:
+    handler: src/handler.addUserToJourney
+    events:
+      - http:
+          path: /journeys/add-user
+          method: patch
+          cors: true
+  getDriverJourneys:
+    handler: src/handler.getDriverJourneys
+    events:
+      - http:
+          path: /journeys/driver/{userId}
+          method: get
+          cors: true
+  getPassengerJourneys:
+    handler: src/handler.getPassengerJourneys
+    events:
+      - http:
+          path: /journeys/passenger/{userId}
+          method: get
+          cors: true
+  startJourney:
+    handler: src/handler.startJourney
+    events:
+      - http:
+          path: /journeys/start/{journeyId}
+          method: patch
+          cors: true
+  endJourney:
+    handler: src/handler.endJourney
+    events:
+      - http:
+          path: /journeys/end/{journeyId}
+          method: patch
+          cors: true
+  cancelPassengerAcceptedJourney:
+    handler: src/handler.cancelPassengerAcceptedJourney
+    events:
+      - http:
+          path: /journeys/passenger-cancel
+          method: patch
+          cors: true
+
