@@ -8,6 +8,18 @@ provider:
   stage: dev
   tags:
     project: project300
+  iamRoleStatements:
+  - Effect: Allow
+    Action:
+      - dynamodb:DescribeTable
+      - dynamodb:Query
+      - dynamodb:Scan
+      - dynamodb:GetItem
+      - dynamodb:PutItem
+      - dynamodb:UpdateItem
+      - dynamodb:DeleteItem
+    Resource:
+      - '*'
     
 custom:
   # Our stage is based on what is passed in when running serverless
@@ -20,13 +32,18 @@ plugins:
   - serverless-offline
   - serverless-webpack
 
+resources:
+  - ${file(resources/dynamodb-tables.yml)}
+  - ${file(resources/cognito.yml)}
+  - ${file(resources/api-gateway.yml)}
+
 functions:
-  preSignUp:
-    handler: src/handler.preSignUp
+  postSignUp:
+    handler: src/handler.postSignUp
     events:
       - cognitoUserPool:
           pool: ${self:custom.stage}-${self:custom.projectName}Pool
-          trigger: PreSignUp
+          trigger: CustomMessage
           existing: true
   postConfirmation:
     handler: src/handler.postConfirmation
@@ -35,8 +52,3 @@ functions:
           pool: ${self:custom.stage}-${self:custom.projectName}Pool
           trigger: PostConfirmation
           existing: true
-
-resources:
-  - ${file(resources/dynamodb-tables.yml)}
-  - ${file(resources/cognito.yml)}
-  - ${file(resources/api-gateway.yml)}

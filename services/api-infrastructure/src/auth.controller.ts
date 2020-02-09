@@ -10,7 +10,7 @@ export class AuthController {
 
 	public constructor(private unitOfWork: UnitOfWork) { }
 
-	public preSignUp: TriggerCognitoHandler = async (event: TriggerCognitoEvent) => {
+	public postSignUp: TriggerCognitoHandler = async (event: TriggerCognitoEvent) => {
 		const cognitoUser = event.request.userAttributes;
 		const user: Partial<User> = {
 			email: cognitoUser.email
@@ -20,11 +20,11 @@ export class AuthController {
 		};
 
 		try {
-			const result: User = await this.unitOfWork.Users.createAfterSignUp(cognitoUser.sub, { ...user});
+			await this.unitOfWork.Users.createAfterSignUp(cognitoUser.sub, { ...user});
 
-			return ResponseBuilder.ok(result);
+			return event;
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, err.message);
+			return err;
 		}
 	}
 
@@ -35,11 +35,11 @@ export class AuthController {
 		};
 
 		try {
-			const result: User = await this.unitOfWork.Users.update(cognitoUser.sub, { ...user});
+			await this.unitOfWork.Users.update(cognitoUser.sub, { ...user});
 
-			return ResponseBuilder.ok(result);
+			return event;
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, err.message);
+			return err;
 		}
 	}
 }
