@@ -9,3 +9,11 @@ export interface ConnectionItem extends DocumentClient.AttributeMap {
 	userId: string;
 	subscribedAt: string;
 }
+
+export interface DefaultResult {
+	success: boolean;
+}
+
+export interface DisconnectResult {
+	success: boolean;
+}

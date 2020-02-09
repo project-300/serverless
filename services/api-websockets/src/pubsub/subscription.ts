@@ -1,134 +1,111 @@
-import { CollectionItem } from '@project-300/common-types';
-import * as AWS from 'aws-sdk';
-import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { ConnectionItem } from '../$connect/connect.interfaces';
-import { SUBSCRIPTION_INDEX } from '../constants/indexes';
-import { SUBSCRIPTION_TABLE } from '../constants/tables';
-import { SubscriptionSchema } from '../interfaces/schemas';
-import { ApiEvent, GetResult, GetResultPromise, UpdateResult } from '../../../api-shared-modules/src';
-import PubManager from './publication';
-import GetItemInput = DocumentClient.GetItemInput;
-import PutItemInput = DocumentClient.PutItemInput;
-import UpdateItemInput = DocumentClient.UpdateItemInput;
+import { Subscription, SubscriptionConnection } from '@project-300/common-types';
+import { UnitOfWork } from '../../../api-shared-modules/src';
 
-class SubscriptionManager {
+export interface SubscriptionData {
+	subscriptionName: string; // driver-applications, user/profile, etc
+	itemType: string; // journey, user, application, subscription, etc
+	itemId: string; // hash id
+	connectionId: string; // websocket connection id
+	userId?: string; // user hash id
+}
 
-	private dynamo: DocumentClient = new AWS.DynamoDB.DocumentClient(
-		process.env.IS_OFFLINE ? { region: 'localhost', endpoint: 'http://localhost:8000' } : { }
-	);
+export default class SubscriptionManager {
 
-	public subscribe = async (event: ApiEvent, sub: string, objectId: string, data?: CollectionItem | CollectionItem[], autoPush?: boolean): Promise<void> => {
-		const checkResponse: GetResult = await this._checkForExistingSubscription(sub);
-		const connectionId: string = event.requestContext.connectionId;
-		const userId: string = JSON.parse(event.body).userId;
-		const subscription: SubscriptionSchema = checkResponse.Item as SubscriptionSchema;
+	public constructor(private unitOfWork: UnitOfWork) { }
 
-		if (checkResponse.Item) {
-			const connectionExists: boolean = await this._checkForExistingConnection(subscription, connectionId);
+	public subscribe = async (subscriptionData: SubscriptionData): Promise<void> => {
+		const currentSub: Subscription = await this._checkForExistingSubscription(subscriptionData);
+
+		if (currentSub) {
+			const connectionExists: boolean = await this._checkForExistingConnection(currentSub, subscriptionData.connectionId);
 
 			if (connectionExists) return;
 
-			await this._addSubConnection(sub, connectionId, userId);
+			await this._addSubConnection(currentSub, subscriptionData);
 		} else {
-			await this._saveSubscription(sub, connectionId, userId);
+			await this._saveSubscription(subscriptionData);
 		}
-
-		if (autoPush) await PubManager.publish(event.requestContext.connectionId, sub, objectId, data, true);
 	}
 
-	public unsubscribe = async (sub: string, connectionId: string): Promise<void> => {
-		await this._deleteConnection(sub, connectionId);
+	public unsubscribe = async (subscriptionData: SubscriptionData): Promise<void> => {
+		await this._deleteConnection(subscriptionData);
 	}
 
-	private _checkForExistingSubscription = (sub: string): GetResultPromise => {
-		const params: GetItemInput = {
-			TableName: SUBSCRIPTION_TABLE,
-			Key: {
-				[SUBSCRIPTION_INDEX]: sub
+	private _checkForExistingSubscription = async (subData: SubscriptionData): Promise<Subscription> => {
+		const sub: Subscription = await this.unitOfWork.Subscriptions.getById(
+			subData.subscriptionName,
+			subData.itemType,
+			subData.itemId
+		);
+		return sub;
+	}
+
+	private _checkForExistingConnection = async (currentSub: Subscription, connectionId: string): Promise<boolean> =>
+		!!currentSub.connections.find((con: SubscriptionConnection) => con.connectionId === connectionId)
+
+	private _saveSubscription = async (subscriptionData: SubscriptionData): Promise<void> => {
+		await this.unitOfWork.Subscriptions.create(
+			{
+				connections: [
+					this._createSubscriptionConnection(subscriptionData)
+				]
+			},
+			subscriptionData.subscriptionName,
+			subscriptionData.itemType,
+			subscriptionData.itemId
+		);
+	}
+
+	private _addSubConnection = async (subscription: Subscription, subscriptionData: SubscriptionData): Promise<void> => {
+		subscription.connections.push(this._createSubscriptionConnection(subscriptionData));
+
+		await this.unitOfWork.Subscriptions.update(
+			subscriptionData.subscriptionName,
+			subscriptionData.itemType,
+			subscriptionData.itemId,
+			subscription
+		);
+	}
+
+	private _createSubscriptionConnection = (subscriptionData: SubscriptionData): SubscriptionConnection => {
+		const subCon: SubscriptionConnection = {
+			connectionId: subscriptionData.connectionId,
+			times: {
+				subscribedAt: new Date().toISOString()
 			}
 		};
 
-		return this.dynamo.get(params).promise();
+		if (subscriptionData.userId) subCon.userId = subscriptionData.userId;
+
+		return subCon;
 	}
 
-	private _saveSubscription = (sub: string, connectionId: string, userId: string): UpdateResult => {
-		const now: string = new Date().toISOString();
-
-		const params: PutItemInput = {
-			TableName: SUBSCRIPTION_TABLE,
-			Item: {
-				[SUBSCRIPTION_INDEX]: sub,
-				connections: [ {
-					connectionId,
-					userId,
-					subscribedAt: now
-				} ]
-			}
-		};
-
-		return this.dynamo.put(params).promise();
-	}
-
-	private _addSubConnection = (sub: string, connectionId: string, userId: string): UpdateResult => {
-		const now: string = new Date().toISOString();
-
-		const params: UpdateItemInput = {
-			TableName: SUBSCRIPTION_TABLE,
-			Key: {
-				[SUBSCRIPTION_INDEX]: sub
-			},
-			UpdateExpression: 'SET connections = list_append(connections, :con)',
-			ExpressionAttributeValues: {
-				':con': [ {
-					connectionId,
-					userId,
-					subscribedAt: now
-				} ]
-			},
-			ReturnValues: 'UPDATED_NEW'
-		};
-
-		return this.dynamo.update(params).promise();
-	}
-
-	private _checkForExistingConnection = async (storedSub: SubscriptionSchema, connectionId: string): Promise<boolean> => {
-		const existingConnection: ConnectionItem = storedSub.connections.find((con: ConnectionItem) =>
-	  		con.connectionId === connectionId
+	private _deleteConnection = async (subscriptionData: SubscriptionData): Promise<void> => {
+		const subscription: Subscription = await this.unitOfWork.Subscriptions.getById(
+			subscriptionData.subscriptionName,
+			subscriptionData.itemType,
+			subscriptionData.itemId
 		);
 
-		return !!existingConnection;
-	}
+		if (!subscription) return;
 
-	private _deleteConnection = async (sub: string, connectionId: string): UpdateResult => {
-		const index: number = await this._getConnectionIndex(sub, connectionId);
+		const index: number = this._getConnectionIndex(subscription, subscriptionData.connectionId);
 		if (index === undefined || index < 0) return;
 
-		const params: UpdateItemInput = {
-			TableName: SUBSCRIPTION_TABLE,
-			Key: {
-				[SUBSCRIPTION_INDEX]: sub
-			},
-			UpdateExpression: `REMOVE connections[${index}]`,
-			ReturnValues: 'UPDATED_NEW'
-		};
+		subscription.connections.splice(index, 1);
 
-		return this.dynamo.update(params).promise();
+		await this.unitOfWork.Subscriptions.update(
+			subscriptionData.subscriptionName,
+			subscriptionData.itemType,
+			subscriptionData.itemId,
+			subscription
+		);
 	}
 
-	private _getConnectionIndex = async (sub: string, connectionId: string): Promise<number> => {
-		const params: GetItemInput = {
-			TableName: SUBSCRIPTION_TABLE,
-			Key: {
-				[SUBSCRIPTION_INDEX]: sub
-			}
-		};
-
-		const res: GetResult = await this.dynamo.get(params).promise();
-		return res.Item && res.Item.connections.map((con: ConnectionItem) => con.connectionId).indexOf(connectionId);
-	}
+	private _getConnectionIndex = (subscription: Subscription, connectionId: string): number =>
+		subscription.connections &&
+		subscription.connections.map(
+			(con: SubscriptionConnection) => con.connectionId
+		).indexOf(connectionId)
 
 }
-
-const SubManager: SubscriptionManager = new SubscriptionManager();
-
-export default SubManager;

@@ -2,11 +2,11 @@ import { Journey } from '@project-300/common-types';
 import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
-import { QueryKey } from '../interfaces';
+import { IJourneyRepository, QueryKey } from '../interfaces';
 import { JourneyItem } from '../../models/core';
 import { ConditionExpression, inList, MembershipExpressionPredicate } from '@aws/dynamodb-expressions';
 
-export class JourneyRepository extends Repository {
+export class JourneyRepository extends Repository implements IJourneyRepository {
 
 	public async getAll(): Promise<Journey[]> {
 		const keyCondition: QueryKey = {

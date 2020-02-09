@@ -13,6 +13,7 @@ provider:
   region: eu-west-1
   environment:
     tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
+    ENVIRONMENT: ${opt:stage, self:provider.stage}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -25,24 +26,33 @@ provider:
         - dynamodb:DeleteItem
       Resource:
         - '*'
+    - Effect: Allow
+      Action:
+        - 'execute-api:ManageConnections'
+      Resource:
+        - 'arn:aws:execute-api:*:*:**/@connections/*'
 
 plugins:
   - serverless-offline
   - serverless-webpack
 
 functions:
-  connectHandler:
-    handler: src/$connect/connect.connectHandler
+  connect:
+    handler: src/handler.$wsConnect
     events:
       - websocket:
           route: $connect
-  disconnectHandler:
-    handler: src/$disconnect/disconnect.disconnectHandler
+  disconnect:
+    handler: src/handler.$wsDisconnect
     events:
       - websocket:
           route: $disconnect
-  defaultHandler:
-    handler: src/$default/default.defaultHandler
+  default:
+    handler: src/handler.$wsDefault
     events:
       - websocket:
           route: $default
+#  cleanupConnections:
+#    handler: src/handler.cleanupConnections
+#    events:
+#      - schedule: rate(1 minute)
