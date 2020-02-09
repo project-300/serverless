@@ -1,6 +1,5 @@
 import { User } from '@project-300/common-types';
 import {
-	ResponseBuilder,
 	UnitOfWork,
 	TriggerCognitoEvent,
 	TriggerCognitoHandler

@@ -13,6 +13,11 @@ provider:
   region: eu-west-1
   environment:
     tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
+  apiGateway:
+    restApiId:
+      'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiId
+    restApiRootResourceId:
+      'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiRootResourceId
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -38,6 +43,7 @@ functions:
           path: /journeys
           method: get
           cors: true
+          authorizer: aws_iam
   getJourneyById:
     handler: src/handler.getJourneyById
     events:
@@ -45,6 +51,7 @@ functions:
           path: /journeys/{journeyId}
           method: get
           cors: true
+          authorizer: aws_iam
   createJourney:
     handler: src/handler.createJourney
     events:
@@ -52,6 +59,7 @@ functions:
           path: /journeys
           method: post
           cors: true
+          authorizer: aws_iam
   updateJourney:
     handler: src/handler.updateJourney
     events:
@@ -59,6 +67,7 @@ functions:
           path: /journeys
           method: patch
           cors: true
+          authorizer: aws_iam
   deleteJourney:
     handler: src/handler.deleteJourney
     events:
@@ -66,6 +75,7 @@ functions:
           path: /journeys/{journeyId}
           method: delete
           cors: true
+          authorizer: aws_iam
   addUserToJourney:
     handler: src/handler.addUserToJourney
     events:
@@ -73,6 +83,7 @@ functions:
           path: /journeys/add-user
           method: patch
           cors: true
+          authorizer: aws_iam
   getDriverJourneys:
     handler: src/handler.getDriverJourneys
     events:
@@ -80,6 +91,7 @@ functions:
           path: /journeys/driver/{userId}
           method: get
           cors: true
+          authorizer: aws_iam
   getPassengerJourneys:
     handler: src/handler.getPassengerJourneys
     events:
@@ -87,6 +99,7 @@ functions:
           path: /journeys/passenger/{userId}
           method: get
           cors: true
+          authorizer: aws_iam
   startJourney:
     handler: src/handler.startJourney
     events:
@@ -94,6 +107,7 @@ functions:
           path: /journeys/start/{journeyId}
           method: patch
           cors: true
+          authorizer: aws_iam
   endJourney:
     handler: src/handler.endJourney
     events:
@@ -101,6 +115,7 @@ functions:
           path: /journeys/end/{journeyId}
           method: patch
           cors: true
+          authorizer: aws_iam
   cancelPassengerAcceptedJourney:
     handler: src/handler.cancelPassengerAcceptedJourney
     events:
@@ -108,4 +123,8 @@ functions:
           path: /journeys/passenger-cancel
           method: patch
           cors: true
+          authorizer: aws_iam
+
+resources:
+    - ${file(../resources/cognito-policy.yml)}
 

@@ -1,4 +1,4 @@
-import { USERID_FOR_TESTING } from './../../../../environment/env.tpl';
+import { USERID_FOR_TESTING } from './../../../../environment/env';
 
 export class SharedFunctions {
 

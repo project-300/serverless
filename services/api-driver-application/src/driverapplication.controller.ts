@@ -5,7 +5,8 @@ import {
 	ApiResponse,
 	ApiHandler,
 	ApiEvent,
-	UnitOfWork
+	UnitOfWork,
+	// SharedFunctions
   } from '../../api-shared-modules/src';
 
 export class DriverApplicationController {
@@ -35,6 +36,7 @@ export class DriverApplicationController {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 		}
 		const { approved }: { [approved: string]: string } = event.queryStringParameters;
+		// const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 		try {
 			const applications: DriverApplicationObject[] = await this.unitOfWork.DriverApplications.getAll(approved);
