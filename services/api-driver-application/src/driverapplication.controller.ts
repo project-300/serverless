@@ -25,7 +25,7 @@ export class DriverApplicationController {
 
 			const alreadyApplied: boolean = application ? true : false;
 
-			return ResponseBuilder.ok({ success: true, alreadyApplied });
+			return ResponseBuilder.ok({ alreadyApplied });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
@@ -43,7 +43,7 @@ export class DriverApplicationController {
 			if (!applications) {
 				return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Applications');
 			}
-			return ResponseBuilder.ok({ success: true, applications});
+			return ResponseBuilder.ok({ applications });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
@@ -63,7 +63,7 @@ export class DriverApplicationController {
 				return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Application Not Found');
 			}
 
-			return ResponseBuilder.ok({ sucess: true, application });
+			return ResponseBuilder.ok({ application });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
@@ -88,7 +88,7 @@ export class DriverApplicationController {
 				return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'failed to create new application');
 			}
 
-			return ResponseBuilder.ok({ success: true, application: result });
+			return ResponseBuilder.ok({ application });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
@@ -112,7 +112,7 @@ export class DriverApplicationController {
 				throw Error('Failed to update application');
 			}
 
-			return ResponseBuilder.ok({ success: true, application });
+			return ResponseBuilder.ok({ application });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
@@ -130,7 +130,7 @@ export class DriverApplicationController {
 			if (!application) {
 				return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to delete application');
 			}
-			return ResponseBuilder.ok({ success: true, application });
+			return ResponseBuilder.ok({ application });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}

@@ -81,7 +81,7 @@ functions:
     events:
       - http:
           path: /driver-applications/approve
-          method: patch
+          method: put
           cors: true
           authorizer: aws_iam
   deleteApplication:
