@@ -43,7 +43,7 @@ export class ResponseBuilder {
 	private static createResponse = (statusCode: number, obj: ErrorResult | any): ApiResponse => {
 		const bodyObject: any = obj instanceof ErrorResult
 			? { error: obj, success: false }
-			: obj;
+			: { ...obj, success: true };
 
 		return {
 			statusCode,
