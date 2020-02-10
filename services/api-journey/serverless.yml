@@ -1,0 +1,131 @@
+service: api-journey-service
+frameworkVersion: ">=1.44.0"
+
+custom:
+  # Our stage is based on what is passed in when running serverless
+  # commands. Or falls back to what we have set in the provider section.
+  stage: ${opt:stage, self:provider.stage}
+  projectName: P300
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: dev
+  region: eu-west-1
+  environment:
+    tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
+  apiGateway:
+    restApiId:
+      'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiId
+    restApiRootResourceId:
+      'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiRootResourceId
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - '*'
+
+plugins:
+  - serverless-offline
+  - serverless-webpack
+
+functions:
+  getAllJourneys:
+    handler: src/handler.getAllJourneys
+    events:
+      - http:
+          path: /journeys
+          method: get
+          cors: true
+          authorizer: aws_iam
+  getJourneyById:
+    handler: src/handler.getJourneyById
+    events:
+      - http:
+          path: /journeys/{journeyId}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  createJourney:
+    handler: src/handler.createJourney
+    events:
+      - http:
+          path: /journeys
+          method: post
+          cors: true
+          authorizer: aws_iam
+  updateJourney:
+    handler: src/handler.updateJourney
+    events:
+      - http:
+          path: /journeys
+          method: put
+          cors: true
+          authorizer: aws_iam
+  deleteJourney:
+    handler: src/handler.deleteJourney
+    events:
+      - http:
+          path: /journeys/{journeyId}
+          method: delete
+          cors: true
+          authorizer: aws_iam
+  addUserToJourney:
+    handler: src/handler.addUserToJourney
+    events:
+      - http:
+          path: /journeys/add-user
+          method: put
+          cors: true
+          authorizer: aws_iam
+  getDriverJourneys:
+    handler: src/handler.getDriverJourneys
+    events:
+      - http:
+          path: /journeys/driver/{userId}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  getPassengerJourneys:
+    handler: src/handler.getPassengerJourneys
+    events:
+      - http:
+          path: /journeys/passenger/{userId}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  startJourney:
+    handler: src/handler.startJourney
+    events:
+      - http:
+          path: /journeys/start/{journeyId}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  endJourney:
+    handler: src/handler.endJourney
+    events:
+      - http:
+          path: /journeys/end/{journeyId}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  cancelPassengerAcceptedJourney:
+    handler: src/handler.cancelPassengerAcceptedJourney
+    events:
+      - http:
+          path: /journeys/passenger-cancel
+          method: put
+          cors: true
+          authorizer: aws_iam
+
+resources:
+    - ${file(../resources/cognito-policy.yml)}
+

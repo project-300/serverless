@@ -1,0 +1,7 @@
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  resourcesStages:
+    prod: prod
+    dev: dev
+  resourcesStage: ${self:custom.resourcesStages.${self:custom.stage}, self:custom.resourcesStages.dev}
+  projectName: P300

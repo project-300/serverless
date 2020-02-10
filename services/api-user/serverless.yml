@@ -1,0 +1,82 @@
+service: api-user-service
+frameworkVersion: ">=1.44.0"
+
+custom:
+  # Our stage is based on what is passed in when running serverless
+  # commands. Or falls back to what we have set in the provider section.
+  stage: ${opt:stage, self:provider.stage}
+  projectName: P300
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: dev
+  region: eu-west-1
+  environment:
+    tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
+  apiGateway:
+    restApiId:
+      'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiId
+    restApiRootResourceId:
+      'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiRootResourceId
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - '*'
+
+plugins:
+  - serverless-offline
+  - serverless-webpack
+
+functions:
+  getAllUsers:
+    handler: src/handler.getAllUsers
+    events:
+      - http:
+          path: /users
+          method: get
+          cors: true
+          authorizer: aws_iam
+  getUserById:
+    handler: src/handler.getUserById
+    events:
+      - http:
+          path: /users/{userId}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  createUser:
+    handler: src/handler.createUser
+    events:
+      - http:
+          path: /users
+          method: post
+          cors: true
+          authorizer: aws_iam
+  updateUser:
+    handler: src/handler.updateUser
+    events:
+      - http:
+          path: /users
+          method: put
+          cors: true
+          authorizer: aws_iam
+  deleteUser:
+    handler: src/handler.deleteUser
+    events:
+      - http:
+          path: /users/{userId}
+          method: delete
+          cors: true
+          authorizer: aws_iam
+
+resources:
+    - ${file(../resources/cognito-policy.yml)}

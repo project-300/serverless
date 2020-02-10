@@ -4,19 +4,19 @@
   "description": "Project 300 Serverless Websocket Backend",
   "main": "src/connection.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "tslint"
   },
   "dependencies": {
-    "@project-300/common-types": "^1.4.0",
+    "@project-300/common-types": "^2.2.0",
     "aws-sdk": "^2.492.0",
     "email-validator": "^2.0.4",
-    "lodash": "^4.17.15",
     "source-map-support": "^0.5.10",
     "tslint": "^5.18.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
-    "@types/aws-lambda": "^8.10.17",
+    "@types/aws-lambda": "8.10.39",
     "@types/node": "^10.12.18",
     "serverless-dynamodb-local": "^0.2.38",
     "serverless-offline": "^5.12.0",
