@@ -4,12 +4,12 @@ Resources:
     Properties:
       Name: ${self:custom.stage}-${self:custom.projectName}-ApiGatewayRestApi
 
-  WebsocketApi:
-    Type: AWS::ApiGatewayV2::Api
-    Properties:
-      Name: ${self:custom.stage}-${self:custom.projectName}-WebsocketApi
-      ProtocolType: WEBSOCKET
-      RouteSelectionExpression: '$request.body.action'
+  # WebsocketApi:
+  #   Type: AWS::ApiGatewayV2::Api
+  #   Properties:
+  #     Name: ${self:custom.stage}-${self:custom.projectName}-WebsocketApi
+  #     ProtocolType: WEBSOCKET
+  #     RouteSelectionExpression: '$request.body.action'
 
 Outputs:
   ApiGatewayRestApiId:
@@ -26,8 +26,8 @@ Outputs:
     Export:
       Name: ${self:custom.stage}-${self:custom.projectName}-ApiGatewayRestApiRootResourceId
 
-  WebsocketApiId:
-    Value:
-      Ref: WebsocketApi
-    Export:
-      Name: ${self:custom.stage}-${self:custom.projectName}-WebsocketApiId
+  # WebsocketApiId:
+  #   Value:
+  #     Ref: WebsocketApi
+  #   Export:
+  #     Name: ${self:custom.stage}-${self:custom.projectName}-WebsocketApiId

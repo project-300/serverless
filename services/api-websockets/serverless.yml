@@ -15,11 +15,6 @@ provider:
   environment:
     tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
     ENVIRONMENT: ${opt:stage, self:provider.stage}
-  apiGateway:
-    restApiRootResourceId:
-      'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiRootResourceId
-    websocketsApiName:
-      'Fn::ImportValue': ${self:custom.stage}-P300-WebsocketApiId
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -48,23 +43,21 @@ functions:
     events:
       - websocket:
           route: $connect
-          # authorizer: aws_iam
+ 
   disconnect:
     handler: src/handler.$wsDisconnect
     events:
       - websocket:
           route: $disconnect
-          # authorizer: aws_iam
+
   default:
     handler: src/handler.$wsDefault
     events:
       - websocket:
           route: $default
-          # authorizer: aws_iam
+
 #  cleanupConnections:
 #    handler: src/handler.cleanupConnections
 #    events:
 #      - schedule: rate(1 minute)
 
-resources:
-    - ${file(../resources/cognito-policy.yml)}

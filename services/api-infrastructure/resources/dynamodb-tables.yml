@@ -1,37 +1,37 @@
 Resources:
-  ConnectionTable:
-    Type: 'AWS::DynamoDB::Table'
-    Properties:
-      AttributeDefinitions:
-        - AttributeName: 'connectionId'
-          AttributeType: 'S'
-      KeySchema:
-        - AttributeName: 'connectionId'
-          KeyType: 'HASH'
-      BillingMode: PAY_PER_REQUEST
-      TableName: ${self:custom.stage}-P300-ConnectionIds
-  CognitoTable:
-    Type: 'AWS::DynamoDB::Table'
-    Properties:
-      AttributeDefinitions:
-        - AttributeName: 'cognitoId'
-          AttributeType: 'S'
-      KeySchema:
-        - AttributeName: 'cognitoId'
-          KeyType: 'HASH'
-      BillingMode: PAY_PER_REQUEST
-      TableName: ${self:custom.stage}-CognitoData
-  SubscriptionTable:
-    Type: 'AWS::DynamoDB::Table'
-    Properties:
-      AttributeDefinitions:
-        - AttributeName: 'subscriptionName'
-          AttributeType: 'S'
-      KeySchema:
-        - AttributeName: 'subscriptionName'
-          KeyType: 'HASH'
-      BillingMode: PAY_PER_REQUEST
-      TableName: ${self:custom.stage}-P300-SUBSCRIPTIONS
+  # ConnectionTable:
+  #   Type: 'AWS::DynamoDB::Table'
+  #   Properties:
+  #     AttributeDefinitions:
+  #       - AttributeName: 'connectionId'
+  #         AttributeType: 'S'
+  #     KeySchema:
+  #       - AttributeName: 'connectionId'
+  #         KeyType: 'HASH'
+  #     BillingMode: PAY_PER_REQUEST
+  #     TableName: ${self:custom.stage}-P300-ConnectionIds
+  # CognitoTable:
+  #   Type: 'AWS::DynamoDB::Table'
+  #   Properties:
+  #     AttributeDefinitions:
+  #       - AttributeName: 'cognitoId'
+  #         AttributeType: 'S'
+  #     KeySchema:
+  #       - AttributeName: 'cognitoId'
+  #         KeyType: 'HASH'
+  #     BillingMode: PAY_PER_REQUEST
+  #     TableName: ${self:custom.stage}-CognitoData
+  # SubscriptionTable:
+  #   Type: 'AWS::DynamoDB::Table'
+  #   Properties:
+  #     AttributeDefinitions:
+  #       - AttributeName: 'subscriptionName'
+  #         AttributeType: 'S'
+  #     KeySchema:
+  #       - AttributeName: 'subscriptionName'
+  #         KeyType: 'HASH'
+  #     BillingMode: PAY_PER_REQUEST
+  #     TableName: ${self:custom.stage}-P300-SUBSCRIPTIONS
   GeneralTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
@@ -70,21 +70,21 @@ Resources:
             ProjectionType: "ALL"
 
 Outputs:
-  ConnectionTable:
-    Value:
-      Ref: ConnectionTable
-    Export:
-      Name: ${self:custom.stage}-ConnectionTable
-  CognitoTable:
-    Value:
-      Ref: CognitoTable
-    Export:
-      Name: ${self:custom.stage}-CognitoTable
-  SubscriptionTable:
-    Value:
-      Ref: SubscriptionTable
-    Export:
-      Name: ${self:custom.stage}-SubscriptionTable
+  # ConnectionTable:
+  #   Value:
+  #     Ref: ConnectionTable
+  #   Export:
+  #     Name: ${self:custom.stage}-ConnectionTable
+  # CognitoTable:
+  #   Value:
+  #     Ref: CognitoTable
+  #   Export:
+  #     Name: ${self:custom.stage}-CognitoTable
+  # SubscriptionTable:
+  #   Value:
+  #     Ref: SubscriptionTable
+  #   Export:
+  #     Name: ${self:custom.stage}-SubscriptionTable
   GeneralTable:
     Value:
       Ref: GeneralTable
