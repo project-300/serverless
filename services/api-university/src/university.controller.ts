@@ -10,7 +10,7 @@ import {
   } from '../../api-shared-modules/src';
 import { UniversityData } from './interfaces';
 
-export class InterestController {
+export class UniversityController {
 
 	public constructor(private unitOfWork: UnitOfWork) { }
 
@@ -41,6 +41,17 @@ export class InterestController {
 		}
 	}
 
+	public getAllUniversityDomains: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		try {
+			const domains: string[] = await this.unitOfWork.Universities.getAllDomains();
+			if (!domains) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve University email domains');
+
+			return ResponseBuilder.ok({ domains });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, 'Unable to get University email domains');
+		}
+	}
+
 	public createUniversity: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
 
@@ -52,6 +63,8 @@ export class InterestController {
 
 		try {
 			if (!university.name) throw Error('University name is missing');
+			if (!university.emailDomains) throw Error('University email domains are missing');
+			if (!university.emailDomains.length) throw Error('University must have at least one email domain');
 
 			const result: University = await this.unitOfWork.Universities.create({ ...university });
 			if (!result) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Failed to create new University');

@@ -10,6 +10,9 @@ export class UniversityItem extends DynamoDbItem implements University {
 	public name!: string;
 
 	@attribute()
+	public emailDomains!: string[];
+
+	@attribute()
 	public times!: {
 		createdAt: Date | string;
 		updatedAt?: Date | string;

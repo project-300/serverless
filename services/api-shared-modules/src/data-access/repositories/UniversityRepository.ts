@@ -19,7 +19,7 @@ export class UniversityRepository extends Repository implements IUniversityRepos
 		const queryIterator: QueryIterator<UniversityItem> = this.db.query(UniversityItem, keyCondition, queryOptions);
 		const universities: University[] = [];
 
-		for await (const journey of queryIterator) universities.push(journey);
+		for await (const university of queryIterator) universities.push(university);
 
 		return universities;
 	}
@@ -29,6 +29,24 @@ export class UniversityRepository extends Repository implements IUniversityRepos
 			pk: `university#${universityId}`,
 			sk: `university#${universityId}`
 		}));
+	}
+
+	public async getAllDomains(): Promise<string[]> {
+		const keyCondition: QueryKey = {
+			entity: 'university'
+		};
+
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk-index',
+			projection: [ 'emailDomains' ]
+		};
+
+		const queryIterator: QueryIterator<UniversityItem> = this.db.query(UniversityItem, keyCondition, queryOptions);
+		const domains: string[] = [];
+
+		for await (const university of queryIterator) domains.push(...university.emailDomains);
+
+		return domains;
 	}
 
 	public async create(toCreate: Partial<University>): Promise<University> {

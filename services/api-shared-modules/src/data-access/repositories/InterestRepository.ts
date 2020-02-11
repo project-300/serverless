@@ -19,7 +19,7 @@ export class InterestRepository extends Repository implements IInterestRepositor
 		const queryIterator: QueryIterator<InterestItem> = this.db.query(InterestItem, keyCondition, queryOptions);
 		const interests: Interest[] = [];
 
-		for await (const journey of queryIterator) interests.push(journey);
+		for await (const interest of queryIterator) interests.push(interest );
 
 		return interests;
 	}
