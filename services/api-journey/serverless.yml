@@ -121,7 +121,7 @@ functions:
     handler: src/handler.cancelPassengerAcceptedJourney
     events:
       - http:
-          path: /journeys/passenger-cancel
+          path: /journeys/passenger-cancel/{journeyId}
           method: put
           cors: true
           authorizer: aws_iam
