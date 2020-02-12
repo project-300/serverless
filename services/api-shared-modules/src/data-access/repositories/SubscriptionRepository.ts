@@ -1,8 +1,7 @@
 import { Subscription, SubscriptionConnection } from '@project-300/common-types';
 import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { Repository } from './Repository';
-import { QueryKey } from '../interfaces';
-import { ISubscriptionRepository } from '../interfaces/ISubscriptionRepository';
+import { QueryKey, ISubscriptionRepository } from '../interfaces';
 import { SubscriptionItem } from '../../models/core/Subscription';
 import { ConditionExpression, EqualityExpressionPredicate, equals } from '@aws/dynamodb-expressions';
 
