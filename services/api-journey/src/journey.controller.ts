@@ -17,8 +17,7 @@ export class JourneyController {
 
 	public getAllJourneys: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		try {
-			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-			if (!userId) throw Error('Unauthorised action');
+			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 			const journeys: Journey[] = await this.unitOfWork.Journeys.getAll();
 			if (!journeys) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Journeys');
@@ -37,8 +36,7 @@ export class JourneyController {
 		const createdAt: string = event.pathParameters.createdAt;
 
 		try {
-			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-			if (!userId) throw Error('Unauthorised action');
+			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
@@ -61,7 +59,6 @@ export class JourneyController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-			if (!userId) throw Error('Unauthorised action');
 
 			if (!journey.totalNoOfSeats) throw Error('Journey seat count is missing');
 			if (!journey.destination) throw Error('Journey destination is missing');
@@ -75,6 +72,8 @@ export class JourneyController {
 
 			journey.driver = driver;
 			journey.times.createdAt = new Date().toISOString();
+			journey.searchText =
+				`${journey.origin.name} ${journey.destination.name} ${journey.driver.firstName} ${journey.driver.lastName}`.toLowerCase();
 
 			const result: Journey = await this.unitOfWork.Journeys.create({ ...journey });
 			if (!result) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Failed to create new Journey');
@@ -91,8 +90,7 @@ export class JourneyController {
 		const journey: Partial<Journey> = JSON.parse(event.body);
 
 		try {
-			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-			if (!userId) throw Error('Unauthorised action');
+			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, journey.times.createdAt as string, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
@@ -112,7 +110,6 @@ export class JourneyController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-			if (!userId) throw Error('Unauthorised action');
 
 			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
@@ -135,7 +132,6 @@ export class JourneyController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-			if (!userId) throw Error('Unauthorised action');
 
 			const journey: Partial<Journey> =
 				await this.unitOfWork.Journeys.getByIdWithProjection(
@@ -192,7 +188,6 @@ export class JourneyController {
 	public getDriverJourneys: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-			if (!userId) throw Error('Unauthorised action');
 
 			const journeys: Journey[] = await this.unitOfWork.Journeys.getUserJourneys(userId);
 			if (!journeys) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Journeys');
@@ -206,7 +201,6 @@ export class JourneyController {
 	public getPassengerJourneys: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-			if (!userId) throw Error('Unauthorised action');
 
 			const passenger: Passenger = await this.unitOfWork.Users.getById(userId);
 			if (!passenger) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'User does not exist');
@@ -230,7 +224,6 @@ export class JourneyController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-			if (!userId) throw Error('Unauthorised action');
 
 			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 
@@ -265,7 +258,6 @@ export class JourneyController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-			if (!userId) throw Error('Unauthorised action');
 
 			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 
@@ -294,14 +286,12 @@ export class JourneyController {
 	public cancelPassengerAcceptedJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
 
-		// To be updated - UserId will come from token or context
 		const { journeyId, createdAt }: { journeyId: string; createdAt: string } = JSON.parse(event.body);
 
 		if (!journeyId || !createdAt) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-			if (!userId) throw Error('Unauthorised action');
 
 			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 			const passenger: Passenger = await this.unitOfWork.Users.getById(userId);
@@ -335,5 +325,24 @@ export class JourneyController {
 	// public subscribeDriverLocation: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 	//
 	// }
+
+	public searchJourneys: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.pathParameters || !event.pathParameters.query)
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const query: string = event.pathParameters.query;
+
+		try {
+			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			const journeys: Journey[] = await this.unitOfWork.Journeys.searchJourneys(query);
+			if (!journeys) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to search Journeys');
+
+			return ResponseBuilder.ok({ journeys });
+		} catch (err) {
+			console.log(err);
+			return ResponseBuilder.internalServerError(err, 'Unable to search journeys');
+		}
+	}
 
 }

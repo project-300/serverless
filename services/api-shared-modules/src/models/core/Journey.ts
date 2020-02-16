@@ -47,4 +47,7 @@ export class JourneyItem extends DynamoDbItem implements Journey {
 
 	@attribute()
 	public routeTravelled!: CoordsItem[];
+
+	@attribute()
+	public searchText!: string;
 }

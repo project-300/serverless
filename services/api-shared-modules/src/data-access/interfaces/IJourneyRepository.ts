@@ -9,4 +9,5 @@ export interface IJourneyRepository {
 	create(toCreate: Partial<Journey>): Promise<Journey>;
 	update(journeyId: string, createdAt: string, changes: Partial<Journey>): Promise<Journey>;
 	delete(journeyId: string, createdAt: string): Promise<Journey | undefined>;
+	searchJourneys(query: string): Promise<Journey[]>;
 }

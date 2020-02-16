@@ -4,7 +4,7 @@ import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
 import { IJourneyRepository, QueryKey } from '../interfaces';
 import { JourneyItem } from '../../models/core';
-import { ConditionExpression, inList, MembershipExpressionPredicate } from '@aws/dynamodb-expressions';
+import { ConditionExpression, contains, ContainsPredicate, inList, MembershipExpressionPredicate } from '@aws/dynamodb-expressions';
 
 export class JourneyRepository extends Repository implements IJourneyRepository {
 
@@ -35,6 +35,32 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		const queryOptions: QueryOptions = {
 			indexName: 'created-by-index',
 			scanIndexForward: false
+		};
+
+		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
+		const journeys: Journey[] = [];
+
+		for await (const journey of queryIterator) journeys.push(journey);
+
+		return journeys;
+	}
+
+	public async searchJourneys(query: string): Promise<Journey[]> {
+		const equalsExpressionPredicate: ContainsPredicate = contains(query.toLowerCase());
+
+		const equalsExpression: ConditionExpression = {
+			...equalsExpressionPredicate,
+			subject: 'searchText'
+		};
+
+		const keyCondition: QueryKey = {
+			entity: 'journey'
+		};
+
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk-index',
+			scanIndexForward: false,
+			filter: equalsExpression
 		};
 
 		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
