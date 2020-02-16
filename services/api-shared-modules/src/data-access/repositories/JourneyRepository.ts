@@ -14,7 +14,8 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		};
 
 		const queryOptions: QueryOptions = {
-			indexName: 'entity-sk-index'
+			indexName: 'entity-sk-index',
+			scanIndexForward: false
 		};
 
 		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
@@ -32,7 +33,8 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		};
 
 		const queryOptions: QueryOptions = {
-			indexName: 'created-by-index'
+			indexName: 'created-by-index',
+			scanIndexForward: false
 		};
 
 		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
@@ -58,7 +60,8 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk-index',
-			filter: equalsExpression
+			filter: equalsExpression,
+			scanIndexForward: false
 		};
 
 		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
@@ -69,17 +72,17 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		return journeys;
 	}
 
-	public async getById(journeyId: string): Promise<Journey> {
+	public async getById(journeyId: string, createdAt: string): Promise<Journey> {
 		return this.db.get(Object.assign(new JourneyItem(), {
 			pk: `journey#${journeyId}`,
-			sk: `journey#${journeyId}`
+			sk: `createdAt#${createdAt}`
 		}));
 	}
 
-	public async getByIdWithProjection(journeyId: string, projection?: string[]): Promise<Journey> {
+	public async getByIdWithProjection(journeyId: string, createdAt: string, projection?: string[]): Promise<Journey> {
 		return this.db.get(Object.assign(new JourneyItem(), {
 			pk: `journey#${journeyId}`,
-			sk: `journey#${journeyId}`
+			sk: `createdAt#${createdAt}`
 		}), {
 			projection
 		});
@@ -92,7 +95,7 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 			entity: 'journey',
 			journeyId: id,
 			pk: `journey#${id}`,
-			sk: `journey#${id}`,
+			sk: `createdAt#${new Date().toISOString()}`,
 			createdBy: `user#${toCreate.driver.userId}`,
 			passengers: [],
 			journeyStatus: 'NOT_STARTED',
@@ -103,20 +106,20 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		}));
 	}
 
-	public async update(journeyId: string, changes: Partial<Journey>): Promise<Journey> {
+	public async update(journeyId: string, createdAt: string, changes: Partial<Journey>): Promise<Journey> {
 		return this.db.update(Object.assign(new JourneyItem(), {
 			pk: `journey#${journeyId}`,
-			sk: `journey#${journeyId}`,
+			sk: `createdAt#${createdAt}`,
 			...changes
 		}), {
 			onMissing: 'skip'
 		});
 	}
 
-	public async delete(journeyId: string): Promise<Journey | undefined> {
+	public async delete(journeyId: string, createdAt: string): Promise<Journey | undefined> {
 		return this.db.delete(Object.assign(new JourneyItem(), {
 			pk: `journey#${journeyId}`,
-			sk: `journey#${journeyId}`
+			sk: `createdAt#${createdAt}`
 		}), {
 			returnValues: 'ALL_OLD'
 		});

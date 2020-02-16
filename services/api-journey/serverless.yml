@@ -14,6 +14,7 @@ provider:
   region: eu-west-1
   environment:
     tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
+    ENVIRONMENT: ${opt:stage, self:provider.stage}
   apiGateway:
     restApiId:
       'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiId
@@ -49,7 +50,7 @@ functions:
     handler: src/handler.getJourneyById
     events:
       - http:
-          path: /journeys/{journeyId}
+          path: /journeys/{journeyId}/{createdAt}
           method: get
           cors: true
           authorizer: aws_iam
@@ -73,7 +74,7 @@ functions:
     handler: src/handler.deleteJourney
     events:
       - http:
-          path: /journeys/{journeyId}
+          path: /journeys/{journeyId}/{createdAt}
           method: delete
           cors: true
           authorizer: aws_iam
@@ -89,7 +90,7 @@ functions:
     handler: src/handler.getDriverJourneys
     events:
       - http:
-          path: /journeys/driver/{userId}
+          path: /journeys/driver
           method: get
           cors: true
           authorizer: aws_iam
@@ -97,7 +98,7 @@ functions:
     handler: src/handler.getPassengerJourneys
     events:
       - http:
-          path: /journeys/passenger/{userId}
+          path: /journeys/passenger
           method: get
           cors: true
           authorizer: aws_iam
@@ -105,7 +106,7 @@ functions:
     handler: src/handler.startJourney
     events:
       - http:
-          path: /journeys/start/{journeyId}
+          path: /journeys/start/{journeyId}/{createdAt}
           method: put
           cors: true
           authorizer: aws_iam
@@ -113,7 +114,7 @@ functions:
     handler: src/handler.endJourney
     events:
       - http:
-          path: /journeys/end/{journeyId}
+          path: /journeys/end/{journeyId}/{createdAt}
           method: put
           cors: true
           authorizer: aws_iam
@@ -121,7 +122,7 @@ functions:
     handler: src/handler.cancelPassengerAcceptedJourney
     events:
       - http:
-          path: /journeys/passenger-cancel/{journeyId}
+          path: /journeys/passenger-cancel
           method: put
           cors: true
           authorizer: aws_iam

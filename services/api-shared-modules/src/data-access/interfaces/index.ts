@@ -5,6 +5,8 @@ export { ISubscriptionRepository } from './ISubscriptionRepository';
 export { IInterestRepository } from './IInterestRepository';
 
 export interface QueryKey {
+	pk?: string;
+	sk?: string;
 	entity?: string;
 	createdBy?: string;
 }
