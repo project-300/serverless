@@ -1,4 +1,5 @@
 import { Coords, Journey } from '@project-300/common-types';
+import { JourneyItem } from '../../api-shared-modules/src/models/core';
 
 export interface MyJourneysData {
 	userId: string;
@@ -7,6 +8,10 @@ export interface MyJourneysData {
 export interface CreateJourneyData {
 	userId: string;
 	journey: Partial<Journey>;
+}
+
+export interface QueryAllJourneysData {
+	lastEvaluatedKey?: Partial<JourneyItem>;
 }
 
 export interface JourneyDetailsData {

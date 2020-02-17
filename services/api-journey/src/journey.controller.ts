@@ -7,7 +7,7 @@ import {
 	ApiEvent,
 	ApiContext,
 	UnitOfWork,
-	SharedFunctions
+	SharedFunctions, JourneyItem
 } from '../../api-shared-modules/src';
 import { CreateJourneyData } from './interfaces';
 
@@ -16,14 +16,26 @@ export class JourneyController {
 	public constructor(private unitOfWork: UnitOfWork) { }
 
 	public getAllJourneys: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		let lastEvaluatedKey: { [key: string]: string };
+
+		if (event.queryStringParameters && event.queryStringParameters.pk && event.queryStringParameters.sk) {
+			lastEvaluatedKey = {
+				pk: `journey#${event.queryStringParameters.pk}`,
+				sk: `createdAt#${event.queryStringParameters.sk}`,
+				entity: 'journey'
+			};
+		}
+
 		try {
 			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
-			const journeys: Journey[] = await this.unitOfWork.Journeys.getAll();
-			if (!journeys) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Journeys');
+			const result: { journeys: Journey[]; lastEvaluatedKey: Partial<JourneyItem> } =
+				await this.unitOfWork.Journeys.getAll(lastEvaluatedKey);
+			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Journeys');
 
-			return ResponseBuilder.ok({ journeys });
+			return ResponseBuilder.ok({ ...result, count: result.journeys.length });
 		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to get journeys');
 		}
 	}
@@ -330,15 +342,26 @@ export class JourneyController {
 		if (!event.pathParameters || !event.pathParameters.query)
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 
+		let lastEvaluatedKey: { [key: string]: string };
+
+		if (event.queryStringParameters && event.queryStringParameters.pk && event.queryStringParameters.sk) {
+			lastEvaluatedKey = {
+				pk: `journey#${event.queryStringParameters.pk}`,
+				sk: `createdAt#${event.queryStringParameters.sk}`,
+				entity: 'journey'
+			};
+		}
+
 		const query: string = event.pathParameters.query;
 
 		try {
 			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
-			const journeys: Journey[] = await this.unitOfWork.Journeys.searchJourneys(query);
-			if (!journeys) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to search Journeys');
+			const result: { journeys: Journey[]; lastEvaluatedKey: Partial<JourneyItem>} =
+				await this.unitOfWork.Journeys.searchJourneys(query, lastEvaluatedKey);
+			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to search Journeys');
 
-			return ResponseBuilder.ok({ journeys });
+			return ResponseBuilder.ok({ ...result, count: result.journeys.length });
 		} catch (err) {
 			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to search journeys');

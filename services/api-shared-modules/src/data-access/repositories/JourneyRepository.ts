@@ -1,29 +1,40 @@
 import { Journey } from '@project-300/common-types';
-import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
+import { QueryOptions, QueryIterator, QueryPaginator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
 import { IJourneyRepository, QueryKey } from '../interfaces';
 import { JourneyItem } from '../../models/core';
 import { ConditionExpression, contains, ContainsPredicate, inList, MembershipExpressionPredicate } from '@aws/dynamodb-expressions';
+import { SharedFunctions } from '../..';
 
 export class JourneyRepository extends Repository implements IJourneyRepository {
 
-	public async getAll(): Promise<Journey[]> {
+	public async getAll(lastEvaluatedKey?: Partial<JourneyItem>): Promise<{ journeys: Journey[]; lastEvaluatedKey: Partial<JourneyItem>}> {
 		const keyCondition: QueryKey = {
 			entity: 'journey'
 		};
 
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk-index',
-			scanIndexForward: false
+			scanIndexForward: false,
+			startKey: lastEvaluatedKey,
+			limit: 10
 		};
 
-		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
+		const queryPages: QueryPaginator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions).pages();
 		const journeys: Journey[] = [];
 
-		for await (const journey of queryIterator) journeys.push(journey);
+		for await (const page of queryPages) {
+			for (const journey of page) journeys.push(journey);
+		}
 
-		return journeys;
+		return {
+			journeys,
+			lastEvaluatedKey:
+				queryPages.lastEvaluatedKey ?
+					SharedFunctions.stripLastEvaluatedKey(queryPages.lastEvaluatedKey) :
+					undefined
+		};
 	}
 
 	public async getUserJourneys(userId: string): Promise<Journey[]> {
@@ -45,7 +56,8 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		return journeys;
 	}
 
-	public async searchJourneys(query: string): Promise<Journey[]> {
+	public async searchJourneys(query: string, lastEvaluatedKey?: Partial<JourneyItem>)
+		: Promise<{ journeys: Journey[]; lastEvaluatedKey: Partial<JourneyItem>}> {
 		const equalsExpressionPredicate: ContainsPredicate = contains(query.toLowerCase());
 
 		const equalsExpression: ConditionExpression = {
@@ -60,15 +72,19 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk-index',
 			scanIndexForward: false,
-			filter: equalsExpression
+			filter: equalsExpression,
+			startKey: lastEvaluatedKey,
+			limit: 10
 		};
 
-		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
+		const queryPages: QueryPaginator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions).pages();
 		const journeys: Journey[] = [];
 
-		for await (const journey of queryIterator) journeys.push(journey);
+		for await (const page of queryPages) {
+			for (const journey of page) journeys.push(journey);
+		}
 
-		return journeys;
+		return { journeys, lastEvaluatedKey: SharedFunctions.stripLastEvaluatedKey(queryPages.lastEvaluatedKey) };
 	}
 
 	public async getJourneysWithIds(journeyIds: string[]): Promise<Journey[]> {
