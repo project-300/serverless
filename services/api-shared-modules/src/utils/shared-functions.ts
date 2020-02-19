@@ -1,5 +1,6 @@
 import { USERID_FOR_TESTING } from '../../../../environment/env';
 import { DynamoDbItem } from '../models';
+import { TimeDuration } from '@project-300/common-types';
 
 export class SharedFunctions {
 
@@ -27,5 +28,11 @@ export class SharedFunctions {
 			{ }
 		);
 	}
+
+	public static TimeDurations = (times: { [key: string]: string | Date }): { [key: string]: string } =>
+		Object.keys(times).reduce((memo: { [key: string]: string }, key: string) => {
+			Object.assign(memo, { [key]: TimeDuration(times[key]) });
+			return memo;
+		}, { })
 
 }

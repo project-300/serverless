@@ -137,13 +137,14 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 			entity: 'journey',
 			journeyId: id,
 			pk: `journey#${id}`,
-			sk: `createdAt#${new Date().toISOString()}`,
+			sk: `createdAt#${toCreate.times.createdAt}`,
 			createdBy: `user#${toCreate.driver.userId}`,
 			passengers: [],
 			journeyStatus: 'NOT_STARTED',
 			routeTravelled: [],
 			seatsLeft: toCreate.totalNoOfSeats,
 			lastLocation: { latitude: 0, longitude: 0 },
+			available: false,
 			...toCreate
 		}));
 	}

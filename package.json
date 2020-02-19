@@ -8,9 +8,10 @@
     "lint": "tslint"
   },
   "dependencies": {
-    "@project-300/common-types": "^3.0.4",
+    "@project-300/common-types": "^3.0.14",
     "aws-sdk": "^2.492.0",
     "email-validator": "^2.0.4",
+    "s-ago": "^2.1.0",
     "source-map-support": "^0.5.10",
     "tslint": "^5.18.0",
     "uuid": "^3.3.2"

@@ -1,4 +1,4 @@
-import { DriverBrief, Journey, Passenger, PassengerBrief } from '@project-300/common-types';
+import { DriverBrief, Journey, Passenger, PassengerBrief, GetMidpoint, User } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -7,9 +7,11 @@ import {
 	ApiEvent,
 	ApiContext,
 	UnitOfWork,
-	SharedFunctions, JourneyItem
+	SharedFunctions,
+	JourneyItem
 } from '../../api-shared-modules/src';
 import { CreateJourneyData } from './interfaces';
+import _ from 'lodash';
 
 export class JourneyController {
 
@@ -27,11 +29,17 @@ export class JourneyController {
 		}
 
 		try {
-			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 			const result: { journeys: Journey[]; lastEvaluatedKey: Partial<JourneyItem> } =
 				await this.unitOfWork.Journeys.getAll(lastEvaluatedKey);
-			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Journeys');
+			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'to retrieve Journeys');
+
+			result.journeys = await this._markJoinedJourneys(userId, result.journeys);
+			result.journeys = result.journeys.map((j: Journey) => {
+				j.readableDurations = SharedFunctions.TimeDurations(j.times);
+				return j;
+			});
 
 			return ResponseBuilder.ok({ ...result, count: result.journeys.length });
 		} catch (err) {
@@ -82,6 +90,7 @@ export class JourneyController {
 			const driver: DriverBrief = await this.unitOfWork.Users.getDriverBrief(userId);
 			if (!driver) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Driver not found');
 
+			journey.midpoint = GetMidpoint(journey.origin, journey.destination);
 			journey.driver = driver;
 			journey.times.createdAt = new Date().toISOString();
 			journey.searchText =
@@ -149,7 +158,7 @@ export class JourneyController {
 				await this.unitOfWork.Journeys.getByIdWithProjection(
 					data.journeyId,
 					data.createdAt,
-					[ 'journeyId', 'passengers', 'seatsLeft', 'driver', 'journeyStatus' ]
+					[ 'journeyId', 'passengers', 'seatsLeft', 'driver', 'journeyStatus', 'times' ]
 				);
 
 			if (!journey) throw Error('Journey not found');
@@ -171,7 +180,7 @@ export class JourneyController {
 			const passenger: Passenger = await this.unitOfWork.Users.getById(userId);
 
 			this._addPassenger(journey, passengerBrief);
-			this._addJourneyToPassenger(journey.journeyId, passenger);
+			this._addJourneyToPassenger(journey, passenger);
 			this._updateSeatCount(journey, -1);
 
 			await this.unitOfWork.Users.update(passenger.userId, { ...passenger });
@@ -189,8 +198,12 @@ export class JourneyController {
 		journey.passengers ? journey.passengers.push(passenger) : journey.passengers = [ passenger ];
 	}
 
-	private _addJourneyToPassenger = (journeyId: string, passenger: Passenger): void => {
-		passenger.journeysAsPassenger ? passenger.journeysAsPassenger.push(journeyId) : passenger.journeysAsPassenger = [ journeyId ];
+	private _addJourneyToPassenger = (journey: Partial<Journey>, passenger: Passenger): void => {
+		const j: { journeyId: string; createdAt: string } = { journeyId: journey.journeyId, createdAt: journey.times.createdAt as string };
+
+		passenger.journeysAsPassenger ?
+			passenger.journeysAsPassenger.push(j) :
+			passenger.journeysAsPassenger = [ j ];
 	}
 
 	private _updateSeatCount = (journey: Partial<Journey>, count: number): void => {
@@ -218,7 +231,9 @@ export class JourneyController {
 			if (!passenger) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'User does not exist');
 			if (!passenger.journeysAsPassenger) return ResponseBuilder.ok([ ]); // Return empty array - No journeys yet
 
-			const journeys: Journey[] = await this.unitOfWork.Journeys.getJourneysWithIds(passenger.journeysAsPassenger);
+			const journeys: Journey[] = await this.unitOfWork.Journeys.getJourneysWithIds(passenger.journeysAsPassenger.map(
+				(j: { journeyId: string; createdAt: string }) => j.journeyId)
+			);
 			if (!journeys) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Journeys');
 
 			return ResponseBuilder.ok({ journeys });
@@ -326,7 +341,9 @@ export class JourneyController {
 	}
 
 	private _removeJourneyFromUser = (journeyId: string, passenger: Passenger): void => {
-		const index: number = passenger.journeysAsPassenger.findIndex((j: string) => j === journeyId);
+		const index: number = passenger.journeysAsPassenger.findIndex(
+			(j: { journeyId: string; createdAt: string }) => j.journeyId === journeyId
+		);
 		passenger.journeysAsPassenger.splice(index, 1);
 	}
 
@@ -355,17 +372,35 @@ export class JourneyController {
 		const query: string = event.pathParameters.query;
 
 		try {
-			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 			const result: { journeys: Journey[]; lastEvaluatedKey: Partial<JourneyItem>} =
 				await this.unitOfWork.Journeys.searchJourneys(query, lastEvaluatedKey);
 			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to search Journeys');
+
+			result.journeys = await this._markJoinedJourneys(userId, result.journeys);
+			result.journeys = result.journeys.map((j: Journey) => {
+				j.readableDurations = SharedFunctions.TimeDurations(j.times);
+				return j;
+			});
 
 			return ResponseBuilder.ok({ ...result, count: result.journeys.length });
 		} catch (err) {
 			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to search journeys');
 		}
+	}
+
+	public _markJoinedJourneys = async (userId: string, journeys: Journey[]): Promise<Journey[]> => {
+		const user: Partial<User> = await this.unitOfWork.Users.getJourneysAsPassenger(userId);
+
+		if (!user.journeysAsPassenger || !user.journeysAsPassenger.length) return journeys;
+
+		const updatedJourneys: Journey[] = journeys.map(
+			(j: Journey) => _.find(user.journeysAsPassenger, { journeyId: j.journeyId }) ? { ...j, userJoined: true } : j
+		);
+
+		return updatedJourneys;
 	}
 
 }
