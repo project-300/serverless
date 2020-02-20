@@ -4,20 +4,38 @@ import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
 import { IJourneyRepository, QueryKey } from '../interfaces';
 import { JourneyItem } from '../../models/core';
-import { ConditionExpression, contains, ContainsPredicate, inList, MembershipExpressionPredicate } from '@aws/dynamodb-expressions';
+import {
+	ConditionExpression,
+	contains,
+	greaterThan,
+	ContainsPredicate,
+	inList,
+	MembershipExpressionPredicate,
+	equals,
+	EqualityExpressionPredicate
+} from '@aws/dynamodb-expressions';
 import { SharedFunctions } from '../..';
 
 export class JourneyRepository extends Repository implements IJourneyRepository {
 
 	public async getAll(lastEvaluatedKey?: Partial<JourneyItem>): Promise<{ journeys: Journey[]; lastEvaluatedKey: Partial<JourneyItem>}> {
+		const predicate: EqualityExpressionPredicate = equals(true);
+
+		const equalsExpression: ConditionExpression = {
+			...predicate,
+			subject: 'available'
+		};
+
 		const keyCondition: QueryKey = {
-			entity: 'journey'
+			entity: 'journey',
+			sk3: greaterThan(`leavingAt#${new Date().toISOString()}`)
 		};
 
 		const queryOptions: QueryOptions = {
-			indexName: 'entity-sk-index',
-			scanIndexForward: false,
+			indexName: 'entity-sk3-index',
+			scanIndexForward: true,
 			startKey: lastEvaluatedKey,
+			filter: equalsExpression,
 			limit: 10
 		};
 
@@ -40,7 +58,7 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 	public async getUserJourneys(userId: string): Promise<Journey[]> {
 		const keyCondition: QueryKey = {
 			entity: 'journey',
-			createdBy: `user#${userId}`
+			sk2: `user#${userId}`
 		};
 
 		const queryOptions: QueryOptions = {
@@ -138,13 +156,14 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 			journeyId: id,
 			pk: `journey#${id}`,
 			sk: `createdAt#${toCreate.times.createdAt}`,
-			createdBy: `user#${toCreate.driver.userId}`,
+			sk2: `user#${toCreate.driver.userId}`,
+			sk3: `leavingAt#${toCreate.times.leavingAt}`,
 			passengers: [],
 			journeyStatus: 'NOT_STARTED',
 			routeTravelled: [],
 			seatsLeft: toCreate.totalNoOfSeats,
 			lastLocation: { latitude: 0, longitude: 0 },
-			available: false,
+			available: true,
 			...toCreate
 		}));
 	}

@@ -35,7 +35,7 @@ export class JourneyController {
 				await this.unitOfWork.Journeys.getAll(lastEvaluatedKey);
 			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'to retrieve Journeys');
 
-			result.journeys = await this._markJoinedJourneys(userId, result.journeys);
+			result.journeys = await this._setJourneyFlags(userId, result.journeys);
 			result.journeys = result.journeys.map((j: Journey) => {
 				j.readableDurations = SharedFunctions.TimeDurations(j.times);
 				return j;
@@ -378,7 +378,7 @@ export class JourneyController {
 				await this.unitOfWork.Journeys.searchJourneys(query, lastEvaluatedKey);
 			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to search Journeys');
 
-			result.journeys = await this._markJoinedJourneys(userId, result.journeys);
+			result.journeys = await this._setJourneyFlags(userId, result.journeys);
 			result.journeys = result.journeys.map((j: Journey) => {
 				j.readableDurations = SharedFunctions.TimeDurations(j.times);
 				return j;
@@ -391,16 +391,18 @@ export class JourneyController {
 		}
 	}
 
-	public _markJoinedJourneys = async (userId: string, journeys: Journey[]): Promise<Journey[]> => {
+	private _setJourneyFlags = async (userId: string, journeys: Journey[]): Promise<Journey[]> => {
 		const user: Partial<User> = await this.unitOfWork.Users.getJourneysAsPassenger(userId);
 
 		if (!user.journeysAsPassenger || !user.journeysAsPassenger.length) return journeys;
 
-		const updatedJourneys: Journey[] = journeys.map(
-			(j: Journey) => _.find(user.journeysAsPassenger, { journeyId: j.journeyId }) ? { ...j, userJoined: true } : j
+		return journeys.map(
+			(j: Journey) => {
+				const updatedJourney: Journey = _.find(user.journeysAsPassenger, { journeyId: j.journeyId }) ? { ...j, userJoined: true } : j;
+				if (updatedJourney.driver.userId === userId) updatedJourney.isOwnedByUser = true;
+				return updatedJourney;
+			}
 		);
-
-		return updatedJourneys;
 	}
 
 }
