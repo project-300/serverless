@@ -162,7 +162,7 @@ export class JourneyController {
 				await this.unitOfWork.Journeys.getByIdWithProjection(
 					data.journeyId,
 					data.createdAt,
-					[ 'journeyId', 'passengers', 'seatsLeft', 'driver', 'journeyStatus', 'times' ]
+					[ 'journeyId', 'passengers', 'seatsLeft', 'driver', 'journeyStatus', 'times', 'totalNoOfSeats' ]
 				);
 
 			if (!journey) throw Error('Journey not found');
@@ -185,7 +185,7 @@ export class JourneyController {
 
 			this._addPassenger(journey, passengerBrief);
 			this._addJourneyToPassenger(journey, passenger);
-			this._updateSeatCount(journey, -1);
+			this._updateSeatCount(journey);
 
 			await this.unitOfWork.Users.update(passenger.userId, { ...passenger });
 			let result: Journey = await this.unitOfWork.Journeys.update(data.journeyId, data.createdAt, { ...journey });
@@ -212,8 +212,8 @@ export class JourneyController {
 			passenger.journeysAsPassenger = [ j ];
 	}
 
-	private _updateSeatCount = (journey: Partial<Journey>, count: number): void => {
-		journey.seatsLeft += count;
+	private _updateSeatCount = (journey: Partial<Journey>): void => {
+		journey.seatsLeft = journey.totalNoOfSeats - journey.passengers.length;
 	}
 
 	public getDriverJourneys: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
@@ -334,7 +334,7 @@ export class JourneyController {
 
 			this._removePassengerFromJourney(journey, passenger.userId);
 			this._removeJourneyFromUser(journey.journeyId, passenger);
-			this._updateSeatCount(journey, 1);
+			this._updateSeatCount(journey);
 
 			delete journey.sk2; // Remove extra indexes to allow update to work
 			delete journey.sk3;
