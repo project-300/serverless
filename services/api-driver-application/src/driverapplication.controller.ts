@@ -140,6 +140,11 @@ export class DriverApplicationController {
 	public getAllVehicleMakes: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		try {
 			const result = await VehicleAPI.getAllMakes();
+
+			if (result === undefined || result.length === 0) {
+				throw new Error('There is no makes with that name');
+			}
+
 			return ResponseBuilder.ok({ result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
