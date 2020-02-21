@@ -43,7 +43,6 @@ export class JourneyController {
 
 			return ResponseBuilder.ok({ ...result, count: result.journeys.length });
 		} catch (err) {
-			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to get journeys');
 		}
 	}
@@ -56,14 +55,16 @@ export class JourneyController {
 		const createdAt: string = event.pathParameters.createdAt;
 
 		try {
-			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
-			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+			let journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
+
+			journey.readableDurations = SharedFunctions.TimeDurations(journey.times);
+			journey = (await this._setJourneyFlags(userId, [ journey ]))[0];
 
 			return ResponseBuilder.ok({ journey });
 		} catch (err) {
-			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to get Journey');
 		}
 	}
@@ -112,6 +113,9 @@ export class JourneyController {
 
 		try {
 			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			delete journey.sk2;
+			delete journey.sk3;
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, journey.times.createdAt as string, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
@@ -184,12 +188,14 @@ export class JourneyController {
 			this._updateSeatCount(journey, -1);
 
 			await this.unitOfWork.Users.update(passenger.userId, { ...passenger });
-			const result: Journey = await this.unitOfWork.Journeys.update(data.journeyId, data.createdAt, { ...journey });
+			let result: Journey = await this.unitOfWork.Journeys.update(data.journeyId, data.createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
+
+			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+			result = (await this._setJourneyFlags(userId, [ result ]))[0];
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
-			console.log(err);
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to add user to Journey');
 		}
 	}
@@ -270,6 +276,8 @@ export class JourneyController {
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
+			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to start Journey');
@@ -304,6 +312,8 @@ export class JourneyController {
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
+			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to end Journey');
@@ -319,15 +329,21 @@ export class JourneyController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-
 			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 			const passenger: Passenger = await this.unitOfWork.Users.getById(userId);
 
 			this._removePassengerFromJourney(journey, passenger.userId);
 			this._removeJourneyFromUser(journey.journeyId, passenger);
+			this._updateSeatCount(journey, 1);
 
-			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
+			delete journey.sk2; // Remove extra indexes to allow update to work
+			delete journey.sk3;
+
+			let result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			await this.unitOfWork.Users.update(passenger.userId, { ...passenger });
+
+			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+			result = (await this._setJourneyFlags(userId, [ result ]))[0];
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -393,8 +409,6 @@ export class JourneyController {
 
 	private _setJourneyFlags = async (userId: string, journeys: Journey[]): Promise<Journey[]> => {
 		const user: Partial<User> = await this.unitOfWork.Users.getJourneysAsPassenger(userId);
-
-		if (!user.journeysAsPassenger || !user.journeysAsPassenger.length) return journeys;
 
 		return journeys.map(
 			(j: Journey) => {

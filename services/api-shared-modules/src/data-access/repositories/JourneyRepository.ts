@@ -84,12 +84,13 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		};
 
 		const keyCondition: QueryKey = {
-			entity: 'journey'
+			entity: 'journey',
+			sk3: greaterThan(`leavingAt#${new Date().toISOString()}`)
 		};
 
 		const queryOptions: QueryOptions = {
-			indexName: 'entity-sk-index',
-			scanIndexForward: false,
+			indexName: 'entity-sk3-index',
+			scanIndexForward: true,
 			filter: equalsExpression,
 			startKey: lastEvaluatedKey,
 			limit: 10
@@ -102,7 +103,13 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 			for (const journey of page) journeys.push(journey);
 		}
 
-		return { journeys, lastEvaluatedKey: SharedFunctions.stripLastEvaluatedKey(queryPages.lastEvaluatedKey) };
+		return {
+			journeys,
+			lastEvaluatedKey:
+				queryPages.lastEvaluatedKey ?
+					SharedFunctions.stripLastEvaluatedKey(queryPages.lastEvaluatedKey) :
+					undefined
+		};
 	}
 
 	public async getJourneysWithIds(journeyIds: string[]): Promise<Journey[]> {
