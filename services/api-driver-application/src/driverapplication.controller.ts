@@ -6,6 +6,7 @@ import {
 	ApiHandler,
 	ApiEvent,
 	UnitOfWork,
+	VehicleAPI
 	// SharedFunctions
   } from '../../api-shared-modules/src';
 
@@ -35,7 +36,7 @@ export class DriverApplicationController {
 		if (!event.queryStringParameters || !event.queryStringParameters.approved) {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 		}
-		const { approved }: { [approved: string]: string } = event.queryStringParameters;
+		const { approved }: { [params: string]: string } = event.queryStringParameters;
 		// const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 		try {
@@ -131,6 +132,32 @@ export class DriverApplicationController {
 				return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to delete application');
 			}
 			return ResponseBuilder.ok({ application });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message);
+		}
+	}
+
+	public getAllVehicleMakes: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		try {
+			const result = await VehicleAPI.getAllMakes();
+			return ResponseBuilder.ok({ result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message);
+		}
+	}
+
+	public getAllVehicleModelsForMakeAndYear: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		if (!event.queryStringParameters || !event.queryStringParameters.year || !event.queryStringParameters.makeId) {
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+		}
+		const { year, makeId }: { [params: string]: string} = event.queryStringParameters;
+		try {
+			const result = await VehicleAPI.getModelsForMakeAndYear(makeId, year);
+
+			if (result === undefined || result.length === 0) {
+				throw new Error('There is no models for this make or year');
+			}
+			return ResponseBuilder.ok({ result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}

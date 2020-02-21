@@ -92,6 +92,23 @@ functions:
           method: delete
           cors: true
           authorizer: aws_iam
+  getAllVehicleMakes:
+    handler: src/handler.getAllVehicleMakes
+    events:
+      - http:
+          path: /driver-applications/vehicle-makes
+          method: get
+          cors: true
+          authorizer: aws_iam
+  #takes a make and year query param
+  getAllVehicleModelsForMakeAndYear:
+    handler: src/handler.getAllVehicleModelsForMakeAndYear
+    events:
+      - http:
+          path: /driver-applications/vehicle-models
+          method: get
+          cors: true
+          authorizer: aws_iam
 
 resources:
     - ${file(../resources/cognito-policy.yml)}
