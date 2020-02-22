@@ -76,10 +76,10 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 
 	public async searchJourneys(query: string, lastEvaluatedKey?: Partial<JourneyItem>)
 		: Promise<{ journeys: Journey[]; lastEvaluatedKey: Partial<JourneyItem>}> {
-		const equalsExpressionPredicate: ContainsPredicate = contains(query.toLowerCase());
+		const containsExpressionPredicate: ContainsPredicate = contains(query.toLowerCase());
 
-		const equalsExpression: ConditionExpression = {
-			...equalsExpressionPredicate,
+		const containsExpression: ConditionExpression = {
+			...containsExpressionPredicate,
 			subject: 'searchText'
 		};
 
@@ -91,7 +91,7 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk3-index',
 			scanIndexForward: true,
-			filter: equalsExpression,
+			filter: containsExpression,
 			startKey: lastEvaluatedKey,
 			limit: 10
 		};

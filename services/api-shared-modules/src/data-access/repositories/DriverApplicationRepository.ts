@@ -29,7 +29,7 @@ export class DriverApplicationRepository extends Repository {
 
 	public async getByUserId(userId: string): Promise<DriverApplicationObject | undefined> {
 		try {
-			const item = await this.db.get(Object.assign(new DriverApplicationItem(), {
+			const item: DriverApplicationObject = await this.db.get(Object.assign(new DriverApplicationItem(), {
 				pk: `user#${userId}`,
 				sk:  `application#${userId}`
 			}));

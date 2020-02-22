@@ -1,0 +1,91 @@
+service: api-chat-service
+frameworkVersion: ">=1.44.0"
+
+custom:
+  # Our stage is based on what is passed in when running serverless
+  # commands. Or falls back to what we have set in the provider section.
+  stage: ${opt:stage, self:provider.stage}
+  projectName: P300
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: dev
+  region: eu-west-1
+  environment:
+    tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
+  apiGateway:
+    restApiId:
+      'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiId
+    restApiRootResourceId:
+      'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiRootResourceId
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - '*'
+
+plugins:
+  - serverless-offline
+  - serverless-webpack
+
+functions:
+  getAllChatsByUser:
+    handler: src/handler.getAllChatsByUser
+    events:
+      - http:
+          path: /chats
+          method: get
+          cors: true
+          authorizer: aws_iam
+  getChatById:
+    handler: src/handler.getChatById
+    events:
+      - http:
+          path: /chats/{chatId}/{userIdA}/{userIdB}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  getChatByUsers:
+    handler: src/handler.getChatByUsers
+    events:
+      - http:
+          path: /chats/users/{userIdA}/{userIdB}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  createChat:
+    handler: src/handler.createChat
+    events:
+      - http:
+          path: /chats
+          method: post
+          cors: true
+          authorizer: aws_iam
+  updateChat:
+    handler: src/handler.updateChat
+    events:
+      - http:
+          path: /chats
+          method: put
+          cors: true
+          authorizer: aws_iam
+  deleteChat:
+    handler: src/handler.deleteChat
+    events:
+      - http:
+          path: /chats/{chatId}/{userIdA}/{userIdB}
+          method: delete
+          cors: true
+          authorizer: aws_iam
+
+resources:
+    - ${file(../resources/cognito-policy.yml)}
+

@@ -1,4 +1,4 @@
-import { UserItem } from './../../models/core/User';
+import { UserItem } from '../../models/core';
 import { DriverBrief, User, UserBrief } from '@project-300/common-types';
 import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
@@ -30,12 +30,16 @@ export class UserRepository extends Repository {
 	}
 
 	public async getUserBrief(userId: string): Promise<UserBrief> {
-		return this.db.get(Object.assign(new UserItem(), {
-			pk: `user#${userId}`,
-			sk: `user#${userId}`
-		}), {
-			projection: [ 'userId', 'username', 'firstName', 'lastName', 'avatar', 'userType' ]
-		});
+		try {
+			return await this.db.get(Object.assign(new UserItem(), {
+				pk: `user#${userId}`,
+				sk: `user#${userId}`
+			}), {
+				projection: [ 'userId', 'username', 'firstName', 'lastName', 'avatar', 'userType' ]
+			});
+		} catch (err) {
+			return undefined;
+		}
 	}
 
 	public async getDriverBrief(userId: string): Promise<DriverBrief> {
