@@ -14,7 +14,5 @@
     "typescript": "^3.2.4",
     "webpack": "^4.29.0"
   },
-  "dependencies": {
-    "@project-300/common-types": "^2.1.10"
-  }
+  "dependencies": {}
 }

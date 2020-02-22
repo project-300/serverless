@@ -3,8 +3,9 @@ import { attribute, hashKey, rangeKey, table } from '@aws/dynamodb-data-mapper-a
 export interface DynamoDbItem {
 	pk: string;
 	sk: string;
+	sk2: string;
+	sk3: string;
 	entity: string;
-	createdBy: string;
 }
 
 // TODO: Implement a mechanism to change this automatically based on environment
@@ -16,9 +17,12 @@ export class DynamoDbItem implements DynamoDbItem {
 	@rangeKey()
 	public sk!: string;
 
-	@attribute()
-	public entity!: string;
+	@rangeKey()
+	public sk2!: string;
 
 	@rangeKey()
-	public createdBy!: string;
+	public sk3!: string;
+
+	@attribute()
+	public entity!: string;
 }

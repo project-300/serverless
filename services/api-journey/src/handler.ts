@@ -5,6 +5,7 @@ const unitOfWork: UnitOfWork = new UnitOfWork();
 const controller: JourneyController = new JourneyController(unitOfWork);
 
 export const getAllJourneys: ApiHandler = controller.getAllJourneys;
+export const searchJourneys: ApiHandler = controller.searchJourneys;
 export const getJourneyById: ApiHandler = controller.getJourneyById;
 export const createJourney: ApiHandler = controller.createJourney;
 export const updateJourney: ApiHandler = controller.updateJourney;

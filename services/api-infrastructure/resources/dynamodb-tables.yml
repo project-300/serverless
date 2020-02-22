@@ -40,9 +40,11 @@ Resources:
           AttributeType: 'S'
         - AttributeName: 'sk'
           AttributeType: 'S'
-        - AttributeName: 'entity'
+        - AttributeName: 'sk2'
           AttributeType: 'S'
-        - AttributeName: 'createdBy'
+        - AttributeName: 'sk3'
+          AttributeType: 'S'
+        - AttributeName: 'entity'
           AttributeType: 'S'
       KeySchema:
         - AttributeName: 'pk'
@@ -60,11 +62,19 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: "ALL"
-        - IndexName: created-by-index
+        - IndexName: entity-sk2-index
           KeySchema:
             - AttributeName: entity
               KeyType: HASH
-            - AttributeName: createdBy
+            - AttributeName: sk2
+              KeyType: RANGE
+          Projection:
+            ProjectionType: "ALL"
+        - IndexName: entity-sk3-index
+          KeySchema:
+            - AttributeName: entity
+              KeyType: HASH
+            - AttributeName: sk3
               KeyType: RANGE
           Projection:
             ProjectionType: "ALL"
