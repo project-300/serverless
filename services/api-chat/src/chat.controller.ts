@@ -29,13 +29,15 @@ export class ChatController {
 	}
 
 	public getChatById: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-		if (!event.pathParameters || !event.pathParameters.chatId || !event.pathParameters.userIdA || !event.pathParameters.userIdB)
+		if (!event.pathParameters || !event.pathParameters.chatId || !event.pathParameters.otherUserId)
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 
-		const { chatId, userIdA, userIdB }: { [name: string]: string } = event.pathParameters;
+		const { chatId, otherUserId }: { [name: string]: string } = event.pathParameters;
 
 		try {
-			const chat: Chat = await this.unitOfWork.Chats.getById(chatId, [ userIdA, userIdB ]);
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			const chat: Chat = await this.unitOfWork.Chats.getById(chatId, [ userId, otherUserId ]);
 			if (!chat) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Chat Not Found');
 
 			return ResponseBuilder.ok({ chat });
@@ -46,17 +48,21 @@ export class ChatController {
 	}
 
 	public getChatByUsers: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-		if (!event.pathParameters || !event.pathParameters.userIdA || !event.pathParameters.userIdB)
+		if (!event.pathParameters || !event.pathParameters.otherUserId)
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 
-		const { userIdA, userIdB }: { [name: string]: string } = event.pathParameters;
+		const otherUserId: string = event.pathParameters.otherUserId;
 
 		try {
-			let chat: Chat = await this.unitOfWork.Chats.getByUsers([ userIdA, userIdB ]);
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			if (userId === otherUserId) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'You cannot start a Chat with yourself');
+
+			let chat: Chat = await this.unitOfWork.Chats.getByUsers([ userId, otherUserId ]);
 
 			if (!chat) {
-				const userA: UserBrief = await this.unitOfWork.Users.getUserBrief(userIdA);
-				const userB: UserBrief = await this.unitOfWork.Users.getUserBrief(userIdB);
+				const userA: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+				const userB: UserBrief = await this.unitOfWork.Users.getUserBrief(otherUserId);
 				if (!userA || !userB) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'User does not exist');
 
 				chat = await this.unitOfWork.Chats.create({ users: [ userA, userB ] });
@@ -75,17 +81,18 @@ export class ChatController {
 
 		const data: ChatData = JSON.parse(event.body);
 
-		if (!data.userIds) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
-		if (data.userIds.length !== 2) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Chat must have 2 users associated with it');
+		if (!data.otherUserId) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 
-		const userIds: string[] = data.userIds;
+		const otherUserId: string = data.otherUserId;
 
 		try {
-			const existingChat: Chat = await this.unitOfWork.Chats.getByUsers(userIds);
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			const existingChat: Chat = await this.unitOfWork.Chats.getByUsers([ userId, otherUserId ]);
 			if (existingChat) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Chat between users already exists');
 
-			const userA: UserBrief = await this.unitOfWork.Users.getUserBrief(userIds[0]);
-			const userB: UserBrief = await this.unitOfWork.Users.getUserBrief(userIds[1]);
+			const userA: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+			const userB: UserBrief = await this.unitOfWork.Users.getUserBrief(otherUserId);
 
 			const chat: Partial<Chat> = {
 				users: [ userA, userB ]
@@ -110,6 +117,8 @@ export class ChatController {
 		const chat: Partial<Chat> = data.chat;
 
 		try {
+			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
 			if (!chat.chatId) throw Error('Chat ID is missing');
 
 			const chatCheck: Chat = await this.unitOfWork.Chats.getById(chat.chatId, chat.users.map((user: UserBrief) => user.userId));
@@ -125,13 +134,15 @@ export class ChatController {
 	}
 
 	public deleteChat: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-		if (!event.pathParameters || !event.pathParameters.chatId || !event.pathParameters.userIdA || !event.pathParameters.userIdB)
+		if (!event.pathParameters || !event.pathParameters.chatId || !event.pathParameters.otherUserId)
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 
-		const { chatId, userIdA, userIdB }: { [name: string]: string } = event.pathParameters;
+		const { chatId, otherUserId }: { [name: string]: string } = event.pathParameters;
 
 		try {
-			const result: Chat = await this.unitOfWork.Chats.delete(chatId, [ userIdA, userIdB ]);
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			const result: Chat = await this.unitOfWork.Chats.delete(chatId, [ userId, otherUserId ]);
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Chat Not Found');
 
 			return ResponseBuilder.ok({ chat: result });

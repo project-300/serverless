@@ -1,4 +1,4 @@
-import { DynamoDbItem } from './../DynamoDBItem';
+import { DynamoDbItem } from '../DynamoDBItem';
 import { attribute } from '@aws/dynamodb-data-mapper-annotations';
 import { User } from '@project-300/common-types';
 

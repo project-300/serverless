@@ -14,6 +14,7 @@ provider:
   region: eu-west-1
   environment:
     tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
+    ENVIRONMENT: ${opt:stage, self:provider.stage}
   apiGateway:
     restApiId:
       'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiId
@@ -49,7 +50,7 @@ functions:
     handler: src/handler.getChatById
     events:
       - http:
-          path: /chats/{chatId}/{userIdA}/{userIdB}
+          path: /chats/{chatId}/{otherUserId}
           method: get
           cors: true
           authorizer: aws_iam
@@ -57,7 +58,7 @@ functions:
     handler: src/handler.getChatByUsers
     events:
       - http:
-          path: /chats/users/{userIdA}/{userIdB}
+          path: /chats/{otherUserId}
           method: get
           cors: true
           authorizer: aws_iam
@@ -81,7 +82,7 @@ functions:
     handler: src/handler.deleteChat
     events:
       - http:
-          path: /chats/{chatId}/{userIdA}/{userIdB}
+          path: /chats/{chatId}/{otherUserId}
           method: delete
           cors: true
           authorizer: aws_iam
