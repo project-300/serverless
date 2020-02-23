@@ -5,7 +5,8 @@ import {
 	InterestRepository,
 	DriverApplicationRepository,
 	UniversityRepository,
-	ChatRepository
+	ChatRepository,
+	MessageRepository
 } from './repositories';
 import {
 	IUserRepository,
@@ -14,7 +15,8 @@ import {
 	IInterestRepository,
 	IDriverApplicationRepository,
 	IUniversityRepository,
-	IChatRepository
+	IChatRepository,
+	IMessageRepository
 } from './interfaces';
 import { DataMapper } from '@aws/dynamodb-data-mapper';
 import { DynamoDB } from 'aws-sdk';
@@ -28,6 +30,7 @@ export class UnitOfWork {
 	public Interests: IInterestRepository;
 	public Universities: IUniversityRepository;
 	public Chats: IChatRepository;
+	public Messages: IMessageRepository;
 
 	public constructor() {
 		const db: DataMapper = new DataMapper({ client: new DynamoDB({ region: 'eu-west-1' }) });
@@ -39,6 +42,7 @@ export class UnitOfWork {
 		this.Interests = new InterestRepository(db);
 		this.Universities = new UniversityRepository(db);
 		this.Chats = new ChatRepository(db);
+		this.Messages = new MessageRepository(db);
 	}
 
 }

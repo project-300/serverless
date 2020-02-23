@@ -1,4 +1,4 @@
-import { Journey } from '@project-300/common-types';
+import { Journey, LastEvaluatedKey } from '@project-300/common-types';
 import { QueryOptions, QueryIterator, QueryPaginator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
@@ -18,7 +18,7 @@ import { SharedFunctions } from '../..';
 
 export class JourneyRepository extends Repository implements IJourneyRepository {
 
-	public async getAll(lastEvaluatedKey?: Partial<JourneyItem>): Promise<{ journeys: Journey[]; lastEvaluatedKey: Partial<JourneyItem>}> {
+	public async getAll(lastEvaluatedKey?: LastEvaluatedKey): Promise<{ journeys: Journey[]; lastEvaluatedKey: Partial<JourneyItem>}> {
 		const predicate: EqualityExpressionPredicate = equals(true);
 
 		const equalsExpression: ConditionExpression = {

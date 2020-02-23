@@ -1,0 +1,76 @@
+service: api-message-service
+frameworkVersion: ">=1.44.0"
+
+custom:
+  # Our stage is based on what is passed in when running serverless
+  # commands. Or falls back to what we have set in the provider section.
+  stage: ${opt:stage, self:provider.stage}
+  projectName: P300
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: dev
+  region: eu-west-1
+  environment:
+    tableName: ${file(../api-infrastructure/serverless.yml):custom.generalTableName}
+    ENVIRONMENT: ${opt:stage, self:provider.stage}
+  apiGateway:
+    restApiId:
+      'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiId
+    restApiRootResourceId:
+      'Fn::ImportValue': ${self:custom.stage}-P300-ApiGatewayRestApiRootResourceId
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - '*'
+
+plugins:
+  - serverless-offline
+  - serverless-webpack
+
+functions:
+  getAllMessagesByChat:
+    handler: src/handler.getAllMessagesByChat
+    events:
+      - http:
+          path: /messages/chat/{chatId}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  getMessageById:
+    handler: src/handler.getMessageById
+    events:
+      - http:
+          path: /messages/{chatId}/{createdAt}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  createMessage:
+    handler: src/handler.createMessage
+    events:
+      - http:
+          path: /messages
+          method: post
+          cors: true
+          authorizer: aws_iam
+  deleteMessage:
+    handler: src/handler.deleteMessage
+    events:
+      - http:
+          path: /messages/{chatId}/{createdAt}
+          method: delete
+          cors: true
+          authorizer: aws_iam
+
+resources:
+    - ${file(../resources/cognito-policy.yml)}
+
