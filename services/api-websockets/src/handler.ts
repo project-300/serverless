@@ -15,3 +15,4 @@ export const $wsConnect: ApiHandler = controller.connect;
 export const $wsDisconnect: ApiHandler = controller.disconnect;
 export const $wsDefault: ApiHandler = controller.default;
 export const cleanupConnections: ApiHandler = controller.cleanupConnections;
+export const updateConnection: ApiHandler = controller.updateConnection;

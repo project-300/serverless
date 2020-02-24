@@ -51,6 +51,15 @@ export class UserRepository extends Repository {
 		});
 	}
 
+	public async getUserConnections(userId: string): Promise<DriverBrief> {
+		return this.db.get(Object.assign(new UserItem(), {
+			pk: `user#${userId}`,
+			sk: `user#${userId}`
+		}), {
+			projection: [ 'connections' ]
+		});
+	}
+
 	public async getJourneysAsPassenger(userId: string): Promise<Partial<User>> {
 		return this.db.get(Object.assign(new UserItem(), {
 			pk: `user#${userId}`,

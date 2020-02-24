@@ -1,4 +1,4 @@
-import { CollectionItem, SubscriptionConnection, SubscriptionPayload } from '@project-300/common-types';
+import { CollectionItem, Subscription, SubscriptionPayload } from '@project-300/common-types';
 import { PublishType } from '@project-300/common-types/lib/enums';
 import API from '../lib/api';
 import { WsPostResult, UnitOfWork } from '../../../api-shared-modules/src';
@@ -45,9 +45,9 @@ export default class PublicationManager {
 	}
 
 	private _getConnectionIds = async (subscriptionName: string, itemType: string, itemId: string): Promise<string[]> => {
-		const subscriptionConnections: SubscriptionConnection[] =
-			await this.unitOfWork.Subscriptions.getConnections(subscriptionName, itemType, itemId);
-		return subscriptionConnections.map((con: SubscriptionConnection) => con.connectionId);
+		const subscriptionConnections: Subscription[] =
+			await this.unitOfWork.Subscriptions.getAllByType(subscriptionName, itemType, itemId);
+		return subscriptionConnections.map((con: Subscription) => con.connectionId);
 	}
 
 	private _sendToConnections = async (connectionIds: string[], publicationData: PublicationData): Promise<void> => {
