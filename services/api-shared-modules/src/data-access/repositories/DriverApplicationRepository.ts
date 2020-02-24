@@ -1,5 +1,5 @@
 import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
-import { beginsWith, equals } from '@aws/dynamodb-expressions';
+import { equals } from '@aws/dynamodb-expressions';
 import { Repository } from './Repository';
 import { DriverApplicationObject } from '@project-300/common-types';
 import { DriverApplicationItem } from '../../models';
@@ -28,10 +28,15 @@ export class DriverApplicationRepository extends Repository {
 	}
 
 	public async getByUserId(userId: string): Promise<DriverApplicationObject> {
-		return this.db.get(Object.assign(new DriverApplicationItem(), {
-			pk: `user#${userId}`,
-			sk: beginsWith('application#')
-		}));
+		try {
+			const item = await this.db.get(Object.assign(new DriverApplicationItem(), {
+				pk: `user#${userId}`,
+				sk:  `application#${userId}`
+			}));
+			return item;
+		} catch (err) {
+			return undefined;
+		}
 	}
 
 	public async create(userId: string, toCreate: Partial<DriverApplicationObject>): Promise<DriverApplicationObject> {

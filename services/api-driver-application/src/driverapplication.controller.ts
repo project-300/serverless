@@ -145,7 +145,7 @@ export class DriverApplicationController {
 				throw new Error('There is no makes with that name');
 			}
 
-			return ResponseBuilder.ok({ result });
+			return ResponseBuilder.ok({ vehicleMakes: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
@@ -162,7 +162,7 @@ export class DriverApplicationController {
 			if (result === undefined || result.length === 0) {
 				throw new Error('There is no models for this make or year');
 			}
-			return ResponseBuilder.ok({ result });
+			return ResponseBuilder.ok({ vehicleModels: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
