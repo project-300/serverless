@@ -42,9 +42,8 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		const queryPages: QueryPaginator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions).pages();
 		const journeys: Journey[] = [];
 
-		for await (const page of queryPages) {
+		for await (const page of queryPages)
 			for (const journey of page) journeys.push(journey);
-		}
 
 		return {
 			journeys,

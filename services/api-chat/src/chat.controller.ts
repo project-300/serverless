@@ -1,4 +1,4 @@
-import { Chat, UserBrief } from '@project-300/common-types';
+import { Chat, User, UserBrief, UserConnection } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -9,10 +9,16 @@ import {
 	UnitOfWork, SharedFunctions
 } from '../../api-shared-modules/src';
 import { ChatData } from './interfaces';
+import SubscriptionManager from '../../api-websockets/src/pubsub/subscription';
+import _ from 'lodash';
 
 export class ChatController {
 
-	public constructor(private unitOfWork: UnitOfWork) { }
+	private SubManager: SubscriptionManager;
+
+	public constructor(private unitOfWork: UnitOfWork) {
+		this.SubManager = new SubscriptionManager(unitOfWork);
+	}
 
 	public getAllChatsByUser: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		try {
@@ -47,11 +53,12 @@ export class ChatController {
 		}
 	}
 
-	public getChatByUsers: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-		if (!event.pathParameters || !event.pathParameters.otherUserId)
+	public chatSubscribe: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.pathParameters || !event.pathParameters.otherUserId || !event.pathParameters.deviceId)
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 
 		const otherUserId: string = event.pathParameters.otherUserId;
+		const deviceId: string = event.pathParameters.deviceId;
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
@@ -59,20 +66,76 @@ export class ChatController {
 			if (userId === otherUserId) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'You cannot start a Chat with yourself');
 
 			let chat: Chat = await this.unitOfWork.Chats.getByUsers([ userId, otherUserId ]);
+			const thisUser: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+			if (!thisUser) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'User does not exist');
 
 			if (!chat) {
-				const userA: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
 				const userB: UserBrief = await this.unitOfWork.Users.getUserBrief(otherUserId);
-				if (!userA || !userB) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'User does not exist');
+				if (!userB) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Recipient user does not exist');
 
-				chat = await this.unitOfWork.Chats.create({ users: [ userA, userB ] });
+				chat = await this.unitOfWork.Chats.create({ users: [ thisUser, userB ] });
 				if (!chat) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Failed to create new Chat');
+			}
+
+			const userWithConnections: Partial<User> = await this.unitOfWork.Users.getUserConnections(userId);
+			const currentConnection: UserConnection =
+				userWithConnections.connections && _.findLast(_.sortBy(userWithConnections.connections, [ 'connectedAt' ]),
+				(con: UserConnection) => con.deviceId === deviceId
+			);
+
+			console.log(currentConnection);
+
+			if (chat) {
+				await this.SubManager.subscribe({
+					subscriptionName: 'chat/messages',
+					itemType: 'chat',
+					itemId: chat.chatId,
+					connectionId: currentConnection.connectionId,
+					deviceId,
+					userId: thisUser.userId
+				});
 			}
 
 			return ResponseBuilder.ok({ chat });
 		} catch (err) {
 			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to get Chat');
+		}
+	}
+
+	public chatUnsubscribe: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.pathParameters || !event.pathParameters.otherUserId || !event.pathParameters.deviceId)
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const otherUserId: string = event.pathParameters.otherUserId;
+		const deviceId: string = event.pathParameters.deviceId;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			const chat: Chat = await this.unitOfWork.Chats.getByUsers([ userId, otherUserId ]);
+
+			const userWithConnections: Partial<User> = await this.unitOfWork.Users.getUserConnections(userId);
+			const currentConnection: UserConnection =
+				userWithConnections.connections && _.findLast(_.sortBy(userWithConnections.connections, [ 'connectedAt' ]),
+				(con: UserConnection) => con.deviceId === deviceId
+			);
+
+			if (chat) {
+				await this.SubManager.unsubscribe({
+					subscriptionName: 'chat/messages',
+					itemType: 'chat',
+					itemId: chat.chatId,
+					connectionId: currentConnection.connectionId,
+					deviceId,
+					userId
+				});
+			}
+
+			return ResponseBuilder.ok({ });
+		} catch (err) {
+			console.log(err);
+			return ResponseBuilder.internalServerError(err, 'Unable to unsubscribe from Chat');
 		}
 	}
 

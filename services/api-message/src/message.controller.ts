@@ -1,4 +1,4 @@
-import { Message, UserBrief } from '@project-300/common-types';
+import { LastEvaluatedKey, Message, UserBrief } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -20,13 +20,23 @@ export class MessageController {
 
 		const chatId: string = event.pathParameters.chatId;
 
+		let lastEvaluatedKey: { [key: string]: string };
+
+		if (event.queryStringParameters && event.queryStringParameters.last) {
+			lastEvaluatedKey = {
+				pk: `chat#${chatId}`,
+				sk: `createdAt#${event.queryStringParameters.last}`
+			};
+		}
+
 		try {
 			SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
-			const messages: Message[] = await this.unitOfWork.Messages.getAllByChat(chatId);
-			if (!messages) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Messages');
+			const result: { messages: Message[]; lastEvaluatedKey?: LastEvaluatedKey } =
+				await this.unitOfWork.Messages.getAllByChat(chatId, lastEvaluatedKey);
+			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Messages');
 
-			return ResponseBuilder.ok({ messages });
+			return ResponseBuilder.ok({ ...result, count: result.messages.length });
 		} catch (err) {
 			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to retrieve Messages');
