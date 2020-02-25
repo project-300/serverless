@@ -1,4 +1,4 @@
-import { LastEvaluatedKey, Message, UserBrief } from '@project-300/common-types';
+import { LastEvaluatedKey, Message, PublishType, UserBrief } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -9,10 +9,17 @@ import {
 	UnitOfWork, SharedFunctions
 } from '../../api-shared-modules/src';
 import { MessageData } from './interfaces';
+import PublicationManager from '../../api-websockets/src/pubsub/publication';
+import API from '../../api-websockets/src/lib/api';
+import _ from 'lodash';
 
 export class MessageController {
 
-	public constructor(private unitOfWork: UnitOfWork) { }
+	private PubManager: PublicationManager;
+
+	public constructor(private unitOfWork: UnitOfWork) {
+		this.PubManager = new PublicationManager(unitOfWork, new API());
+	}
 
 	public getAllMessagesByChat: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (!event.pathParameters || !event.pathParameters.chatId)
@@ -82,6 +89,15 @@ export class MessageController {
 
 			const result: Message = await this.unitOfWork.Messages.create({ ...message });
 			if (!result) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Failed to create new Message');
+
+			await this.PubManager.publishCRUD({
+				subscriptionName: 'chat/messages',
+				itemType: 'chat',
+				itemId: message.chatId,
+				data: { message: result },
+				sendAsCollection: true,
+				publishType: PublishType.INSERT
+			});
 
 			return ResponseBuilder.ok({ message: result });
 		} catch (err) {

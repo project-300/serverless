@@ -30,6 +30,7 @@ export default class API {
 				.postToConnection(params)
 				.promise()
 				.catch((e: Error) => {
+					console.log(e);
 					// User has possibly disconnected without the $disconnect firing
 					// await this.subManager.unsubscribe(subscriptionData);
 				});

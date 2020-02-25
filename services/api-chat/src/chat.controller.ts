@@ -1,23 +1,28 @@
-import { Chat, User, UserBrief, UserConnection } from '@project-300/common-types';
+import { Chat, LastEvaluatedKey, Message, PublishType, User, UserBrief, UserConnection } from '@project-300/common-types';
 import {
-	ResponseBuilder,
-	ErrorCode,
-	ApiResponse,
-	ApiHandler,
-	ApiEvent,
 	ApiContext,
-	UnitOfWork, SharedFunctions
+	ApiEvent,
+	ApiHandler,
+	ApiResponse,
+	ErrorCode,
+	ResponseBuilder,
+	SharedFunctions,
+	UnitOfWork
 } from '../../api-shared-modules/src';
 import { ChatData } from './interfaces';
 import SubscriptionManager from '../../api-websockets/src/pubsub/subscription';
 import _ from 'lodash';
+import PublicationManager from '../../api-websockets/src/pubsub/publication';
+import API from '../../api-websockets/src/lib/api';
 
 export class ChatController {
 
 	private SubManager: SubscriptionManager;
+	private PubManager: PublicationManager;
 
 	public constructor(private unitOfWork: UnitOfWork) {
 		this.SubManager = new SubscriptionManager(unitOfWork);
+		this.PubManager = new PublicationManager(unitOfWork, new API());
 	}
 
 	public getAllChatsByUser: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
@@ -94,6 +99,20 @@ export class ChatController {
 					deviceId,
 					userId: thisUser.userId
 				});
+
+				const messageData: { messages: Message[]; lastEvaluatedKey?: LastEvaluatedKey } =
+					await this.unitOfWork.Messages.getAllByChat(chat.chatId);
+				if (!messageData) throw Error('Unable to retrieve chat messages');
+
+				await this.PubManager.publishToSingleConnection({
+					subscriptionName: 'chat/messages',
+					itemType: 'chat',
+					itemId: chat.chatId,
+					connectionId: currentConnection.connectionId,
+					data: messageData,
+					sendAsCollection: true,
+					publishType: PublishType.QUERY
+				});
 			}
 
 			return ResponseBuilder.ok({ chat });
@@ -130,6 +149,7 @@ export class ChatController {
 					deviceId,
 					userId
 				});
+
 			}
 
 			return ResponseBuilder.ok({ });

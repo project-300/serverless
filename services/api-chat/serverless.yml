@@ -32,6 +32,11 @@ provider:
         - dynamodb:DeleteItem
       Resource:
         - '*'
+    - Effect: Allow
+      Action:
+        - 'execute-api:ManageConnections'
+      Resource:
+        - 'arn:aws:execute-api:*:*:**/@connections/*'
 
 plugins:
   - serverless-offline
