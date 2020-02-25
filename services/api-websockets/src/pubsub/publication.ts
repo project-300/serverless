@@ -32,6 +32,7 @@ export default class PublicationManager {
 			publicationData.itemType,
 			publicationData.itemId
 		);
+
 		await this._sendToConnections(connectionIds, publicationData);
 	}
 
@@ -59,8 +60,8 @@ export default class PublicationManager {
 			publicationData.connectionId = connectionId;
 
 			if (!sendAsCollection && data instanceof Array) {
-				data.forEach((item: CollectionItem | string) => {
-					this._sendDataObject(publicationData, this._createPayload({
+				data.map(async (item: CollectionItem | string) => {
+					await this._sendDataObject(publicationData, this._createPayload({
 						...publicationData,
 						data: item
 					}));
