@@ -1,4 +1,4 @@
-import { User } from '@project-300/common-types';
+import { MobileNumberNoExtension, User } from '@project-300/common-types';
 import {
 	UnitOfWork,
 	TriggerCognitoEvent,
@@ -12,10 +12,10 @@ export class AuthController {
 	public postSignUp: TriggerCognitoHandler = async (event: TriggerCognitoEvent) => {
 		const cognitoUser: { [key: string]: string } = event.request.userAttributes;
 		const user: Partial<User> = {
-			email: cognitoUser.email
+			email: cognitoUser.email,
 			// firstName: cognitoUser.given_name,
 			// lastName: cognitoUser.family_name,
-			// phone: cognitoUser.phone
+			phone: MobileNumberNoExtension(cognitoUser.phone_number)
 		};
 
 		try {

@@ -13,6 +13,9 @@ export class DriverApplicationItem extends DynamoDbItem implements DriverApplica
 	public approved?: boolean;
 
 	@attribute()
+	public vehicle: Vehicle;
+
+	@attribute()
 	public times: {
 		applied: string;
 		approved?: string;

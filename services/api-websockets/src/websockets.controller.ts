@@ -1,8 +1,15 @@
 import { ApiEvent, ApiHandler, ApiResponse, ResponseBuilder, UnitOfWork } from '../../api-shared-modules/src';
-import { PublishType, SubscriptionConnection } from '@project-300/common-types';
-import SubscriptionManager from './pubsub/subscription';
+import { PublishType, Subscription, User, UserConnection } from '@project-300/common-types';
+import SubscriptionManager, { SubscriptionData } from './pubsub/subscription';
 import API from './lib/api';
 import PublicationManager from './pubsub/publication';
+
+const $connectSubData: SubscriptionData = {
+	subscriptionName: '$connect',
+	itemType: 'connection',
+	itemId: '$connect',
+	connectionId: ''
+};
 
 export class ConnectController {
 
@@ -15,23 +22,18 @@ export class ConnectController {
 
 	public connect: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
 		try {
-			const subscriptionName: string = '$connect';
-			const itemType: string = 'connection';
-			const itemId: string = '$connect';
 			const connectionId: string = event.requestContext.connectionId;
 
 			await this.subManager.subscribe({
-				subscriptionName,
-				itemType,
-				itemId,
+				...$connectSubData,
 				connectionId
 			});
 
 			if (process.env.ENVIRONMENT === 'dev') {
 				await this.pubManager.publishCRUD({
-					subscriptionName,
-					itemType,
-					itemId,
+					subscriptionName: `${$connectSubData.subscriptionName}`,
+					itemType: $connectSubData.itemType,
+					itemId: $connectSubData.itemId,
 					publishType: PublishType.UPDATE,
 					sendAsCollection: false,
 					data: `${connectionId} has just connected`
@@ -40,6 +42,7 @@ export class ConnectController {
 
 			return ResponseBuilder.ok({ });
 		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err);
 		}
 	}
@@ -68,36 +71,106 @@ export class ConnectController {
 				connectionId
 			});
 
-			if (process.env.ENVIRONMENT === 'dev') {
-				const connections: SubscriptionConnection[] = await this.unitOfWork.Subscriptions.getConnections(subscriptionName, itemType, itemId);
-				await this._alertUsers(connections, connectionId, 'left');
-			}
-
 			return ResponseBuilder.ok({ });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err);
 		}
 	}
 
-		// This command is run as a cron job at regular intervals to clean up stale connection ids
-	public cleanupConnections: ApiHandler = (event: ApiEvent): void => {
-		// To be implemented
-		// const subscriptions: Subscription[] = await this.unitOfWork.Subscriptions.getAll();
+	public updateConnection: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		const connectionId: string = event.requestContext.connectionId;
+		const body: { userId: string; deviceId: string; oldConnection?: string } = JSON.parse(event.body);
+
+		if (!body.userId) return;
+
+		const userId: string = body.userId;
+		const deviceId: string = body.deviceId;
+		const oldConnection: string = body.oldConnection; 	// Previous connectionId from same device -
+															// Only sent in case of disconnection for reconnection
+
+		try {
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			if (!user) return;
+
+			const connectionData: UserConnection = {
+				deviceId,
+				connectionId,
+				connectedAt: new Date().toISOString()
+			};
+
+			if (user.connections) user.connections.push(connectionData); // Add new connectionId to user
+			else user.connections = [ connectionData ];
+
+			if (oldConnection && oldConnection !== connectionId) {
+				const conIndex: number = user.connections.findIndex((con: UserConnection) => con.connectionId === oldConnection);
+				if (conIndex > -1) user.connections.splice(conIndex, 1); // Remove old connection from user
+			}
+
+			await this.unitOfWork.Users.update(userId, user);
+			await this._updateUserSubscriptions(user.userId, connectionId, oldConnection, deviceId);
+
+			const sub: Subscription = await this.unitOfWork.Subscriptions.getById(
+				'$connect',
+				'connection',
+				'$connect',
+				connectionId
+			);
+
+			if (sub) {
+				console.log('UPDATE SUB');
+				delete sub.sk2;
+				delete sub.sk3;
+				sub.userId = userId;
+				const updatedSub: Subscription = await this.unitOfWork.Subscriptions.update(
+					'$connect',
+					'connection',
+					'$connect',
+					connectionId,
+					sub
+				);
+
+				console.log(updatedSub);
+			} else {
+				console.log('CREATE NEW SUB');
+				await this.unitOfWork.Subscriptions.create(
+					'$connect',
+					'connection',
+					'$connect',
+					connectionId,
+					userId
+				);
+			}
+
+			await this.api.post({ // Send message to client with new connectionId
+				...$connectSubData,
+				connectionId
+			}, {
+				subscription: 'connectionUpdated',
+				connectionId,
+				userId
+			});
+
+			return ResponseBuilder.ok({ });
+		} catch (err) {
+			console.log(err);
+			return ResponseBuilder.internalServerError(err);
+		}
 	}
 
-		// For development / testing purposes only
-	private _alertUsers = async (connections: SubscriptionConnection[], newConnection: string, action: string): Promise<void> => {
-		await Promise.all(connections.map(async (con: SubscriptionConnection) => {
-			await this.api.post({
-				subscriptionName: '$connect',
-				itemType: 'connection',
-				itemId: '$connect',
-				connectionId: con.connectionId
-			}, {
-				subscription: '$connect',
-				notice: `${newConnection} has ${action}`
-			});
+	private _updateUserSubscriptions = async (userId: string, newConnectionId: string, oldConnection: string, deviceId: string): Promise<void> => {
+		const userSubs: Subscription[] = await this.unitOfWork.Subscriptions.getAllByDevice(deviceId);
+
+		await Promise.all(userSubs.map(async (sub: Subscription): Promise<void> => {
+			if (oldConnection) await this.unitOfWork.Subscriptions.create(sub.subscriptionId, sub.itemType, sub.itemId, newConnectionId, deviceId, userId);
+			await this.unitOfWork.Subscriptions.delete(sub.subscriptionId, sub.itemType, sub.itemId, sub.connectionId);
 		}));
 	}
+
+		// This command is run as a cron job at regular intervals to clean up stale connection ids
+	// public cleanupConnections: ApiHandler = (event: ApiEvent): void => {
+	// 	console.log(event);
+	// 	// To be implemented
+	// 	// const subscriptions: Subscription[] = await this.unitOfWork.Subscriptions.getAll();
+	// }
 
 }
