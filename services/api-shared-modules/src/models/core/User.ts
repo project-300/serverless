@@ -1,6 +1,6 @@
-import { DynamoDbItem } from './../DynamoDBItem';
+import { DynamoDbItem } from '../DynamoDBItem';
 import { attribute } from '@aws/dynamodb-data-mapper-annotations';
-import { User } from '@project-300/common-types';
+import { User, UserConnection } from '@project-300/common-types';
 
 export class UserItem extends DynamoDbItem implements User {
 	@attribute()
@@ -47,8 +47,11 @@ export class UserItem extends DynamoDbItem implements User {
 	};
 
 	@attribute()
-	public journeysAsPassenger: string[];
+	public journeysAsPassenger: Array<{ journeyId: string; createdAt: string }>;
 
 	@attribute()
 	public isDriving: boolean;
+
+	@attribute()
+	public connections: UserConnection[];
 }

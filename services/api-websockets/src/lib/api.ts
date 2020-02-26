@@ -18,7 +18,7 @@ export default class API {
 
 	public post = async (
 		subscriptionData: SubscriptionData,
-		data: SubscriptionPayload | SubscriptionError | SubscriptionNotificationPayload
+		data: SubscriptionPayload | SubscriptionError | SubscriptionNotificationPayload | { connectionId: string; userId: string }
 	): Promise<WsPostResult> => {
 		const params: PostToConnectionRequest = {
 			ConnectionId: subscriptionData.connectionId,
@@ -30,6 +30,7 @@ export default class API {
 				.postToConnection(params)
 				.promise()
 				.catch((e: Error) => {
+					console.log(e);
 					// User has possibly disconnected without the $disconnect firing
 					// await this.subManager.unsubscribe(subscriptionData);
 				});

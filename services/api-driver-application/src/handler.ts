@@ -10,3 +10,5 @@ export const approveApplication: ApiHandler = controller.approveApplication;
 export const deleteApplication: ApiHandler = controller.deleteApplication;
 export const applyForApplication: ApiHandler = controller.applyForApplication;
 export const checkIfUserHasApplied: ApiHandler = controller.checkIfUserHasApplied;
+export const getAllVehicleMakes: ApiHandler = controller.getAllVehicleMakes;
+export const getAllVehicleModelsForMakeAndYear: ApiHandler = controller.getAllVehicleModelsForMakeAndYear;

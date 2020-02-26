@@ -68,14 +68,6 @@ functions:
           method: get
           cors: true
           authorizer: aws_iam
-  createApplication:
-    handler: src/handler.createApplication
-    events:
-      - http:
-          path: /driver-applications
-          method: post
-          cors: true
-          authorizer: aws_iam
   approveApplication:
     handler: src/handler.approveApplication
     events:
@@ -90,6 +82,23 @@ functions:
       - http:
           path: /driver-applications/{userId}
           method: delete
+          cors: true
+          authorizer: aws_iam
+  getAllVehicleMakes:
+    handler: src/handler.getAllVehicleMakes
+    events:
+      - http:
+          path: /driver-applications/vehicle-makes
+          method: get
+          cors: true
+          authorizer: aws_iam
+  #takes a make and year query param
+  getAllVehicleModels:
+    handler: src/handler.getAllVehicleModelsForMakeAndYear
+    events:
+      - http:
+          path: /driver-applications/vehicle-models
+          method: get
           cors: true
           authorizer: aws_iam
 

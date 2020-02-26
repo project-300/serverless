@@ -1,7 +1,7 @@
 import { PlaceItem, CoordsItem } from '../embedded';
-import { DynamoDbItem } from './../DynamoDBItem';
+import { DynamoDbItem } from '../DynamoDBItem';
 import { attribute } from '@aws/dynamodb-data-mapper-annotations';
-import { Journey, DriverBrief, PassengerBrief } from '@project-300/common-types';
+import { Journey, DriverBrief, PassengerBrief, Coords } from '@project-300/common-types';
 
 export class JourneyItem extends DynamoDbItem implements Journey {
 	@attribute()
@@ -47,4 +47,16 @@ export class JourneyItem extends DynamoDbItem implements Journey {
 
 	@attribute()
 	public routeTravelled!: CoordsItem[];
+
+	@attribute()
+	public searchText!: string;
+
+	@attribute()
+	public midpoint!: Coords;
+
+	@attribute()
+	public available!: boolean;
+
+	@attribute()
+	public mapMidpointImage?: string;
 }

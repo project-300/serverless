@@ -6,7 +6,8 @@ import {
 	ApiHandler,
 	ApiEvent,
 	ApiContext,
-	UnitOfWork
+	UnitOfWork,
+    SharedFunctions
   } from '../../api-shared-modules/src';
 
 export class UserController {
@@ -65,8 +66,9 @@ export class UserController {
 		const user: Partial<User> = JSON.parse(event.body) as Partial<User>;
 
 		try {
-			const result: User = await this.unitOfWork.Users.update(user.userId, { ...user });
-			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'user not found');
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const result: User = await this.unitOfWork.Users.update(userId, { ...user });
+			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'User not found');
 
 			return ResponseBuilder.ok({ user: result });
 		} catch (err) {
@@ -83,7 +85,7 @@ export class UserController {
 
 		try {
 			const user: User = await this.unitOfWork.Users.delete(userId);
-			if (!user) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'user not found');
+			if (!user) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'User not found');
 
 			return ResponseBuilder.ok({ user });
 		} catch (err) {

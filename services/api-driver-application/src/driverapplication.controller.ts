@@ -1,4 +1,4 @@
-import { DriverApplicationObject, User } from '@project-300/common-types';
+import { DriverApplicationObject, User, VehicleModel, VehicleMake, Vehicle } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -6,7 +6,8 @@ import {
 	ApiHandler,
 	ApiEvent,
 	UnitOfWork,
-	// SharedFunctions
+	VehicleAPI,
+	SharedFunctions
   } from '../../api-shared-modules/src';
 
 export class DriverApplicationController {
@@ -35,7 +36,7 @@ export class DriverApplicationController {
 		if (!event.queryStringParameters || !event.queryStringParameters.approved) {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 		}
-		const { approved }: { [approved: string]: string } = event.queryStringParameters;
+		const { approved }: { [params: string]: string } = event.queryStringParameters;
 		// const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 		try {
@@ -74,21 +75,22 @@ export class DriverApplicationController {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
 		}
 
-		const application: Partial<DriverApplicationObject> = JSON.parse(event.body) as Partial<DriverApplicationObject>;
-		const { userId }: { userId?: string} = application;
+		const vehicle: Vehicle = JSON.parse(event.body) as Vehicle;
 
 		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
 			const checkIfApplicationExists: DriverApplicationObject = await this.unitOfWork.DriverApplications.getByUserId(userId);
 			if (checkIfApplicationExists) {
 				throw Error('You have already made an application');
 			}
 
-			const result: DriverApplicationObject = await this.unitOfWork.DriverApplications.create(userId, application);
+			const result: DriverApplicationObject = await this.unitOfWork.DriverApplications.create(userId, vehicle);
 			if (!result) {
 				return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'failed to create new application');
 			}
 
-			return ResponseBuilder.ok({ application });
+			return ResponseBuilder.ok({ application: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
@@ -131,6 +133,37 @@ export class DriverApplicationController {
 				return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to delete application');
 			}
 			return ResponseBuilder.ok({ application });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message);
+		}
+	}
+
+	public getAllVehicleMakes: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		try {
+			const result: VehicleMake[] = await VehicleAPI.getAllMakes();
+
+			if (result === undefined || result.length === 0) {
+				throw new Error('There is no makes with that name');
+			}
+
+			return ResponseBuilder.ok({ vehicleMakes: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message);
+		}
+	}
+
+	public getAllVehicleModelsForMakeAndYear: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		if (!event.queryStringParameters || !event.queryStringParameters.makeId) {
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+		}
+		const { makeId, year }: { [params: string]: string} = event.queryStringParameters;
+		try {
+			const result: VehicleModel[] = await VehicleAPI.getModelsForMakeAndYear(makeId, year);
+
+			if (result === undefined || result.length === 0) {
+				throw new Error('There is no models for this make or year');
+			}
+			return ResponseBuilder.ok({ vehicleModels: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
