@@ -20,4 +20,7 @@ export class DriverApplicationItem extends DynamoDbItem implements DriverApplica
 		applied: string;
 		approved?: string;
 	};
+
+	@attribute()
+	public vehicle: Vehicle;
 }
