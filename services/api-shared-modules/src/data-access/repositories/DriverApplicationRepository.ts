@@ -1,7 +1,7 @@
 import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { equals } from '@aws/dynamodb-expressions';
 import { Repository } from './Repository';
-import { DriverApplicationObject } from '@project-300/common-types';
+import { DriverApplicationObject, Vehicle } from '@project-300/common-types';
 import { DriverApplicationItem } from '../../models';
 import { QueryKey } from '../interfaces';
 
@@ -39,7 +39,7 @@ export class DriverApplicationRepository extends Repository {
 		}
 	}
 
-	public async create(userId: string, toCreate: Partial<DriverApplicationObject>): Promise<DriverApplicationObject> {
+	public async create(userId: string, toCreate: Vehicle): Promise<DriverApplicationObject> {
 		return this.db.put(Object.assign(new DriverApplicationItem(), {
 			entity: 'driverApplication',
 			userId,

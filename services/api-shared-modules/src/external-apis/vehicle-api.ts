@@ -1,16 +1,5 @@
+import { VehicleMake, VehicleModel } from '@project-300/common-types';
 import { get } from 'request-promise';
-
-interface VehicleMake {
-	Make_ID: number;
-	Make_Name: string;
-}
-
-interface VehicleModel {
-	Make_ID: number;
-	Make_Name: string;
-	Model_ID: number;
-	Model_Name: string;
-}
 
 interface VehicleMakesApiResponse {
 	Count: number;
