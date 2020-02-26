@@ -1,4 +1,4 @@
-import { LastEvaluatedKey, Message, PublishType, UserBrief } from '@project-300/common-types';
+import { Chat, LastEvaluatedKey, Message, PublishType, UserBrief } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -11,7 +11,6 @@ import {
 import { MessageData } from './interfaces';
 import PublicationManager from '../../api-websockets/src/pubsub/publication';
 import API from '../../api-websockets/src/lib/api';
-import _ from 'lodash';
 
 export class MessageController {
 
@@ -74,9 +73,10 @@ export class MessageController {
 
 		const data: MessageData = JSON.parse(event.body);
 
-		if (!data.message) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+		if (!data.message || !data.otherUserId) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 
 		const message: Partial<Message> = data.message;
+		const otherUserId: string = data.otherUserId;
 
 		try {
 			if (!message.chatId) throw Error('Message is not associated with a chat');
@@ -84,11 +84,14 @@ export class MessageController {
 
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
+			const chat: Chat = await this.unitOfWork.Chats.getById(message.chatId, [ userId, otherUserId ]);
+			if (!chat) return ResponseBuilder.notFound(ErrorCode.BadRequest, 'Chat does not exist');
+
 			const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
 			message.createdBy = user;
 
 			const result: Message = await this.unitOfWork.Messages.create({ ...message });
-			if (!result) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Failed to create new Message');
+			if (!result) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Failed to create new Message');
 
 			await this.PubManager.publishCRUD({
 				subscriptionName: 'chat/messages',

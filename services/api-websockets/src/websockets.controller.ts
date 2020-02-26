@@ -167,9 +167,10 @@ export class ConnectController {
 	}
 
 		// This command is run as a cron job at regular intervals to clean up stale connection ids
-	public cleanupConnections: ApiHandler = (event: ApiEvent): void => {
-		// To be implemented
-		// const subscriptions: Subscription[] = await this.unitOfWork.Subscriptions.getAll();
-	}
+	// public cleanupConnections: ApiHandler = (event: ApiEvent): void => {
+	// 	console.log(event);
+	// 	// To be implemented
+	// 	// const subscriptions: Subscription[] = await this.unitOfWork.Subscriptions.getAll();
+	// }
 
 }

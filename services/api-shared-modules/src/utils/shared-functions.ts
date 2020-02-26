@@ -1,18 +1,17 @@
 import { USERID_FOR_TESTING } from '../../../../environment/env';
 import { DynamoDbItem } from '../models';
-import { TimeDuration } from '@project-300/common-types';
+import { Message, TimeDuration } from '@project-300/common-types';
 
 export class SharedFunctions {
 
 	public static getUserIdFromAuthProvider = (authProvider: string): string => {
-		if (process.env.ENVIRONMENT === 'dev') return USERID_FOR_TESTING;
+		if (process.env.ENVIRONMENT === 'dev' && process.env.IS_OFFLINE) return USERID_FOR_TESTING;
 		if (!process.env.IS_OFFLINE && !authProvider) throw Error('No Auth Provider');
 
 		const parts: string[] = authProvider.split(':');
-		const userId: string =  process.env.IS_OFFLINE ? parts[parts.length - 1] : USERID_FOR_TESTING;
+		const userId: string = process.env.IS_OFFLINE ? USERID_FOR_TESTING : parts[parts.length - 1];
 
 		if (!userId) throw Error('Unauthorised action');
-
 		return userId;
 	}
 
@@ -34,5 +33,13 @@ export class SharedFunctions {
 			Object.assign(memo, { [key]: TimeDuration(times[key]) });
 			return memo;
 		}, { })
+
+	public static setMessageFlags = (userId: string, messages: Message[]): Message[] =>
+		messages.map(
+			(m: Message) => {
+				if (m.createdBy.userId === userId) m.userOwnMessage = true;
+				return m;
+			}
+		)
 
 }

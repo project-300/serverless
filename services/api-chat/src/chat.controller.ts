@@ -88,8 +88,6 @@ export class ChatController {
 				(con: UserConnection) => con.deviceId === deviceId
 			);
 
-			console.log(currentConnection);
-
 			if (chat) {
 				await this.SubManager.subscribe({
 					subscriptionName: 'chat/messages',
@@ -103,6 +101,8 @@ export class ChatController {
 				const messageData: { messages: Message[]; lastEvaluatedKey?: LastEvaluatedKey } =
 					await this.unitOfWork.Messages.getAllByChat(chat.chatId);
 				if (!messageData) throw Error('Unable to retrieve chat messages');
+
+				messageData.messages = SharedFunctions.setMessageFlags(userId, messageData.messages);
 
 				await this.PubManager.publishToSingleConnection({
 					subscriptionName: 'chat/messages',

@@ -27,12 +27,16 @@ export class ChatRepository extends Repository implements IChatRepository {
 	}
 
 	public async getById(chatId: string, userIds: string[]): Promise<Chat> {
-		const sk: string = `user#${userIds.join('/user#')}`;
+		const sk: string = this._sortIds(userIds.map((userId: string) => `user#${userId}`)).join('/');
 
-		return this.db.get(Object.assign(new ChatItem(), {
-			pk: `chat#${chatId}`,
-			sk
-		}));
+		try {
+			return await this.db.get(Object.assign(new ChatItem(), {
+				pk: `chat#${chatId}`,
+				sk
+			}));
+		} catch (err) {
+			return undefined;
+		}
 	}
 
 	public async getByUsers(userIds: string[]): Promise<Chat> {
