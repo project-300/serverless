@@ -3,7 +3,7 @@ import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
 import { QueryKey, IUniversityRepository } from '../interfaces';
-import { UniversityItem } from '../../models/core/University';
+import { UniversityItem } from '../../models/core';
 
 export class UniversityRepository extends Repository implements IUniversityRepository {
 
