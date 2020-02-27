@@ -1,4 +1,4 @@
-import { BaseFunctionExpressionPredicate, BinaryComparisonPredicate, ConditionExpression } from '@aws/dynamodb-expressions';
+import { BaseFunctionExpressionPredicate, BetweenExpressionPredicate, BinaryComparisonPredicate, ConditionExpression } from '@aws/dynamodb-expressions';
 
 export { IDriverApplicationRepository } from './IDriverApplicationRepository';
 export { IUserRepository } from './IUserRepository';
@@ -8,11 +8,12 @@ export { IInterestRepository } from './IInterestRepository';
 export { IUniversityRepository } from './IUniversityRepository';
 export { IChatRepository } from './IChatRepository';
 export { IMessageRepository } from './IMessageRepository';
+export { IStatisticsRepository } from './IStatisticsRepository';
 
 export interface QueryKey {
 	pk?: string;
 	sk?: string | BinaryComparisonPredicate | BaseFunctionExpressionPredicate | ConditionExpression;
-	sk2?: string | BinaryComparisonPredicate | BaseFunctionExpressionPredicate | ConditionExpression;
+	sk2?: string | BinaryComparisonPredicate | BaseFunctionExpressionPredicate | ConditionExpression | BetweenExpressionPredicate;
 	sk3?: string | BinaryComparisonPredicate | BaseFunctionExpressionPredicate | ConditionExpression;
 	entity?: string;
 }
