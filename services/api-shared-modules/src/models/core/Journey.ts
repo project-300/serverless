@@ -59,4 +59,7 @@ export class JourneyItem extends DynamoDbItem implements Journey {
 
 	@attribute()
 	public mapMidpointImage?: string;
+
+	@attribute()
+	public completedDistance: number;
 }

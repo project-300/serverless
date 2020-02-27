@@ -195,7 +195,6 @@ export class SubscriptionRepository extends Repository implements ISubscriptionR
 	}
 
 	public async delete(subscriptionId: string, itemType: string, itemId: string, connectionId: string): Promise<Subscription | undefined> {
-		console.log('Delete: ', connectionId);
 		try {
 			const sub: SubscriptionItem = await this.db.delete(Object.assign(new SubscriptionItem(), {
 				pk: `subscription#${subscriptionId}/connection#${connectionId}`,

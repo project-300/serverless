@@ -3,6 +3,7 @@ import { attribute } from '@aws/dynamodb-data-mapper-annotations';
 import { DriverApplicationObject, UserBrief, Vehicle } from '@project-300/common-types';
 
 export class DriverApplicationItem extends DynamoDbItem implements DriverApplicationObject {
+
 	@attribute()
 	public userId!: string;
 
@@ -21,6 +22,4 @@ export class DriverApplicationItem extends DynamoDbItem implements DriverApplica
 		approved?: string;
 	};
 
-	@attribute()
-	public vehicle: Vehicle;
 }
