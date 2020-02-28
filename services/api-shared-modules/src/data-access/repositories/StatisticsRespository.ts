@@ -1,5 +1,5 @@
 import { DayStatisticsItem } from './../../models/core/Statistics';
-import { DayStatistics, UserStatistics } from '@project-300/common-types';
+import { DayStatistics } from '@project-300/common-types';
 import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
@@ -15,7 +15,8 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 		};
 
 		const queryOptions: QueryOptions = {
-			indexName: 'entity-sk2-index'
+			indexName: 'entity-sk2-index',
+			projection: [ 'emissions', 'distance', 'fule' ]
 		};
 
 		const queryIterator: QueryIterator<DayStatistics> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
@@ -26,18 +27,35 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 		return dayStatistics;
 	}
 
-	// public async getAllForUniversity(statsId: string, universityId: string): Promise<DayStatistics> {
-	// 	return this.db.get(Object.assign(new DayStatisticsItem(), {
-	// 		pk: `stats#${statsId}`,
-	// 		sk: beginsWith(`university#${universityId}`)
-	// 	}));
-	// }
-
-	public async getByIdAndDate(statsId: string, universityId: string, date: string): Promise<DayStatistics> {
-		return this.db.get(Object.assign(new DayStatisticsItem(), {
+	public async getAllForUniversity(statsId: string, universityId: string): Promise<DayStatistics[]> {
+		const keyCondition: QueryKey = {
 			pk: `stats#${statsId}`,
-			sk: beginsWith(`university#${universityId}/date#${date}`)
-		}));
+			sk: beginsWith(`university#${universityId}`)
+		};
+
+		// const queryOptions: QueryOptions = {
+		// 	// projection: [ 'emissions', 'distance', 'fule' ]
+		// };
+
+		const queryIterator: QueryIterator<DayStatistics> = this.db.query(DayStatisticsItem, keyCondition);
+		const dayStatistics: DayStatistics[] = [];
+
+		for await (const stats of queryIterator) dayStatistics.push(stats);
+
+		return dayStatistics;
+	}
+
+	public async getByIdAndDate(statsId: string, universityId: string, date: string): Promise<DayStatistics[]> {
+			const keyCondition: QueryKey = {
+				pk: `stats#${statsId}`,
+				sk: beginsWith(`university#${universityId}/date#${date}`)
+			};
+			const queryIterator: QueryIterator<DayStatistics> = this.db.query(DayStatisticsItem, keyCondition);
+			const dayStatistics: DayStatistics[] = [];
+
+			for await (const stats of queryIterator) dayStatistics.push(stats);
+
+			return dayStatistics;
 	}
 
 	public async create(universityId: string, toCreate: Partial<DayStatistics>): Promise<DayStatistics> {
