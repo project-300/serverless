@@ -5,14 +5,13 @@ import {
 	ApiEvent,
 	ApiContext,
 	UnitOfWork,
-	ApiResponse,
+	ApiResponse
 	// SharedFunctions
-  } from '../../api-shared-modules/src';
-import { DayStatistics, University } from '@project-300/common-types';
+} from '../../api-shared-modules/src';
+import { DayStatistics, University, DayStatisticsBrief } from '@project-300/common-types';
 
 export class StatisticsController {
-
-	public constructor(private unitOfWork: UnitOfWork) { }
+	public constructor(private unitOfWork: UnitOfWork) {}
 
 	public createStatisticsDayForEachUni: ApiHandler = async (): Promise<string> => {
 		const statsObject: Partial<DayStatistics> = {
@@ -33,17 +32,21 @@ export class StatisticsController {
 		} catch (err) {
 			return 'Failure';
 		}
-	}
+	};
 
 	public getStatisticsDayById: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-		if (!event.pathParameters || !event.pathParameters.statisticsId || !event.queryStringParameters
-			|| !event.queryStringParameters.date || !event.queryStringParameters.universityId) {
-				return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
-			}
+		if (
+			!event.pathParameters ||
+			!event.pathParameters.statisticsId ||
+			!event.queryStringParameters ||
+			!event.queryStringParameters.date ||
+			!event.queryStringParameters.universityId
+		) {
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+		}
 		const statisticsId: string = event.pathParameters.statisticsId;
-		const { date, universityId }: { [params: string]: string} = event.queryStringParameters;
+		const { date, universityId }: { [params: string]: string } = event.queryStringParameters;
 		const parsedDate: string = this._parseOutDate(date);
-		console.log(parsedDate);
 		// const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 		try {
@@ -53,18 +56,32 @@ export class StatisticsController {
 			// if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
 
 			const result: DayStatistics[] = await this.unitOfWork.Statistics.getByIdAndDate(statisticsId, universityId, parsedDate);
-			// if (!result) {
-			// 	return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Statistics Not Found');
-			// }
-			console.log(result);
+			if (result.length === 0) {
+				return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Statistics Not Found');
+			}
 
 			return ResponseBuilder.ok({ statistics: result[0] });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, 'Unable to get Statistics');
 		}
-	}
+	};
 
 	private _parseOutDate = (fullDate: string): string => fullDate.split('T')[0];
+
+	public getAllStatsForUniversity: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.pathParameters || !event.pathParameters.universityId) {
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+		}
+
+		const universityId: string = event.pathParameters.universityId;
+		try {
+			const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllForUniversity(universityId);
+
+			return ResponseBuilder.ok({ statistics: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, 'Unable to get Statistics');
+		}
+	};
 
 	// public getAllUsers: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 	// 	try {
@@ -144,5 +161,4 @@ export class StatisticsController {
 	// 		return ResponseBuilder.internalServerError(err, err.message);
 	// 	}
 	// }
-
 }
