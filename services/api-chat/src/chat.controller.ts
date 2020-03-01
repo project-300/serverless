@@ -159,6 +159,15 @@ export class ChatController {
 
 				chat = SharedFunctions.markOwnUserChats(userId, [ chat ])[0];
 
+				await this.PubManager.publishCRUD({
+					subscriptionName: 'chats/list',
+					itemType: 'chat',
+					itemId: chatId,
+					data: { chat },
+					sendAsCollection: true,
+					publishType: PublishType.UPDATE
+				});
+
 				await this.PubManager.publishToSingleConnection({
 					subscriptionName: 'chat/messages',
 					itemType: 'chat',
@@ -167,15 +176,6 @@ export class ChatController {
 					data: messageData,
 					sendAsCollection: true,
 					publishType: PublishType.QUERY
-				});
-
-				await this.PubManager.publishCRUD({
-					subscriptionName: 'chats/list',
-					itemType: 'chat',
-					itemId: chatId,
-					data: { chat },
-					sendAsCollection: true,
-					publishType: PublishType.UPDATE
 				});
 			}
 
