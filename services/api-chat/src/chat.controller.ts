@@ -1,8 +1,8 @@
 import {
-	Chat,
+	Chat, ChatUser,
 	LastEvaluatedKey,
 	Message,
-	PublishType,
+	PublishType, Subscription,
 	User,
 	UserBrief,
 	UserConnection
@@ -48,10 +48,9 @@ export class ChatController {
 			const userWithConnections: Partial<User> = await this.unitOfWork.Users.getUserConnections(userId);
 			const currentConnection: UserConnection =
 				userWithConnections.connections && _.findLast(_.sortBy(userWithConnections.connections, [ 'connectedAt' ]),
-		  (con: UserConnection) => con.deviceId === deviceId
+				(con: UserConnection) => con.deviceId === deviceId
 				);
 
-			// chats = SharedFunctions.markOwnUserChats(userId, chats);
 			await Promise.all(chats.map(async (chat: Chat) => {
 				chat.readableDurations = SharedFunctions.TimeDurations(chat.times);
 
@@ -119,6 +118,13 @@ export class ChatController {
 
 				chat = await this.unitOfWork.Chats.create({ users: [ { ...thisUser, unreadCount: 0 }, { ...userB, unreadCount: 0 } ] });
 				if (!chat) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Failed to create new Chat');
+			} else {
+				chat.users = chat.users.map((u: ChatUser) => {
+					if (u.userId === userId) u.unreadCount = 0;
+					return u;
+				});
+
+				chat = await this.unitOfWork.Chats.update(chatId, chat);
 			}
 
 			const userWithConnections: Partial<User> = await this.unitOfWork.Users.getUserConnections(userId);
@@ -128,12 +134,12 @@ export class ChatController {
 			);
 
 			if (chat) {
-				// const currentChatSub: Subscription[] =
-				// 	await this.unitOfWork.Subscriptions.getByType('chat/messages', currentConnection.connectionId, userId);
-				//
-				// await Promise.all(currentChatSub.map(async (sub: Subscription) =>
-				// 	this.unitOfWork.Subscriptions.delete(sub.subscriptionId, sub.itemType, sub.itemId, sub.connectionId)
-			  	// ));
+				const currentChatSub: Subscription[] =
+					await this.unitOfWork.Subscriptions.getByType('chat/messages', currentConnection.connectionId, userId);
+
+				await Promise.all(currentChatSub.map(async (sub: Subscription) =>
+					this.unitOfWork.Subscriptions.delete(sub.subscriptionId, sub.itemType, sub.itemId, sub.connectionId)
+			  	));
 
 				await this.SubManager.subscribe({
 					subscriptionName: 'chat/messages',
@@ -151,6 +157,8 @@ export class ChatController {
 				messageData.messages = SharedFunctions.setMessageFlags(userId, messageData.messages);
 				messageData.chatId = chat.chatId;
 
+				chat = SharedFunctions.markOwnUserChats(userId, [ chat ])[0];
+
 				await this.PubManager.publishToSingleConnection({
 					subscriptionName: 'chat/messages',
 					itemType: 'chat',
@@ -159,6 +167,15 @@ export class ChatController {
 					data: messageData,
 					sendAsCollection: true,
 					publishType: PublishType.QUERY
+				});
+
+				await this.PubManager.publishCRUD({
+					subscriptionName: 'chats/list',
+					itemType: 'chat',
+					itemId: chatId,
+					data: { chat },
+					sendAsCollection: true,
+					publishType: PublishType.UPDATE
 				});
 			}
 
@@ -196,7 +213,43 @@ export class ChatController {
 					deviceId,
 					userId
 				});
+			}
 
+			return ResponseBuilder.ok({ });
+		} catch (err) {
+			console.log(err);
+			return ResponseBuilder.internalServerError(err, 'Unable to unsubscribe from Chat');
+		}
+	}
+
+	public markMessagesRead: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.pathParameters || !event.pathParameters.otherUserId || !event.pathParameters.chatId)
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const otherUserId: string = event.pathParameters.otherUserId;
+		const chatId: string = event.pathParameters.chatId;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			let chat: Chat = await this.unitOfWork.Chats.getById(chatId, [ userId, otherUserId ]);
+
+			chat.users = chat.users.map((u: ChatUser) => {
+				if (u.userId === userId) u.unreadCount = 0;
+				return u;
+			});
+
+			chat = await this.unitOfWork.Chats.update(chatId, chat);
+
+			if (chat) {
+				await this.PubManager.publishCRUD({
+					subscriptionName: 'chats/list',
+					itemType: 'chat',
+					itemId: chatId,
+					data: { chat },
+					sendAsCollection: true,
+					publishType: PublishType.UPDATE
+				});
 			}
 
 			return ResponseBuilder.ok({ });

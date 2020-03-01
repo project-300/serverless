@@ -75,6 +75,14 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
+  markMessagesRead:
+    handler: src/handler.markMessagesRead
+    events:
+      - http:
+          path: /chats/read-messages/{chatId}/{otherUserId}
+          method: put
+          cors: true
+          authorizer: aws_iam
   createChat:
     handler: src/handler.createChat
     events:

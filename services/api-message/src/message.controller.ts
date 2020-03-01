@@ -110,8 +110,6 @@ export class MessageController {
 
 			updatedChat.readableDurations = SharedFunctions.TimeDurations(updatedChat.times);
 
-			// updatedChat = SharedFunctions.markOwnUserChats(otherUserId, [ updatedChat ])[0];
-
 			await this.PubManager.publishCRUD({
 				subscriptionName: 'chat/messages',
 				itemType: 'chat',
