@@ -93,8 +93,10 @@ export class MessageController {
 			const result: Message = await this.unitOfWork.Messages.create({ ...message });
 			if (!result) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Failed to create new Message');
 
+			const now: string = new Date().toISOString();
 			chat.started = true;
-			chat.times.updatedAt = new Date().toISOString();
+			chat.times.updatedAt = now;
+			chat.sk3 = `updatedAt#${now}`;
 			chat.lastMessage = message.text;
 			chat.messageCount += 1;
 			chat.users.map((u: ChatUser) => {
@@ -102,7 +104,13 @@ export class MessageController {
 				if (u.userId !== userId && u.unreadCount === undefined) u.unreadCount = 1;
 				return u;
 			});
-			await this.unitOfWork.Chats.update(chat.chatId, chat);
+
+			const updatedChat: Chat = await this.unitOfWork.Chats.update(chat.chatId, chat);
+			if (!updatedChat) throw Error('Failed to update chat');
+
+			updatedChat.readableDurations = SharedFunctions.TimeDurations(updatedChat.times);
+
+			// updatedChat = SharedFunctions.markOwnUserChats(otherUserId, [ updatedChat ])[0];
 
 			await this.PubManager.publishCRUD({
 				subscriptionName: 'chat/messages',
@@ -113,8 +121,18 @@ export class MessageController {
 				publishType: PublishType.INSERT
 			});
 
+			await this.PubManager.publishCRUD({
+				subscriptionName: 'chats/list',
+				itemType: 'chat',
+				itemId: message.chatId,
+				data: { chat: updatedChat },
+				sendAsCollection: true,
+				publishType: PublishType.UPDATE
+			});
+
 			return ResponseBuilder.ok({ message: result });
 		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to create a new Message');
 		}
 	}

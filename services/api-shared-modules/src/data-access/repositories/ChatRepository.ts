@@ -41,7 +41,8 @@ import {
 
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk3-index',
-			filter: andPredicate
+			filter: andPredicate,
+			scanIndexForward: false
 		};
 
 		const queryIterator: QueryIterator<ChatItem> = this.db.query(ChatItem, keyCondition, queryOptions);

@@ -1,6 +1,5 @@
 import {
 	Chat,
-	ChatUser,
 	LastEvaluatedKey,
 	Message,
 	PublishType,
@@ -35,17 +34,38 @@ export class ChatController {
 	}
 
 	public getAllChatsByUser: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.queryStringParameters || !event.queryStringParameters.deviceId)
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const deviceId: string = event.queryStringParameters.deviceId;
+
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
-			let chats: Chat[] = await this.unitOfWork.Chats.getAllByUser(userId);
+			const chats: Chat[] = await this.unitOfWork.Chats.getAllByUser(userId);
 			if (!chats) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Chats');
 
-			chats = this.markOwnUserChats(userId, chats);
-			chats.map((chat: Chat) => {
+			const userWithConnections: Partial<User> = await this.unitOfWork.Users.getUserConnections(userId);
+			const currentConnection: UserConnection =
+				userWithConnections.connections && _.findLast(_.sortBy(userWithConnections.connections, [ 'connectedAt' ]),
+		  (con: UserConnection) => con.deviceId === deviceId
+				);
+
+			// chats = SharedFunctions.markOwnUserChats(userId, chats);
+			await Promise.all(chats.map(async (chat: Chat) => {
 				chat.readableDurations = SharedFunctions.TimeDurations(chat.times);
+
+				await this.SubManager.subscribe({
+					subscriptionName: 'chats/list',
+					itemType: 'chat',
+					itemId: chat.chatId,
+					connectionId: currentConnection.connectionId,
+					deviceId,
+					userId
+				});
+
 				return chat;
-			});
+			}));
 
 			return ResponseBuilder.ok({ chats });
 		} catch (err) {
@@ -262,16 +282,5 @@ export class ChatController {
 			return ResponseBuilder.internalServerError(err);
 		}
 	}
-
-	private markOwnUserChats = (userId: string, chats: Chat[]): Chat[] =>
-		chats.map(
-			(c: Chat) => {
-				const otherUser: ChatUser = c.users.find((u: ChatUser) => u.userId !== userId);
-				const currentUser: ChatUser = c.users.find((u: ChatUser) => u.userId === userId);
-				c.otherUser = otherUser;
-				c.unreadCount = currentUser.unreadCount || 0;
-				return c;
-			}
-		)
 
 }
