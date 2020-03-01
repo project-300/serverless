@@ -63,7 +63,7 @@ functions:
     handler: src/handler.chatSubscribe
     events:
       - http:
-          path: /chats/subscribe/{otherUserId}/{deviceId}
+          path: /chats/subscribe
           method: get
           cors: true
           authorizer: aws_iam

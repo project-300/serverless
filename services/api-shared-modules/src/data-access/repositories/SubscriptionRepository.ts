@@ -3,7 +3,13 @@ import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { Repository } from './Repository';
 import { QueryKey, ISubscriptionRepository } from '../interfaces';
 import { SubscriptionItem } from '../../models/core';
-import { beginsWith, BeginsWithPredicate, ConditionExpression } from '@aws/dynamodb-expressions';
+import {
+	beginsWith,
+	BeginsWithPredicate,
+	ConditionExpression,
+	EqualityExpressionPredicate,
+	equals
+} from '@aws/dynamodb-expressions';
 
 export class SubscriptionRepository extends Repository implements ISubscriptionRepository {
 
@@ -124,23 +130,31 @@ export class SubscriptionRepository extends Repository implements ISubscriptionR
 		return subscriptions;
 	}
 
-	// public async getAllByName(subscriptions: string[]): Promise<Subscription[]> {
-	// 	const keyCondition: QueryKey = {
-	// 		entity: 'subscription'
-	// 	};
-	//
-	// 	const queryOptions: QueryOptions = {
-	// 		indexName: 'entity-sk-index',
-	// 		filter: equalsExpression
-	// 	};
-	//
-	// 	const queryIterator: QueryIterator<SubscriptionItem> = this.db.query(SubscriptionItem, keyCondition, queryOptions);
-	// 	const subscriptions: Subscription[] = [];
-	//
-	// 	for await (const sub of queryIterator) subscriptions.push(sub);
-	//
-	// 	return subscriptions;
-	// }
+	public async getByType(subscriptionId: string, connectionId: string, userId: string): Promise<Subscription[]> {
+		const predicate: EqualityExpressionPredicate = equals(`subscription#${subscriptionId}/connection#${connectionId}`);
+
+		const beginsExpression: ConditionExpression = {
+			...predicate,
+			subject: 'pk'
+		};
+
+		const keyCondition: QueryKey = {
+			entity: 'subscription',
+			sk3: `user#${userId}`
+		};
+
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk3-index',
+			filter: beginsExpression
+		};
+
+		const queryIterator: QueryIterator<SubscriptionItem> = this.db.query(SubscriptionItem, keyCondition, queryOptions);
+		const subscriptions: Subscription[] = [];
+
+		for await (const sub of queryIterator) subscriptions.push(sub);
+
+		return subscriptions;
+	}
 
 	public async getById(subscriptionId: string, itemType: string, itemId: string, connectionId: string): Promise<Subscription> {
 		try {
@@ -152,17 +166,6 @@ export class SubscriptionRepository extends Repository implements ISubscriptionR
 			return undefined;
 		}
 	}
-
-	// public async getConnections(subscriptionId: string, itemType: string, itemId: string): Promise<SubscriptionConnection[]> {
-	// 	const sub: Subscription = await this.db.get(Object.assign(new SubscriptionItem(), {
-	// 		pk: `subscription#${subscriptionId}`,
-	// 		sk: `${itemType}#${itemId}`
-	// 	}), {
-	// 		projection: [ 'connections' ]
-	// 	});
-	//
-	// 	return sub.connections;
-	// }
 
 	public async create(subscriptionId: string, itemType: string,
 		itemId: string, connectionId: string, deviceId: string, userId?: string): Promise<Subscription> {

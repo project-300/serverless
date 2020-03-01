@@ -1,4 +1,13 @@
-import { Chat, LastEvaluatedKey, Message, PublishType, User, UserBrief, UserConnection } from '@project-300/common-types';
+import {
+	Chat,
+	ChatUser,
+	LastEvaluatedKey,
+	Message,
+	PublishType,
+	User,
+	UserBrief,
+	UserConnection
+} from '@project-300/common-types';
 import {
 	ApiContext,
 	ApiEvent,
@@ -29,8 +38,14 @@ export class ChatController {
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
-			const chats: Chat[] = await this.unitOfWork.Chats.getAllByUser(userId);
+			let chats: Chat[] = await this.unitOfWork.Chats.getAllByUser(userId);
 			if (!chats) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Chats');
+
+			chats = this.markOwnUserChats(userId, chats);
+			chats.map((chat: Chat) => {
+				chat.readableDurations = SharedFunctions.TimeDurations(chat.times);
+				return chat;
+			});
 
 			return ResponseBuilder.ok({ chats });
 		} catch (err) {
@@ -59,18 +74,22 @@ export class ChatController {
 	}
 
 	public chatSubscribe: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-		if (!event.pathParameters || !event.pathParameters.otherUserId || !event.pathParameters.deviceId)
+		if (!event.queryStringParameters || !event.queryStringParameters.otherUserId || !event.queryStringParameters.deviceId)
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 
-		const otherUserId: string = event.pathParameters.otherUserId;
-		const deviceId: string = event.pathParameters.deviceId;
+		const otherUserId: string = event.queryStringParameters.otherUserId;
+		const chatId: string = event.queryStringParameters.chatId; // Optional value (for quicker retrieval)
+		const deviceId: string = event.queryStringParameters.deviceId;
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 			if (userId === otherUserId) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'You cannot start a Chat with yourself');
 
-			let chat: Chat = await this.unitOfWork.Chats.getByUsers([ userId, otherUserId ]);
+			let chat: Chat = chatId ?
+				await this.unitOfWork.Chats.getById(chatId, [ userId, otherUserId ]) :
+				await this.unitOfWork.Chats.getByUsers([ userId, otherUserId ]);
+
 			const thisUser: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
 			if (!thisUser) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'User does not exist');
 
@@ -78,7 +97,7 @@ export class ChatController {
 				const userB: UserBrief = await this.unitOfWork.Users.getUserBrief(otherUserId);
 				if (!userB) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Recipient user does not exist');
 
-				chat = await this.unitOfWork.Chats.create({ users: [ thisUser, userB ] });
+				chat = await this.unitOfWork.Chats.create({ users: [ { ...thisUser, unreadCount: 0 }, { ...userB, unreadCount: 0 } ] });
 				if (!chat) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Failed to create new Chat');
 			}
 
@@ -89,6 +108,13 @@ export class ChatController {
 			);
 
 			if (chat) {
+				// const currentChatSub: Subscription[] =
+				// 	await this.unitOfWork.Subscriptions.getByType('chat/messages', currentConnection.connectionId, userId);
+				//
+				// await Promise.all(currentChatSub.map(async (sub: Subscription) =>
+				// 	this.unitOfWork.Subscriptions.delete(sub.subscriptionId, sub.itemType, sub.itemId, sub.connectionId)
+			  	// ));
+
 				await this.SubManager.subscribe({
 					subscriptionName: 'chat/messages',
 					itemType: 'chat',
@@ -98,11 +124,12 @@ export class ChatController {
 					userId: thisUser.userId
 				});
 
-				const messageData: { messages: Message[]; lastEvaluatedKey?: LastEvaluatedKey } =
+				const messageData: Partial<{ messages: Message[]; lastEvaluatedKey?: LastEvaluatedKey; chatId: string }> =
 					await this.unitOfWork.Messages.getAllByChat(chat.chatId);
 				if (!messageData) throw Error('Unable to retrieve chat messages');
 
 				messageData.messages = SharedFunctions.setMessageFlags(userId, messageData.messages);
+				messageData.chatId = chat.chatId;
 
 				await this.PubManager.publishToSingleConnection({
 					subscriptionName: 'chat/messages',
@@ -177,8 +204,10 @@ export class ChatController {
 			const userA: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
 			const userB: UserBrief = await this.unitOfWork.Users.getUserBrief(otherUserId);
 
+			if (!userB) return ResponseBuilder.notFound(ErrorCode.BadRequest, 'Other user does not exist');
+
 			const chat: Partial<Chat> = {
-				users: [ userA, userB ]
+				users: [ { ...userA, unreadCount: 0 }, { ...userB, unreadCount: 0 } ]
 			};
 
 			const result: Chat = await this.unitOfWork.Chats.create({ ...chat });
@@ -233,5 +262,16 @@ export class ChatController {
 			return ResponseBuilder.internalServerError(err);
 		}
 	}
+
+	private markOwnUserChats = (userId: string, chats: Chat[]): Chat[] =>
+		chats.map(
+			(c: Chat) => {
+				const otherUser: ChatUser = c.users.find((u: ChatUser) => u.userId !== userId);
+				const currentUser: ChatUser = c.users.find((u: ChatUser) => u.userId === userId);
+				c.otherUser = otherUser;
+				c.unreadCount = currentUser.unreadCount || 0;
+				return c;
+			}
+		)
 
 }
