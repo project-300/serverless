@@ -1,5 +1,5 @@
 import { Statistics } from './../../api-shared-modules/src/utils/statistics';
-import { DriverBrief, Journey, Passenger, PassengerBrief, GetMidpoint, User, DayStatistics, University } from '@project-300/common-types';
+import { DriverBrief, Journey, Passenger, PassengerBrief, GetMidpoint, User, DayStatistics } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,

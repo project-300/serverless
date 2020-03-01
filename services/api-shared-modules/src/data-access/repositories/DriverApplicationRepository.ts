@@ -1,14 +1,14 @@
 import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { equals } from '@aws/dynamodb-expressions';
 import { Repository } from './Repository';
-import { DriverApplicationObject, Vehicle } from '@project-300/common-types';
+import { DriverApplicationObject } from '@project-300/common-types';
 import { DriverApplicationItem } from '../../models';
 import { QueryKey } from '../interfaces';
 
 export class DriverApplicationRepository extends Repository {
 	// REMEMBER ABOUT ProjectionExpression to take out pk, sk and entity!!!!
 
-	public async getAll(approved: string): Promise<DriverApplicationObject[]> {
+	public async getAll(approved: boolean): Promise<DriverApplicationObject[]> {
 		const keyCondition: QueryKey = {
 			entity: 'driverApplication'
 		};
