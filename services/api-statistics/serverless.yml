@@ -40,7 +40,7 @@ functions:
   createStatisticsDayForEachUni:
     handler: src/handler.createStatisticsDayForEachUni
     events:
-      - schedule: rate(15 minutes)
+      - schedule: cron(0 24 * * ? *)
   getStatisticsDayById:
     handler: src/handler.getStatisticsDayById
     events:

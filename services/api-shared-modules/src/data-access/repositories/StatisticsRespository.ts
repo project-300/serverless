@@ -84,6 +84,24 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 		return dayStatistics;
 	}
 
+	public async getForToday(date: string, universityId: string): Promise<DayStatistics> {
+		const keyCondition: QueryKey = {
+			entity: `statistics`,
+			sk: beginsWith(`universityId#${universityId}date#${date}`)
+		};
+
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk-index'
+		};
+
+		const queryIterator: QueryIterator<DayStatistics> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
+		const dayStatistics: DayStatistics[] = [];
+
+		for await (const stats of queryIterator) dayStatistics.push(stats);
+
+		return dayStatistics[0];
+	}
+
 	public async getByIdAndDate(statsId: string, universityId: string, date: string): Promise<DayStatistics[]> {
 			const keyCondition: QueryKey = {
 				pk: `stats#${statsId}`,
@@ -117,7 +135,7 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 	public async update(statsId: string, universityId: string, date: string, changes: Partial<DayStatistics>): Promise<DayStatistics> {
 		return this.db.update(Object.assign(new DayStatisticsItem(), {
 			pk: `stats#${statsId}`,
-			sk: beginsWith(`university#${universityId}/date#${date}`),
+			sk: `university#${universityId}/date#${date}`,
 			...changes
 		}), {
 			onMissing: 'skip'

@@ -62,4 +62,7 @@ export class JourneyItem extends DynamoDbItem implements Journey {
 
 	@attribute()
 	public completedDistance: number;
+
+	@attribute()
+	public distanceTravelled?: number;
 }

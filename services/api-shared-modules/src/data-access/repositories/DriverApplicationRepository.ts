@@ -16,7 +16,7 @@ export class DriverApplicationRepository extends Repository {
 			indexName: 'entity-sk-index',
 			filter: {
 				...equals(approved),
-				subject: 'confirmed'
+				subject: 'approved'
 			}
 		};
 		const queryIterator: QueryIterator<DriverApplicationItem> = this.db.query(DriverApplicationItem, keyCondition, queryOptions);
@@ -39,7 +39,7 @@ export class DriverApplicationRepository extends Repository {
 		}
 	}
 
-	public async create(userId: string, toCreate: Vehicle): Promise<DriverApplicationObject> {
+	public async create(userId: string, toCreate: Partial<DriverApplicationObject>): Promise<DriverApplicationObject> {
 		return this.db.put(Object.assign(new DriverApplicationItem(), {
 			entity: 'driverApplication',
 			userId,
