@@ -37,10 +37,11 @@ export class DriverApplicationController {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 		}
 		const { approved }: { [params: string]: string } = event.queryStringParameters;
+		const booleanApproved: boolean = (approved === 'true');
 		// const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 		try {
-			const applications: DriverApplicationObject[] = await this.unitOfWork.DriverApplications.getAll(approved);
+			const applications: DriverApplicationObject[] = await this.unitOfWork.DriverApplications.getAll(booleanApproved);
 			if (!applications) {
 				return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Applications');
 			}
@@ -85,7 +86,7 @@ export class DriverApplicationController {
 				throw Error('You have already made an application');
 			}
 
-			const result: DriverApplicationObject = await this.unitOfWork.DriverApplications.create(userId, vehicle);
+			const result: DriverApplicationObject = await this.unitOfWork.DriverApplications.create(userId, { vehicle });
 			if (!result) {
 				return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'failed to create new application');
 			}

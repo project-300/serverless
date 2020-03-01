@@ -15,6 +15,8 @@ export class SharedFunctions {
 		return userId;
 	}
 
+	public static checkRole = (roles: string[], userRole: string): boolean => roles.some((role: string) => role === userRole);
+
 	public static stripLastEvaluatedKey = (lastEvaluatedKey: Partial<DynamoDbItem>): Partial<DynamoDbItem> => {
 		const values: Array<Partial<DynamoDbItem>> = Object.keys(lastEvaluatedKey).map((key: string) => {
 			const parts: string[] = lastEvaluatedKey[key].split('#');

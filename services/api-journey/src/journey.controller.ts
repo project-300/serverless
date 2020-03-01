@@ -1,4 +1,5 @@
-import { DriverBrief, Journey, Passenger, PassengerBrief, GetMidpoint, User } from '@project-300/common-types';
+import { Statistics } from './../../api-shared-modules/src/utils/statistics';
+import { DriverBrief, Journey, Passenger, PassengerBrief, GetMidpoint, User, DayStatistics, University } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -293,6 +294,7 @@ export class JourneyController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
 
 			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 
@@ -312,12 +314,35 @@ export class JourneyController {
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
+			await this._handleStatistics(journey.distanceTravelled, user.universityId, journey);
+
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to end Journey');
 		}
+	}
+
+	private _handleStatistics = async (distanceTravelled: number, universityId: string, journey: Partial<Journey>): Promise<void> => {
+		const date: string = new Date().toISOString().split('T')[0];
+
+		const newStats: Partial<DayStatistics> = Statistics.calcStatistics(distanceTravelled, journey.driver.userId, journey.passengers);
+		const todaysStats: DayStatistics = await this.unitOfWork.Statistics.getForToday(date, universityId);
+
+		newStats.passengers.forEach((p) => {
+			todaysStats.passengers.push(p);
+		});
+
+		todaysStats.drivers.push(newStats.drivers[0]);
+
+		todaysStats.distance += newStats.distance;
+		todaysStats.fuel += newStats.fuel;
+		todaysStats.emissions += newStats.emissions;
+
+		const statsId: string = todaysStats.pk.split('#')[1];
+
+		await this.unitOfWork.Statistics.update(statsId, universityId, date, todaysStats);
 	}
 
 	public cancelPassengerAcceptedJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
