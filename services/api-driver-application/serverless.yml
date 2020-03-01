@@ -72,7 +72,7 @@ functions:
     handler: src/handler.approveApplication
     events:
       - http:
-          path: /driver-applications/approve
+          path: /driver-applications/approve/{userId}
           method: put
           cors: true
           authorizer: aws_iam
