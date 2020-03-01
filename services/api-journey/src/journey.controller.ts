@@ -309,6 +309,8 @@ export class JourneyController {
 			journey.times.endedAt = date;
 			journey.times.updatedAt = date;
 
+			// have to update statistics here
+
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 

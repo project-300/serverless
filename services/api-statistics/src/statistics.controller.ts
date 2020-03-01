@@ -1,3 +1,4 @@
+import { StatsTotal, DatesArray } from './interfaces';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -5,13 +6,13 @@ import {
 	ApiEvent,
 	ApiContext,
 	UnitOfWork,
-	ApiResponse
-	// SharedFunctions
+	ApiResponse,
+	SharedFunctions
 } from '../../api-shared-modules/src';
-import { DayStatistics, University, DayStatisticsBrief } from '@project-300/common-types';
+import { DayStatistics, University, DayStatisticsBrief, UserBrief } from '@project-300/common-types';
 
 export class StatisticsController {
-	public constructor(private unitOfWork: UnitOfWork) {}
+	public constructor(private unitOfWork: UnitOfWork) { }
 
 	public createStatisticsDayForEachUni: ApiHandler = async (): Promise<string> => {
 		const statsObject: Partial<DayStatistics> = {
@@ -32,7 +33,7 @@ export class StatisticsController {
 		} catch (err) {
 			return 'Failure';
 		}
-	};
+	}
 
 	public getStatisticsDayById: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (
@@ -46,16 +47,15 @@ export class StatisticsController {
 		}
 		const statisticsId: string = event.pathParameters.statisticsId;
 		const { date, universityId }: { [params: string]: string } = event.queryStringParameters;
-		const parsedDate: string = this._parseOutDate(date);
-		// const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 		try {
-			// const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
-			// const rightRole: boolean = SharedFunctions.checkRole(['Admin', 'Moderator'], user.userType);
+			const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+			const rightRole: boolean = SharedFunctions.checkRole(['Admin', 'Moderator'], user.userType);
 
-			// if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
+			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
 
-			const result: DayStatistics[] = await this.unitOfWork.Statistics.getByIdAndDate(statisticsId, universityId, parsedDate);
+			const result: DayStatistics[] = await this.unitOfWork.Statistics.getByIdAndDate(statisticsId, universityId, date);
 			if (result.length === 0) {
 				return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Statistics Not Found');
 			}
@@ -64,101 +64,133 @@ export class StatisticsController {
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, 'Unable to get Statistics');
 		}
-	};
+	}
 
-	private _parseOutDate = (fullDate: string): string => fullDate.split('T')[0];
-
-	public getAllStatsForUniversity: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+	public getAllTotalStatsForOneUni: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (!event.pathParameters || !event.pathParameters.universityId) {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 		}
 
 		const universityId: string = event.pathParameters.universityId;
-		try {
-			const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllForUniversity(universityId);
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
-			return ResponseBuilder.ok({ statistics: result });
+		try {
+			const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+			const rightRole: boolean = SharedFunctions.checkRole(['Admin', 'Moderator'], user.userType);
+
+			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
+
+			const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllForUniversity(universityId);
+			const total: StatsTotal = this._addUpStatistics(result);
+
+			return ResponseBuilder.ok({ statisticsTotal: total });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, 'Unable to get Statistics');
 		}
-	};
+	}
 
-	// public getAllUsers: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-	// 	try {
-	// 		const users: User[] = await this.unitOfWork.Users.getAll();
-	// 		if (!users) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Users');
+	public getForDateRangeOneUni: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (
+			!event.pathParameters
+			|| !event.pathParameters.universityId
+			|| !event.queryStringParameters
+			|| !event.queryStringParameters.startDate
+			|| !event.queryStringParameters.endDate) {
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+		}
+		const universityId: string = event.pathParameters.universityId;
+		const { startDate, endDate, totalsOnly }: { [params: string]: string } = event.queryStringParameters;
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
-	// 		return ResponseBuilder.ok({ users });
-	// 	} catch (err) {
-	// 		return ResponseBuilder.internalServerError(err, err.message);
-	// 	}
-	// }
+		try {
+			const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+			const rightRole: boolean = SharedFunctions.checkRole(['Admin', 'Moderator'], user.userType);
 
-	// public getUserById: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-	// 	if (!event.pathParameters || !event.pathParameters.userId) {
-	// 		return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
-	// 	}
+			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
 
-	// 	const userId: string = event.pathParameters.userId;
+			const result: DayStatisticsBrief[] =
+				await this.unitOfWork.Statistics.getAllBetweenDatesForOneUniversity(startDate, endDate, universityId);
+			const total: StatsTotal = this._addUpStatistics(result);
 
-	// 	try {
-	// 		const user: User = await this.unitOfWork.Users.getById(userId);
-	// 		if (!user) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'User Not found');
+			if (totalsOnly === 'true') {
+				return ResponseBuilder.ok({ totalStatistics: total });
+			}
 
-	// 		return ResponseBuilder.ok({ user });
-	// 	} catch (err) {
-	// 		return ResponseBuilder.internalServerError(err, err.message);
-	// 	}
-	// }
+			return ResponseBuilder.ok({ statistics: result, totalStatistics: total });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, 'Unable to get Statistics');
+		}
+	}
 
-	// public createUser: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-	// 	if (!event.body) {
-	// 		return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
-	// 	}
-	// 	const user: Partial<User> = JSON.parse(event.body) as Partial<User>;
+	public getAllTotalForDateRangeAllUni: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (
+			!event.queryStringParameters
+			|| !event.queryStringParameters.startDate
+			|| !event.queryStringParameters.endDate) {
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+		}
 
-	// 	try {
-	// 		const result: User = await this.unitOfWork.Users.create({ ...user });
-	// 		if (!result) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'failed to create new user');
+		const { startDate, endDate }: { [params: string]: string } = event.queryStringParameters;
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
-	// 		return ResponseBuilder.ok({ user: result });
-	// 	} catch (err) {
-	// 		return ResponseBuilder.internalServerError(err, err.message);
-	// 	}
-	// }
+		try {
+			const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+			const rightRole: boolean = SharedFunctions.checkRole(['Admin', 'Moderator'], user.userType);
 
-	// public updateUser: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-	// 	if (!event.body) {
-	// 		return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
-	// 	}
+			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
 
-	// 	const user: Partial<User> = JSON.parse(event.body) as Partial<User>;
+			const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllBetweenDatesForAllUniversities(startDate, endDate);
+			const total: StatsTotal = this._addUpStatistics(result);
 
-	// 	try {
-	// 		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-	// 		const result: User = await this.unitOfWork.Users.update(userId, { ...user });
-	// 		if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'User not found');
+			return ResponseBuilder.ok({ statistics: total });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, 'Unable to get Statistics');
+		}
+	}
 
-	// 		return ResponseBuilder.ok({ user: result });
-	// 	} catch (err) {
-	// 		return ResponseBuilder.internalServerError(err, err.message);
-	// 	}
-	// }
+	public getTotalsForEachMonthOneUni: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (
+			!event.body
+			|| !event.pathParameters
+			|| !event.pathParameters.universityId) {
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+		}
+		const { dates }: { dates: string[] } = JSON.parse(event.body) as DatesArray;
+		const universityId: string = event.pathParameters.universityId;
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
-	// public deleteUser: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-	// 	if (!event.pathParameters || !event.pathParameters.userId) {
-	// 		return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
-	// 	}
+		try {
+			const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+			const rightRole: boolean = SharedFunctions.checkRole(['Admin', 'Moderator'], user.userType);
 
-	// 	const userId: string = event.pathParameters.userId;
+			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
 
-	// 	try {
-	// 		const user: User = await this.unitOfWork.Users.delete(userId);
-	// 		if (!user) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'User not found');
+			const allStatsTotals: StatsTotal[] = await Promise.all(
+				dates.map(async (d: string): Promise<StatsTotal> => {
+					const stats: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getForMonth(d, universityId);
+					return this._addUpStatistics(stats);
+				})
+			);
 
-	// 		return ResponseBuilder.ok({ user });
-	// 	} catch (err) {
-	// 		return ResponseBuilder.internalServerError(err, err.message);
-	// 	}
-	// }
+			return ResponseBuilder.ok({ allStatsTotals });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, 'Unable to get Statistics');
+		}
+	}
+
+	private _addUpStatistics = (stats: DayStatisticsBrief[]): StatsTotal => {
+		const statsTotal: StatsTotal = {
+			totalEmissions: 0,
+			totalDistance: 0,
+			totalFuel: 0
+		};
+
+		stats.forEach((s: DayStatisticsBrief) => {
+			statsTotal.totalEmissions += s.emissions;
+			statsTotal.totalDistance += s.distance;
+			statsTotal.totalFuel += s.fuel;
+		});
+
+		return statsTotal;
+	}
 }

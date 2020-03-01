@@ -1,5 +1,5 @@
 import { DayStatisticsItem } from './../../models/core/Statistics';
-import { DayStatistics } from '@project-300/common-types';
+import { DayStatistics, DayStatisticsBrief } from '@project-300/common-types';
 import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
@@ -8,7 +8,7 @@ import { beginsWith, between } from '@aws/dynamodb-expressions';
 
 export class StatisticsRepository extends Repository implements IStatisticsRepository {
 
-	public async getAllBetweenDatesForAllUniversities(startDate: string, endDate: string): Promise<DayStatistics[]> {
+	public async getAllBetweenDatesForAllUniversities(startDate: string, endDate: string): Promise<DayStatisticsBrief[]> {
 		const keyCondition: QueryKey = {
 			entity: 'statistics',
 			sk2: between(`date#${startDate}`, `date#${endDate}`)
@@ -16,29 +16,68 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk2-index',
-			projection: [ 'emissions', 'distance', 'fule' ]
+			projection: [ 'emissions', 'distance', 'fuel', 'times' ]
 		};
 
-		const queryIterator: QueryIterator<DayStatistics> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
-		const dayStatistics: DayStatistics[] = [];
+		const queryIterator: QueryIterator<DayStatisticsBrief> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
+		const dayStatistics: DayStatisticsBrief[] = [];
 
 		for await (const stats of queryIterator) dayStatistics.push(stats);
 
 		return dayStatistics;
 	}
 
-	public async getAllForUniversity(statsId: string, universityId: string): Promise<DayStatistics[]> {
+	public async getAllBetweenDatesForOneUniversity(startDate: string, endDate: string, universityId: string): Promise<DayStatisticsBrief[]> {
 		const keyCondition: QueryKey = {
-			pk: `stats#${statsId}`,
+			entity: 'statistics',
+			sk: between(`university#${universityId}/date#${startDate}`, `university#${universityId}/date#${endDate}`)
+		};
+
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk-index',
+			projection: [ 'emissions', 'distance', 'fuel', 'times' ]
+		};
+
+		const queryIterator: QueryIterator<DayStatisticsBrief> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
+		const dayStatistics: DayStatisticsBrief[] = [];
+
+		for await (const stats of queryIterator) dayStatistics.push(stats);
+
+		return dayStatistics;
+	}
+
+	public async getAllForUniversity(universityId: string): Promise<DayStatisticsBrief[]> {
+		const keyCondition: QueryKey = {
+			entity: `statistics`,
 			sk: beginsWith(`university#${universityId}`)
 		};
 
-		// const queryOptions: QueryOptions = {
-		// 	// projection: [ 'emissions', 'distance', 'fule' ]
-		// };
+		const queryOptions: QueryOptions = {
+			projection: [ 'emissions', 'distance', 'fuel', 'times' ],
+			indexName: 'entity-sk-index'
+		};
 
-		const queryIterator: QueryIterator<DayStatistics> = this.db.query(DayStatisticsItem, keyCondition);
-		const dayStatistics: DayStatistics[] = [];
+		const queryIterator: QueryIterator<DayStatisticsBrief> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
+		const dayStatistics: DayStatisticsBrief[] = [];
+
+		for await (const stats of queryIterator) dayStatistics.push(stats);
+
+		return dayStatistics;
+	}
+
+	public async getForMonth(date: string, universityId: string): Promise<DayStatisticsBrief[]> {
+		const keyCondition: QueryKey = {
+			entity: `statistics`,
+			sk: beginsWith(`universityId#${universityId}date#${date}`)
+		};
+
+		const queryOptions: QueryOptions = {
+			projection: [ 'emissions', 'distance', 'fuel', 'times' ],
+			indexName: 'entity-sk-index'
+		};
+
+		const queryIterator: QueryIterator<DayStatisticsBrief> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
+		const dayStatistics: DayStatisticsBrief[] = [];
 
 		for await (const stats of queryIterator) dayStatistics.push(stats);
 
@@ -61,12 +100,16 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 	public async create(universityId: string, toCreate: Partial<DayStatistics>): Promise<DayStatistics> {
 		const id: string = uuid();
 		const date: string = new Date().toISOString();
+		const parsedDate: string = date.split('T')[0];
 
 		return this.db.put(Object.assign(new DayStatisticsItem(), {
 			entity: 'statistics',
 			pk: `stats#${id}`,
-			sk: `university#${universityId}/date#${date}`,
-			sk2: `date#${date}`,
+			sk: `university#${universityId}/date#${parsedDate}`,
+			sk2: `date#${parsedDate}`,
+			times: {
+				createdAt: date
+			},
 			...toCreate
 		}));
 	}

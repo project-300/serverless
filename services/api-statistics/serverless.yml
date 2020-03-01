@@ -49,14 +49,39 @@ functions:
           method: get
           cors: true
           authorizer: aws_iam
-  getAllStatsForUniversity:
-    handler: src/handler.getAllStatsForUniversity
+  getAllTotalStatsForOneUni:
+    handler: src/handler.getAllTotalStatsForOneUni
     events:
       - http:
-          path: /statistics/all/{universityId}
+          path: /statistics/university/total/{universityId}
           method: get
           cors: true
           authroizer: aws_iam
+  getForDateRangeOneUni:
+    handler: src/handler.getForDateRangeOneUni
+    events:
+      - http:
+          path: /statistics/university/{universityId}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  getAllTotalForDateRangeAllUni:
+    handler: src/handler.getAllTotalForDateRangeAllUni
+    events:
+      - http:
+          path: /statistics/all
+          method: get
+          cors: true
+          authorizer: aws_iam
+  getTotalsForEachMonthOneUni:
+    handler: src/handler.getTotalsForEachMonthOneUni
+    events:
+      - http:
+          path: /statistics/university/months/{universityId}
+          method: post
+          cors: true
+          authorizer: aws_iam
+    
 
 resources:
   - ${file(../resources/cognito-policy.yml)}

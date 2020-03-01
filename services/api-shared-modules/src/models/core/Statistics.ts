@@ -18,4 +18,10 @@ export class DayStatisticsItem extends DynamoDbItem implements DayStatistics {
 
 	@attribute()
 	public drivers!: UserStatisticsItem[];
+
+	@attribute()
+	public times: {
+		createdAt: Date | string;
+		updatedAt?: Date | string;
+	};
 }
