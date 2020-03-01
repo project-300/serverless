@@ -1,6 +1,6 @@
 import { USERID_FOR_TESTING } from '../../../../environment/env';
 import { DynamoDbItem } from '../models';
-import { Message, TimeDuration } from '@project-300/common-types';
+import { Chat, ChatUser, Message, TimeDuration } from '@project-300/common-types';
 
 export class SharedFunctions {
 
@@ -39,6 +39,17 @@ export class SharedFunctions {
 			(m: Message) => {
 				if (m.createdBy.userId === userId) m.userOwnMessage = true;
 				return m;
+			}
+		)
+
+	public static markOwnUserChats = (userId: string, chats: Chat[]): Chat[] =>
+		chats.map(
+			(c: Chat) => {
+				const otherUser: ChatUser = c.users.find((u: ChatUser) => u.userId !== userId);
+				const currentUser: ChatUser = c.users.find((u: ChatUser) => u.userId === userId);
+				c.otherUser = otherUser;
+				c.unreadCount = currentUser.unreadCount || 0;
+				return c;
 			}
 		)
 

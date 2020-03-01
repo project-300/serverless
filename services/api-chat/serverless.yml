@@ -63,7 +63,7 @@ functions:
     handler: src/handler.chatSubscribe
     events:
       - http:
-          path: /chats/subscribe/{otherUserId}/{deviceId}
+          path: /chats/subscribe
           method: get
           cors: true
           authorizer: aws_iam
@@ -72,6 +72,14 @@ functions:
     events:
       - http:
           path: /chats/unsubscribe/{otherUserId}/{deviceId}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  markMessagesRead:
+    handler: src/handler.markMessagesRead
+    events:
+      - http:
+          path: /chats/read-messages/{chatId}/{otherUserId}
           method: put
           cors: true
           authorizer: aws_iam

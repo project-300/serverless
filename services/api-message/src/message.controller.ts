@@ -1,4 +1,4 @@
-import { Chat, LastEvaluatedKey, Message, PublishType, UserBrief } from '@project-300/common-types';
+import { Chat, ChatUser, LastEvaluatedKey, Message, PublishType, UserBrief } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -80,7 +80,7 @@ export class MessageController {
 
 		try {
 			if (!message.chatId) throw Error('Message is not associated with a chat');
-			if (!message.text) throw Error('Message body cannot be empty');
+			if (!message.text.trim()) throw Error('Message body cannot be empty');
 
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
@@ -93,17 +93,44 @@ export class MessageController {
 			const result: Message = await this.unitOfWork.Messages.create({ ...message });
 			if (!result) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Failed to create new Message');
 
+			const now: string = new Date().toISOString();
+			chat.started = true;
+			chat.times.updatedAt = now;
+			chat.sk3 = `updatedAt#${now}`;
+			chat.lastMessage = message.text;
+			chat.messageCount += 1;
+			chat.users.map((u: ChatUser) => {
+				if (u.userId !== userId && u.unreadCount !== undefined) u.unreadCount = u.unreadCount + 1;
+				if (u.userId !== userId && u.unreadCount === undefined) u.unreadCount = 1;
+				return u;
+			});
+
+			const updatedChat: Chat = await this.unitOfWork.Chats.update(chat.chatId, chat);
+			if (!updatedChat) throw Error('Failed to update chat');
+
+			updatedChat.readableDurations = SharedFunctions.TimeDurations(updatedChat.times);
+
 			await this.PubManager.publishCRUD({
 				subscriptionName: 'chat/messages',
 				itemType: 'chat',
 				itemId: message.chatId,
-				data: { message: result },
+				data: { message: result, chatId: chat.chatId },
 				sendAsCollection: true,
 				publishType: PublishType.INSERT
 			});
 
+			await this.PubManager.publishCRUD({
+				subscriptionName: 'chats/list',
+				itemType: 'chat',
+				itemId: message.chatId,
+				data: { chat: updatedChat },
+				sendAsCollection: true,
+				publishType: PublishType.UPDATE
+			});
+
 			return ResponseBuilder.ok({ message: result });
 		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to create a new Message');
 		}
 	}

@@ -4,18 +4,45 @@ import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
 import { QueryKey, IChatRepository } from '../interfaces';
 import { ChatItem } from '../../models/core';
-import { contains } from '@aws/dynamodb-expressions';
+import {
+	AndExpression,
+	ConditionExpression,
+	contains,
+	ContainsPredicate, EqualityExpressionPredicate, equals
+} from '@aws/dynamodb-expressions';
 
-export class ChatRepository extends Repository implements IChatRepository {
+	export class ChatRepository extends Repository implements IChatRepository {
 
 	public async getAllByUser(userId: string): Promise<Chat[]> {
+		const containsPredicate: ContainsPredicate = contains(`user#${userId}`);
+		const equalsPredicate: EqualityExpressionPredicate = equals(true);
+
+		const containsExpression: ConditionExpression = {
+			...containsPredicate,
+			subject: 'sk'
+		};
+
+		const equalsExpression: ConditionExpression = {
+			...equalsPredicate,
+			subject: 'started'
+		};
+
+		const andPredicate: AndExpression = {
+			type: 'And',
+			conditions: [
+				containsExpression,
+				equalsExpression
+			]
+		};
+
 		const keyCondition: QueryKey = {
-			entity: 'chat',
-			sk: contains(`user#${userId}`)
+			entity: 'chat'
 		};
 
 		const queryOptions: QueryOptions = {
-			indexName: 'entity-sk-index'
+			indexName: 'entity-sk3-index',
+			filter: andPredicate,
+			scanIndexForward: false
 		};
 
 		const queryIterator: QueryIterator<ChatItem> = this.db.query(ChatItem, keyCondition, queryOptions);
@@ -62,18 +89,20 @@ export class ChatRepository extends Repository implements IChatRepository {
 
 	public async create(toCreate: Partial<Chat>): Promise<Chat> {
 		const chatId: string = uuid();
+		const now: string = new Date().toISOString();
 		const sk: string = this._sortIds(toCreate.users.map((user: UserBrief) => `user#${user.userId}`)).join('/');
 
 		return this.db.put(Object.assign(new ChatItem(), {
 			pk: `chat#${chatId}`,
 			sk,
 			sk2: `chat#${chatId}`,
+			sk3: `updatedAt#${now}`,
 			chatId,
 			entity: 'chat',
 			messageCount: 0,
 			started: false,
 			times: {
-				createdAt: new Date().toISOString()
+				createdAt: now
 			},
 			...toCreate
 		}));
@@ -81,6 +110,9 @@ export class ChatRepository extends Repository implements IChatRepository {
 
 	public async update(chatId: string, changes: Partial<Chat>): Promise<Chat> {
 		const sk: string = this._sortIds(changes.users.map((user: UserBrief) => `user#${user.userId}`)).join('/');
+
+		delete changes.sk2;
+		delete changes.sk3;
 
 		return this.db.update(Object.assign(new ChatItem(), {
 			pk: `chat#${chatId}`,
