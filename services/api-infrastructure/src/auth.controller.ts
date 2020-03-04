@@ -20,7 +20,10 @@ export class AuthController {
 		try {
 			const universities: University[] = await this.unitOfWork.Universities.getAll();
 			universities.forEach((u: University) => {
-				const emailIsInThisUni: boolean = u.emailDomains.some((e) => e === user.email);
+				const emailIsInThisUni: boolean = u.emailDomains.some((e) => {
+					if (user.email.includes(e)) return true;
+					return false;
+				});
 
 				if (emailIsInThisUni) university = u;
 			});
