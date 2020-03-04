@@ -7,7 +7,7 @@ import {
 	ApiEvent,
 	ApiContext,
 	UnitOfWork,
-    SharedFunctions
+	SharedFunctions
   } from '../../api-shared-modules/src';
 
 export class UserController {
@@ -25,14 +25,48 @@ export class UserController {
 		}
 	}
 
+	public getAllUsersForOneUni: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+		try {
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			const rightRole: boolean = SharedFunctions.checkRole(['Moderator'], user.userType);
+
+			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
+
+			let users: User[] = await this.unitOfWork.Users.getAllUsersByUni(user.universityId);
+			if (!users) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Users');
+
+			users = SharedFunctions.orderByDate(true, users) as User[];
+
+			return ResponseBuilder.ok({ users });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message);
+		}
+	}
+
+	public getCallingUser: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		// remember to update the react native for this
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+		try {
+
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			if (!user) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'User Not found');
+
+			return ResponseBuilder.ok({ user });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message);
+		}
+	}
+
 	public getUserById: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (!event.pathParameters || !event.pathParameters.userId) {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 		}
-
 		const userId: string = event.pathParameters.userId;
 
 		try {
+
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			if (!user) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'User Not found');
 

@@ -45,11 +45,27 @@ functions:
           method: get
           cors: true
           authorizer: aws_iam
+  getCallingUser:
+    handler: src/handler.getCallingUser
+    events:
+      - http:
+          path: /users/currentuser
+          method: get
+          cors: true
+          authorizer: aws_iam
   getUserById:
     handler: src/handler.getUserById
     events:
       - http:
           path: /users/{userId}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  getAllUsersForOneUni:
+    handler: src/handler.getAllUsersForOneUni
+    events:
+      - http:
+          path: /users/university/all
           method: get
           cors: true
           authorizer: aws_iam

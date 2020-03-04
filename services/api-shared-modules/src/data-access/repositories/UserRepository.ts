@@ -69,6 +69,22 @@ export class UserRepository extends Repository {
 		});
 	}
 
+	public async getAllUsersByUni(universityId: string): Promise<User[]> {
+		const keyCondition: QueryKey = {
+			entity: 'user',
+			sk2: `universityId${universityId}`
+		};
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk2-index'
+		};
+		const queryIterator: QueryIterator<UserItem> = this.db.query(UserItem, keyCondition, queryOptions);
+		const users: User[] = [];
+		for await (const user of queryIterator) {
+			users.push(user);
+		}
+		return users;
+	}
+
 	public async create(toCreate: Partial<User>): Promise<User> {
 		const id: string = uuid();
 		return this.db.put(Object.assign(new UserItem(), {
@@ -80,7 +96,7 @@ export class UserRepository extends Repository {
 		}));
 	}
 
-	public async createAfterSignUp(userId: string, toCreate: Partial<User>): Promise<User> {
+	public async createAfterSignUp(userId: string, universityId: string, toCreate: Partial<User>): Promise<User> {
 		return this.db.put(Object.assign(new UserItem(), {
 			entity: 'user',
 			confirmed: false,
@@ -88,6 +104,7 @@ export class UserRepository extends Repository {
 			userType: 'Passenger',
 			pk: `user#${userId}`,
 			sk: `user#${userId}`,
+			sk2: `univsersity#${universityId}`,
 			...toCreate
 		}));
 	}
