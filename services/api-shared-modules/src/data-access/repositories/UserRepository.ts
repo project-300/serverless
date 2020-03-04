@@ -105,6 +105,7 @@ export class UserRepository extends Repository {
 			pk: `user#${userId}`,
 			sk: `user#${userId}`,
 			sk2: `univsersity#${universityId}`,
+			universityId,
 			...toCreate
 		}));
 	}

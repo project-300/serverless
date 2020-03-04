@@ -27,7 +27,8 @@ export class AuthController {
 
 				if (emailIsInThisUni) university = u;
 			});
-			user.universityId = university.universityId;
+			// user.universityId = university.universityId;
+			// console.log(university);
 			await this.unitOfWork.Users.createAfterSignUp(cognitoUser.sub, university.universityId, { ...user});
 
 			return event;
