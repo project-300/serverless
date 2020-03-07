@@ -1,4 +1,14 @@
-import { DriverBrief, Journey, Passenger, PassengerBrief, GetMidpoint, User } from '@project-300/common-types';
+import {
+	DriverBrief,
+	Journey,
+	Passenger,
+	PassengerBrief,
+	GetMidpoint,
+	User,
+	Coords,
+	UserConnection,
+	PublishType
+} from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -12,10 +22,19 @@ import {
 } from '../../api-shared-modules/src';
 import { CreateJourneyData } from './interfaces';
 import _ from 'lodash';
+import SubscriptionManager from '../../api-websockets/src/pubsub/subscription';
+import PublicationManager from '../../api-websockets/src/pubsub/publication';
+import API from '../../api-websockets/src/lib/api';
 
 export class JourneyController {
 
-	public constructor(private unitOfWork: UnitOfWork) { }
+	private SubManager: SubscriptionManager;
+	private PubManager: PublicationManager;
+
+	public constructor(private unitOfWork: UnitOfWork) {
+		this.SubManager = new SubscriptionManager(unitOfWork);
+		this.PubManager = new PublicationManager(unitOfWork, new API());
+	}
 
 	public getAllJourneys: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		let lastEvaluatedKey: { [key: string]: string };
@@ -284,6 +303,74 @@ export class JourneyController {
 		}
 	}
 
+	public pauseJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.pathParameters || !event.pathParameters.journeyId || !event.pathParameters.createdAt)
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const journeyId: string = event.pathParameters.journeyId;
+		const createdAt: string = event.pathParameters.createdAt;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+
+			if (userId !== journey.driver.userId)
+				return ResponseBuilder.forbidden(ErrorCode.MissingPermission, 'Only the driver can pause the Journey');
+
+			if (journey.journeyStatus !== 'STARTED') throw Error('Journey isn\'t currently in progress');
+
+			const date: string = new Date().toISOString();
+
+			journey.journeyStatus = 'PAUSED';
+			journey.times.pausedAt = date;
+			journey.times.updatedAt = date;
+
+			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
+			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
+
+			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+
+			return ResponseBuilder.ok({ journey: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to pause Journey');
+		}
+	}
+
+	public resumeJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.pathParameters || !event.pathParameters.journeyId || !event.pathParameters.createdAt)
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const journeyId: string = event.pathParameters.journeyId;
+		const createdAt: string = event.pathParameters.createdAt;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+
+			if (userId !== journey.driver.userId)
+				return ResponseBuilder.forbidden(ErrorCode.MissingPermission, 'Only the driver can resume the Journey');
+
+			if (journey.journeyStatus !== 'PAUSED') throw Error('Journey isn\'t currently paused');
+
+			const date: string = new Date().toISOString();
+
+			journey.journeyStatus = 'STARTED';
+			journey.times.resumedAt = date;
+			journey.times.updatedAt = date;
+
+			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
+			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
+
+			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+
+			return ResponseBuilder.ok({ journey: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to resume Journey');
+		}
+	}
+
 	public endJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (!event.pathParameters || !event.pathParameters.journeyId || !event.pathParameters.createdAt)
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
@@ -308,6 +395,7 @@ export class JourneyController {
 			journey.journeyStatus = 'FINISHED';
 			journey.times.endedAt = date;
 			journey.times.updatedAt = date;
+			journey.available = false;
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
@@ -363,13 +451,109 @@ export class JourneyController {
 		passenger.journeysAsPassenger.splice(index, 1);
 	}
 
-	// public driverMovement: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
-	//
-	// }
-	//
-	// public subscribeDriverLocation: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
-	//
-	// }
+	public driverMovement: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+		const data: { journeyId: string; createdAt: string; coords: Coords } = JSON.parse(event.body);
+		if (!data.journeyId || !data.createdAt || !data.coords) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const { journeyId, createdAt, coords }: { journeyId: string; createdAt: string; coords: Coords } = data;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			const journey: Journey = await this.unitOfWork.Journeys.getById(data.journeyId, data.createdAt);
+			if (!journey) throw Error('Journey not found');
+
+			if (journey.journeyStatus !== 'STARTED') throw Error('Unable to update journey - Journey has not started');
+			if (journey.driver.userId !== userId) throw Error('You cannot update another user\'s journey');
+
+			journey.routeTravelled.push(coords);
+			journey.times.updatedAt = new Date().toISOString();
+
+			await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
+
+			await this.PubManager.publishCRUD({
+				subscriptionName: 'journey/driver-tracking',
+				itemType: 'journey',
+				itemId: journeyId,
+				data: { journeyId, coords },
+				sendAsCollection: true,
+				publishType: PublishType.UPDATE
+			});
+
+			return ResponseBuilder.ok({ journey });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to add user to Journey');
+		}
+	}
+
+	public subscribeDriverLocation: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+		const data: { journeyId: string; createdAt: string; deviceId: string } = JSON.parse(event.body);
+		if (!data.journeyId || !data.createdAt || !data.deviceId) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const { journeyId, createdAt, deviceId }: { journeyId: string; createdAt: string; deviceId: string } = data;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			if (!user) throw Error('User not found');
+
+			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+			if (!journey) throw Error('Journey not found');
+
+			const userWithConnections: Partial<User> = await this.unitOfWork.Users.getUserConnections(userId);
+			const currentConnection: UserConnection =
+				userWithConnections.connections && _.findLast(_.sortBy(userWithConnections.connections, [ 'connectedAt' ]),
+					(con: UserConnection) => con.deviceId === deviceId
+				);
+
+			await this.SubManager.subscribe({
+				subscriptionName: 'journey/driver-tracking',
+				itemType: 'journey',
+				itemId: journeyId,
+				connectionId: currentConnection.connectionId,
+				deviceId,
+				userId: user.userId
+			});
+
+			return ResponseBuilder.ok({ });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to add user to Journey');
+		}
+	}
+
+	public unsubscribeDriverLocation: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+		const data: { journeyId: string; deviceId: string } = JSON.parse(event.body);
+		if (!data.journeyId || !data.deviceId) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const { journeyId, deviceId }: { journeyId: string; deviceId: string } = data;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+			const userWithConnections: Partial<User> = await this.unitOfWork.Users.getUserConnections(userId);
+			const currentConnection: UserConnection =
+				userWithConnections.connections && _.findLast(_.sortBy(userWithConnections.connections, [ 'connectedAt' ]),
+					(con: UserConnection) => con.deviceId === deviceId
+				);
+
+			await this.SubManager.unsubscribe({
+				subscriptionName: 'journey/driver-tracking',
+				itemType: 'journey',
+				itemId: journeyId,
+				connectionId: currentConnection.connectionId,
+				deviceId,
+				userId
+			});
+
+			return ResponseBuilder.ok({ });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to add user to Journey');
+		}
+	}
 
 	public searchJourneys: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (!event.pathParameters || !event.pathParameters.query)

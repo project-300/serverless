@@ -32,6 +32,11 @@ provider:
         - dynamodb:DeleteItem
       Resource:
         - '*'
+    - Effect: Allow
+      Action:
+        - 'execute-api:ManageConnections'
+      Resource:
+        - 'arn:aws:execute-api:*:*:**/@connections/*'
 
 plugins:
   - serverless-offline
@@ -126,6 +131,22 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
+  pauseJourney:
+    handler: src/handler.pauseJourney
+    events:
+      - http:
+          path: /journeys/pause/{journeyId}/{createdAt}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  resumeJourney:
+    handler: src/handler.resumeJourney
+    events:
+      - http:
+          path: /journeys/resume/{journeyId}/{createdAt}
+          method: put
+          cors: true
+          authorizer: aws_iam
   endJourney:
     handler: src/handler.endJourney
     events:
@@ -139,6 +160,30 @@ functions:
     events:
       - http:
           path: /journeys/passenger-cancel
+          method: put
+          cors: true
+          authorizer: aws_iam
+  subscribeDriverLocation:
+    handler: src/handler.subscribeDriverLocation
+    events:
+      - http:
+          path: /journeys/subscribe/driver-location
+          method: put
+          cors: true
+          authorizer: aws_iam
+  unsubscribeDriverLocation:
+    handler: src/handler.unsubscribeDriverLocation
+    events:
+      - http:
+          path: /journeys/unsubscribe/driver-location
+          method: put
+          cors: true
+          authorizer: aws_iam
+  driverMovement:
+    handler: src/handler.driverMovement
+    events:
+      - http:
+          path: /journeys/driver-movement
           method: put
           cors: true
           authorizer: aws_iam
