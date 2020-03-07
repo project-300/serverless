@@ -72,7 +72,7 @@ export class UserRepository extends Repository {
 	public async getAllUsersByUni(universityId: string): Promise<User[]> {
 		const keyCondition: QueryKey = {
 			entity: 'user',
-			sk2: `universityId${universityId}`
+			sk2: `university#${universityId}`
 		};
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk2-index'

@@ -68,7 +68,7 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 	public async getForMonth(date: string, universityId: string): Promise<DayStatisticsBrief[]> {
 		const keyCondition: QueryKey = {
 			entity: `statistics`,
-			sk: beginsWith(`universityId#${universityId}date#${date}`)
+			sk: beginsWith(`university#${universityId}/date#${date}`)
 		};
 
 		const queryOptions: QueryOptions = {
@@ -87,7 +87,7 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 	public async getForToday(date: string, universityId: string): Promise<DayStatistics> {
 		const keyCondition: QueryKey = {
 			entity: `statistics`,
-			sk: beginsWith(`universityId#${universityId}date#${date}`)
+			sk: beginsWith(`university#${universityId}/date#${date}`)
 		};
 
 		const queryOptions: QueryOptions = {
