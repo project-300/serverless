@@ -1,4 +1,4 @@
-service: api-interest-service
+service: api-university-service
 frameworkVersion: ">=1.44.0"
 
 custom:

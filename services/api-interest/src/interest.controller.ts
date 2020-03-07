@@ -20,9 +20,6 @@ export class InterestController {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
 
-			delete user.connections;
-			console.log(user);
-
 			if (!user.university) throw Error('You are not associated with any university');
 
 			const university: University = await this.unitOfWork.Universities.getById(user.university.universityId, user.university.name);
