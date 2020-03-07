@@ -1,5 +1,14 @@
 import { Statistics } from './../../api-shared-modules/src/utils/statistics';
-import { DriverBrief, Journey, Passenger, PassengerBrief, GetMidpoint, User, DayStatistics } from '@project-300/common-types';
+import {
+	DriverBrief,
+	Journey,
+	Passenger,
+	PassengerBrief,
+	GetMidpoint,
+	User,
+	DayStatistics,
+	UserStatistics
+} from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -314,7 +323,7 @@ export class JourneyController {
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
-			await this._handleStatistics(journey.distanceTravelled, user.universityId, journey);
+			await this._handleStatistics(journey.distanceTravelled, user.university.universityId, journey);
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
@@ -330,7 +339,7 @@ export class JourneyController {
 		const newStats: Partial<DayStatistics> = Statistics.calcStatistics(distanceTravelled, journey.driver.userId, journey.passengers);
 		const todaysStats: DayStatistics = await this.unitOfWork.Statistics.getForToday(date, universityId);
 
-		newStats.passengers.forEach((p) => {
+		newStats.passengers.forEach((p: UserStatistics) => {
 			todaysStats.passengers.push(p);
 		});
 
@@ -427,7 +436,6 @@ export class JourneyController {
 
 			return ResponseBuilder.ok({ ...result, count: result.journeys.length });
 		} catch (err) {
-			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to search journeys');
 		}
 	}

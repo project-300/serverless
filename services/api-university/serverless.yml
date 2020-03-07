@@ -49,7 +49,7 @@ functions:
     handler: src/handler.getUniversityById
     events:
       - http:
-          path: /universities/{universityId}
+          path: /universities/{universityId}/{universityName}
           method: get
           cors: true
           authorizer: aws_iam
@@ -81,7 +81,7 @@ functions:
     handler: src/handler.deleteUniversity
     events:
       - http:
-          path: /universities/{universityId}
+          path: /universities/{universityId}/{universityName}
           method: delete
           cors: true
           authorizer: aws_iam

@@ -24,11 +24,38 @@ export class UniversityRepository extends Repository implements IUniversityRepos
 		return universities;
 	}
 
-	public async getById(universityId: string): Promise<University> {
-		return this.db.get(Object.assign(new UniversityItem(), {
-			pk: `university#${universityId}`,
-			sk: `university#${universityId}`
-		}));
+	public async getById(universityId: string, name: string): Promise<University> {
+		const uniName: string = this._fillUniversityName(name);
+
+		try {
+			return await this.db.get(Object.assign(new UniversityItem(), {
+				pk: `university#${universityId}`,
+				sk: `universityName#${uniName}`
+			}));
+		} catch (err) {
+			return undefined;
+		}
+	}
+
+	public async getByName(name: string): Promise<University> {
+		const uniName: string = this._fillUniversityName(name);
+
+		const keyCondition: QueryKey = {
+			entity: 'university',
+			sk: `universityName#${uniName}`
+		};
+
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk-index'
+		};
+
+		const queryIterator: QueryIterator<UniversityItem> = this.db.query(UniversityItem, keyCondition, queryOptions);
+		const universities: University[] = [];
+
+		for await (const university of queryIterator) universities.push(university);
+
+		return universities[0];
+
 	}
 
 	public async getAllDomains(): Promise<string[]> {
@@ -51,6 +78,7 @@ export class UniversityRepository extends Repository implements IUniversityRepos
 
 	public async create(toCreate: Partial<University>): Promise<University> {
 		const id: string = uuid();
+		const uniName: string = this._fillUniversityName(toCreate.name);
 
 		return this.db.put(Object.assign(new UniversityItem(), {
 			entity: 'university',
@@ -59,28 +87,34 @@ export class UniversityRepository extends Repository implements IUniversityRepos
 			},
 			universityId: id,
 			pk: `university#${id}`,
-			sk: `university#${id}`,
+			sk: `universityName#${uniName}`,
 			...toCreate
 		}));
 	}
 
-	public async update(universityId: string, changes: Partial<University>): Promise<University> {
+	public async update(universityId: string, name: string, changes: Partial<University>): Promise<University> {
+		const uniName: string = this._fillUniversityName(name);
+
 		return this.db.update(Object.assign(new UniversityItem(), {
 			pk: `university#${universityId}`,
-			sk: `university#${universityId}`,
+			sk: `universityName#${uniName}`,
 			...changes
 		}), {
 			onMissing: 'skip'
 		});
 	}
 
-	public async delete(universityId: string): Promise<University | undefined> {
+	public async delete(universityId: string, name: string): Promise<University | undefined> {
+		const uniName: string = this._fillUniversityName(name);
+
 		return this.db.delete(Object.assign(new UniversityItem(), {
 			pk: `university#${universityId}`,
-			sk: `university#${universityId}`
+			sk: `universityName#${uniName}`
 		}), {
 			returnValues: 'ALL_OLD'
 		});
 	}
+
+	private _fillUniversityName = (name: string): string => name.replace(' ', '-').toLowerCase();
 
 }

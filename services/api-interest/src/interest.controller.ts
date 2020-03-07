@@ -20,12 +20,15 @@ export class InterestController {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
 
-			if (!user.universityId) throw Error('You are not associated with any university');
+			delete user.connections;
+			console.log(user);
 
-			const university: University = await this.unitOfWork.Universities.getById(user.universityId);
+			if (!user.university) throw Error('You are not associated with any university');
+
+			const university: University = await this.unitOfWork.Universities.getById(user.university.universityId, user.university.name);
 			if (!university) throw Error('You are not associated with a valid university');
 
-			const interests: Interest[] = await this.unitOfWork.Interests.getAll(user.universityId);
+			const interests: Interest[] = await this.unitOfWork.Interests.getAll(user.university.universityId);
 			if (!interests) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Interests');
 
 			return ResponseBuilder.ok({ interests });
@@ -40,12 +43,12 @@ export class InterestController {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
 
-			if (!user.universityId) throw Error('You are not associated with any university');
+			if (!user.university) throw Error('You are not associated with any university');
 
-			const university: University = await this.unitOfWork.Universities.getById(user.universityId);
+			const university: University = await this.unitOfWork.Universities.getById(user.university.universityId, user.university.name);
 			if (!university) throw Error('You are not associated with a valid university');
 
-			const interests: Interest[] = await this.unitOfWork.Interests.getAll(user.universityId);
+			const interests: Interest[] = await this.unitOfWork.Interests.getAll(user.university.universityId);
 			if (!interests) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Interests');
 
 			const interestsList: string[] = interests.map((interest: Interest) => interest.name);
@@ -67,7 +70,7 @@ export class InterestController {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
 
-			const interest: Interest = await this.unitOfWork.Interests.getById(interestId, user.universityId);
+			const interest: Interest = await this.unitOfWork.Interests.getById(interestId, user.university.universityId);
 			if (!interest) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Interest Not Found');
 
 			return ResponseBuilder.ok({ interest });
@@ -92,15 +95,15 @@ export class InterestController {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
 
-			if (!user.universityId) throw Error('You are not associated with any university');
+			if (!user.university) throw Error('You are not associated with any university');
 
-			const university: University = await this.unitOfWork.Universities.getById(user.universityId);
+			const university: University = await this.unitOfWork.Universities.getById(user.university.universityId, user.university.name);
 			if (!university) throw Error('You are not associated with a valid university');
 
-			const existingInterest: Interest = await this.unitOfWork.Interests.getByName(interest.name, user.universityId);
+			const existingInterest: Interest = await this.unitOfWork.Interests.getByName(interest.name, user.university.universityId);
 			if (existingInterest) throw Error('This interest has already been created');
 
-			interest.universityId = user.universityId;
+			interest.universityId = user.university.universityId;
 
 			const result: Interest = await this.unitOfWork.Interests.create({ ...interest });
 			if (!result) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Failed to create new Interest');
@@ -127,10 +130,10 @@ export class InterestController {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
 
-			const interestCheck: Interest = await this.unitOfWork.Interests.getById(interest.interestId, user.universityId);
+			const interestCheck: Interest = await this.unitOfWork.Interests.getById(interest.interestId, user.university.universityId);
 			if (!interestCheck) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Interest Not Found');
 
-			const result: Interest = await this.unitOfWork.Interests.update(interest.interestId, user.universityId, { ...interest });
+			const result: Interest = await this.unitOfWork.Interests.update(interest.interestId, user.university.universityId, { ...interest });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Interest Not Found');
 
 			return ResponseBuilder.ok({ interest: result });
@@ -150,7 +153,7 @@ export class InterestController {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
 
-			const result: Interest = await this.unitOfWork.Interests.delete(interestId, user.universityId);
+			const result: Interest = await this.unitOfWork.Interests.delete(interestId, user.university.universityId);
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Interest Not Found');
 
 			return ResponseBuilder.ok({ interest: result });
