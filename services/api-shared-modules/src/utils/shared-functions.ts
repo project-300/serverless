@@ -17,6 +17,10 @@ export class SharedFunctions {
 
 	public static checkRole = (roles: string[], userRole: string): boolean => roles.some((role: string) => role === userRole);
 
+	public static checkUserRole = (roles: string[], userRole: string): void => {
+		if (!roles.some((role: string) => role === userRole)) throw Error('Unauthorised User');
+	}
+
 	public static stripLastEvaluatedKey = (lastEvaluatedKey: Partial<DynamoDbItem>): Partial<DynamoDbItem> => {
 		const values: Array<Partial<DynamoDbItem>> = Object.keys(lastEvaluatedKey).map((key: string) => {
 			const parts: string[] = lastEvaluatedKey[key].split('#');

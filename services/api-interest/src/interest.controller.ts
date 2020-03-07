@@ -1,4 +1,4 @@
-import { Interest } from '@project-300/common-types';
+import { Interest, University, User } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -6,35 +6,53 @@ import {
 	ApiHandler,
 	ApiEvent,
 	ApiContext,
-	UnitOfWork
-  } from '../../api-shared-modules/src';
+	UnitOfWork, SharedFunctions
+} from '../../api-shared-modules/src';
 import { InterestData } from './interfaces';
 
 export class InterestController {
 
 	public constructor(private unitOfWork: UnitOfWork) { }
 
-	public getAllInterestsRaw: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+	public getAllInterestsRawByUniversity: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		try {
-			const interests: Interest[] = await this.unitOfWork.Interests.getAll();
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
+
+			if (!user.universityId) throw Error('You are not associated with any university');
+
+			const university: University = await this.unitOfWork.Universities.getById(user.universityId);
+			if (!university) throw Error('You are not associated with a valid university');
+
+			const interests: Interest[] = await this.unitOfWork.Interests.getAll(user.universityId);
 			if (!interests) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Interests');
 
 			return ResponseBuilder.ok({ interests });
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, 'Unable to retrieve Interests');
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to retrieve Interests');
 		}
 	}
 
-	public getAllInterestsList: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+	public getAllInterestsListByUniversity: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		try {
-			const interests: Interest[] = await this.unitOfWork.Interests.getAll();
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
+
+			if (!user.universityId) throw Error('You are not associated with any university');
+
+			const university: University = await this.unitOfWork.Universities.getById(user.universityId);
+			if (!university) throw Error('You are not associated with a valid university');
+
+			const interests: Interest[] = await this.unitOfWork.Interests.getAll(user.universityId);
 			if (!interests) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Interests');
 
 			const interestsList: string[] = interests.map((interest: Interest) => interest.name);
 
 			return ResponseBuilder.ok({ interests: interestsList });
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, 'Unable to retrieve Interests');
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to retrieve Interests');
 		}
 	}
 
@@ -45,12 +63,16 @@ export class InterestController {
 		const interestId: string = event.pathParameters.interestId;
 
 		try {
-			const interest: Interest = await this.unitOfWork.Interests.getById(interestId);
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
+
+			const interest: Interest = await this.unitOfWork.Interests.getById(interestId, user.universityId);
 			if (!interest) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Interest Not Found');
 
 			return ResponseBuilder.ok({ interest });
 		} catch (err) {
-			return ResponseBuilder.internalServerError(err, 'Unable to get Interest');
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to get Interest');
 		}
 	}
 
@@ -65,6 +87,20 @@ export class InterestController {
 
 		try {
 			if (!interest.name) throw Error('Interest name is missing');
+
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
+
+			if (!user.universityId) throw Error('You are not associated with any university');
+
+			const university: University = await this.unitOfWork.Universities.getById(user.universityId);
+			if (!university) throw Error('You are not associated with a valid university');
+
+			const existingInterest: Interest = await this.unitOfWork.Interests.getByName(interest.name, user.universityId);
+			if (existingInterest) throw Error('This interest has already been created');
+
+			interest.universityId = user.universityId;
 
 			const result: Interest = await this.unitOfWork.Interests.create({ ...interest });
 			if (!result) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Failed to create new Interest');
@@ -87,10 +123,14 @@ export class InterestController {
 		try {
 			if (!interest.interestId) throw Error('Interest ID is missing');
 
-			const interestCheck: Interest = await this.unitOfWork.Interests.getById(interest.interestId);
-			if (!interestCheck) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
 
-			const result: Interest = await this.unitOfWork.Interests.update(interest.interestId, { ...interest });
+			const interestCheck: Interest = await this.unitOfWork.Interests.getById(interest.interestId, user.universityId);
+			if (!interestCheck) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Interest Not Found');
+
+			const result: Interest = await this.unitOfWork.Interests.update(interest.interestId, user.universityId, { ...interest });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Interest Not Found');
 
 			return ResponseBuilder.ok({ interest: result });
@@ -106,8 +146,12 @@ export class InterestController {
 		const interestId: string = event.pathParameters.interestId;
 
 		try {
-			const result: Interest = await this.unitOfWork.Interests.delete(interestId);
-			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Moderator' ], user.userType);
+
+			const result: Interest = await this.unitOfWork.Interests.delete(interestId, user.universityId);
+			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Interest Not Found');
 
 			return ResponseBuilder.ok({ interest: result });
 		} catch (err) {
