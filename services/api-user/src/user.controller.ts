@@ -9,6 +9,9 @@ import {
 	UnitOfWork,
 	SharedFunctions
   } from '../../api-shared-modules/src';
+import { CognitoIdentityServiceProvider } from 'aws-sdk';
+import { USER_POOL_ID } from '../../../environment/env';
+import { AdminCreateUserResponse } from 'aws-sdk/clients/cognitoidentityserviceprovider';
 
 export class UserController {
 
@@ -41,6 +44,31 @@ export class UserController {
 
 			return ResponseBuilder.ok({ users });
 		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message);
+		}
+	}
+
+	public adminCreateUser: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.body) {
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+		}
+		const user: Partial<User> = JSON.parse(event.body) as Partial<User>;
+		const cognito: CognitoIdentityServiceProvider = new CognitoIdentityServiceProvider();
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+		try {
+			const callingUser: User = await this.unitOfWork.Users.getById(userId);
+			const rightRole: boolean = SharedFunctions.checkRole(['Admin'], callingUser.userType);
+			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
+
+			const newUser: AdminCreateUserResponse = await cognito.adminCreateUser({
+				DesiredDeliveryMediums: ['EMAIL'],
+				Username: user.email,
+				UserPoolId: USER_POOL_ID
+			}).promise();
+
+			return ResponseBuilder.ok({ newUser });
+		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}

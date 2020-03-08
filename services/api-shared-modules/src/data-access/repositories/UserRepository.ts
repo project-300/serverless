@@ -101,7 +101,6 @@ export class UserRepository extends Repository {
 			entity: 'user',
 			confirmed: false,
 			userId,
-			userType: 'Passenger',
 			pk: `user#${userId}`,
 			sk: `user#${userId}`,
 			sk2: `univsersity#${universityId}`,

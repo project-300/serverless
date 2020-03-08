@@ -69,6 +69,14 @@ functions:
           method: get
           cors: true
           authorizer: aws_iam
+  adminCreateUser:
+    handler: src/handler.adminCreateUser
+    events:
+      - http:
+          path: /users/admin/create
+          method: post
+          cors: true
+          authorizer: aws_iam
   createUser:
     handler: src/handler.createUser
     events:
