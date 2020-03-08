@@ -21,3 +21,7 @@ export const cancelPassengerAcceptedJourney: ApiHandler = controller.cancelPasse
 export const subscribeDriverLocation: ApiHandler = controller.subscribeDriverLocation;
 export const unsubscribeDriverLocation: ApiHandler = controller.unsubscribeDriverLocation;
 export const driverMovement: ApiHandler = controller.driverMovement;
+export const driverConfirmPassengerPickup: ApiHandler = controller.driverConfirmPassengerPickup;
+export const passengerConfirmPassengerPickup: ApiHandler = controller.passengerConfirmPickup;
+export const driverCancelPassengerPickup: ApiHandler = controller.driverCancelPassengerPickup;
+export const passengerCancelPickup: ApiHandler = controller.passengerCancelPickup;

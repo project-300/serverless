@@ -187,6 +187,38 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
+  driverConfirmPassengerPickup:
+    handler: src/handler.driverConfirmPassengerPickup
+    events:
+      - http:
+          path: /journeys/confirm-pickup/driver
+          method: put
+          cors: true
+          authorizer: aws_iam
+  passengerConfirmPassengerPickup:
+    handler: src/handler.passengerConfirmPassengerPickup
+    events:
+      - http:
+          path: /journeys/confirm-pickup/passenger
+          method: put
+          cors: true
+          authorizer: aws_iam
+  driverCancelPassengerPickup:
+    handler: src/handler.driverCancelPassengerPickup
+    events:
+      - http:
+          path: /journeys/cancel-pickup/driver
+          method: put
+          cors: true
+          authorizer: aws_iam
+  passengerCancelPickup:
+    handler: src/handler.passengerCancelPickup
+    events:
+      - http:
+          path: /journeys/cancel-pickup/passenger
+          method: put
+          cors: true
+          authorizer: aws_iam
 
 resources:
     - ${file(../resources/cognito-policy.yml)}

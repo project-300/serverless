@@ -198,6 +198,8 @@ export class JourneyController {
 				...await this.unitOfWork.Users.getUserBrief(userId),
 				driverConfirmedPickup: false,
 				passengerConfirmedPickup: false,
+				driverCancelledPickup: false,
+				passengerCancelledPickup: false,
 				times: {
 					joinedAt: new Date().toISOString()
 				}
@@ -614,6 +616,130 @@ export class JourneyController {
 			return ResponseBuilder.ok({ ...result, count: result.journeys.length });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, 'Unable to search journeys');
+		}
+	}
+
+	public driverConfirmPassengerPickup: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+
+		const { journeyId, createdAt, passengerId }: { journeyId: string; createdAt: string; passengerId: string } = JSON.parse(event.body);
+
+		if (!journeyId || !createdAt || !passengerId) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Driver' ], user.userType);
+
+			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey not found');
+
+			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === passengerId);
+			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
+
+			passenger.driverConfirmedPickup = true;
+			passenger.driverCancelledPickup = false;
+			passenger.times.driverConfirmPickUpAt = new Date().toISOString();
+
+			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
+			if (!result) throw Error('Unable to Update Journey');
+
+			return ResponseBuilder.ok({ journey: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to update passenger pickup status');
+		}
+	}
+
+	public passengerConfirmPickup: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+
+		const { journeyId, createdAt }: { journeyId: string; createdAt: string } = JSON.parse(event.body);
+
+		if (!journeyId || !createdAt) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			if (!user) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'User not found');
+
+			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey not found');
+
+			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === userId);
+			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
+
+			passenger.passengerConfirmedPickup = true;
+			passenger.passengerCancelledPickup = false;
+			passenger.times.passengerConfirmPickUpAt = new Date().toISOString();
+
+			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
+			if (!result) throw Error('Unable to Update Journey');
+
+			return ResponseBuilder.ok({ journey: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to update pickup status');
+		}
+	}
+
+	public driverCancelPassengerPickup: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+
+		const { journeyId, createdAt, passengerId }: { journeyId: string; createdAt: string; passengerId: string } = JSON.parse(event.body);
+
+		if (!journeyId || !createdAt || !passengerId) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Driver' ], user.userType);
+
+			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey not found');
+
+			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === passengerId);
+			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
+
+			passenger.driverCancelledPickup = true;
+			passenger.driverConfirmedPickup = false;
+			passenger.times.driverCancelPickUpAt = new Date().toISOString();
+
+			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
+			if (!result) throw Error('Unable to Update Journey');
+
+			return ResponseBuilder.ok({ journey: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to cancel passenger pickup');
+		}
+	}
+
+	public passengerCancelPickup: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+
+		const { journeyId, createdAt }: { journeyId: string; createdAt: string } = JSON.parse(event.body);
+
+		if (!journeyId || !createdAt) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Driver' ], user.userType);
+
+			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey not found');
+
+			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === userId);
+			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
+
+			passenger.passengerCancelledPickup = true;
+			passenger.passengerConfirmedPickup = false;
+			passenger.times.passengerCancelPickUpAt = new Date().toISOString();
+
+			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
+			if (!result) throw Error('Unable to Update Journey');
+
+			return ResponseBuilder.ok({ journey: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to cancel pickup');
 		}
 	}
 
