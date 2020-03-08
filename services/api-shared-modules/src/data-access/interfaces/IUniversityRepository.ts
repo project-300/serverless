@@ -3,8 +3,9 @@ import { University } from '@project-300/common-types';
 export interface IUniversityRepository {
 	getAll(): Promise<University[]>;
 	getAllDomains(): Promise<string[]>;
-	getById(universityId: string): Promise<University>;
+	getById(universityId: string, name: string): Promise<University>;
+	getByName(name: string): Promise<University>;
 	create(toCreate: Partial<University>): Promise<University>;
-	update(universityId: string, changes: Partial<University>): Promise<University>;
-	delete(universityId: string): Promise<University | undefined>;
+	update(universityId: string, name: string, changes: Partial<University>): Promise<University>;
+	delete(universityId: string, name: string): Promise<University | undefined>;
 }

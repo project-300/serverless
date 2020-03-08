@@ -7,6 +7,9 @@ export class InterestItem extends DynamoDbItem implements Interest {
 	public interestId!: string;
 
 	@attribute()
+	public universityId!: string;
+
+	@attribute()
 	public name!: string;
 
 	@attribute()
