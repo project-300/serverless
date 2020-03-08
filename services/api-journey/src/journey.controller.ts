@@ -281,6 +281,8 @@ export class JourneyController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Driver' ], user.userType);
 
 			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 
@@ -317,6 +319,8 @@ export class JourneyController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Driver' ], user.userType);
 
 			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 
@@ -351,6 +355,8 @@ export class JourneyController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Driver' ], user.userType);
 
 			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 
@@ -386,6 +392,7 @@ export class JourneyController {
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Driver' ], user.userType);
 
 			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
 
@@ -413,6 +420,45 @@ export class JourneyController {
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to end Journey');
+		}
+	}
+
+	public cancelJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.pathParameters || !event.pathParameters.journeyId || !event.pathParameters.createdAt)
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const journeyId: string = event.pathParameters.journeyId;
+		const createdAt: string = event.pathParameters.createdAt;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Driver' ], user.userType);
+
+			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+
+			if (userId !== journey.driver.userId)
+				return ResponseBuilder.forbidden(ErrorCode.MissingPermission, 'Only the driver can cancel the Journey');
+
+			if (journey.journeyStatus === 'CANCELLED') throw Error('Journey has already been Cancelled');
+			if (journey.journeyStatus === 'FINISHED') throw Error('Unable to Cancel - Journey has Finished');
+			if (journey.journeyStatus !== 'NOT_STARTED') throw Error('Unable to Cancel - Journey has already Started');
+
+			const date: string = new Date().toISOString();
+
+			journey.journeyStatus = 'CANCELLED';
+			journey.times.cancelledAt = date;
+			journey.times.updatedAt = date;
+			journey.available = false;
+
+			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
+			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
+
+			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+
+			return ResponseBuilder.ok({ journey: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to cancel Journey');
 		}
 	}
 
