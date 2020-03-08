@@ -37,16 +37,16 @@ plugins:
   - serverless-webpack
 
 functions:
-  getAllInterestsRaw:
-    handler: src/handler.getAllInterestsRaw
+  getAllInterestsRawByUniversity:
+    handler: src/handler.getAllInterestsRawByUniversity
     events:
       - http:
           path: /interests
           method: get
           cors: true
           authorizer: aws_iam
-  getAllInterestsList:
-    handler: src/handler.getAllInterestsList
+  getAllInterestsListByUniversity:
+    handler: src/handler.getAllInterestsListByUniversity
     events:
       - http:
           path: /interests/list

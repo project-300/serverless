@@ -6,3 +6,4 @@ export { InterestRepository } from './InterestRepository';
 export { UniversityRepository } from './UniversityRepository';
 export { ChatRepository } from './ChatRepository';
 export { MessageRepository } from './MessageRepository';
+export { StatisticsRepository } from './StatisticsRespository';
