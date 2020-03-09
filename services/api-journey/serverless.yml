@@ -32,6 +32,11 @@ provider:
         - dynamodb:DeleteItem
       Resource:
         - '*'
+    - Effect: Allow
+      Action:
+        - 'execute-api:ManageConnections'
+      Resource:
+        - 'arn:aws:execute-api:*:*:**/@connections/*'
 
 plugins:
   - serverless-offline
@@ -86,14 +91,14 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
-  deleteJourney:
-    handler: src/handler.deleteJourney
-    events:
-      - http:
-          path: /journeys/{journeyId}/{createdAt}
-          method: delete
-          cors: true
-          authorizer: aws_iam
+#  deleteJourney:
+#    handler: src/handler.deleteJourney
+#    events:
+#      - http:
+#          path: /journeys/{journeyId}/{createdAt}
+#          method: delete
+#          cors: true
+#          authorizer: aws_iam
   addUserToJourney:
     handler: src/handler.addUserToJourney
     events:
@@ -118,11 +123,51 @@ functions:
           method: get
           cors: true
           authorizer: aws_iam
+  getCurrentJourney:
+    handler: src/handler.getCurrentJourney
+    events:
+      - http:
+          path: /journeys/current/{deviceId}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  beginJourneyPickup:
+    handler: src/handler.beginJourneyPickup
+    events:
+      - http:
+          path: /journeys/begin-pickup/{journeyId}/{createdAt}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  waitingJourney:
+    handler: src/handler.waitingJourney
+    events:
+      - http:
+          path: /journeys/waiting/{journeyId}/{createdAt}
+          method: put
+          cors: true
+          authorizer: aws_iam
   startJourney:
     handler: src/handler.startJourney
     events:
       - http:
           path: /journeys/start/{journeyId}/{createdAt}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  pauseJourney:
+    handler: src/handler.pauseJourney
+    events:
+      - http:
+          path: /journeys/pause/{journeyId}/{createdAt}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  resumeJourney:
+    handler: src/handler.resumeJourney
+    events:
+      - http:
+          path: /journeys/resume/{journeyId}/{createdAt}
           method: put
           cors: true
           authorizer: aws_iam
@@ -134,11 +179,75 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
+  cancelJourney:
+    handler: src/handler.cancelJourney
+    events:
+      - http:
+          path: /journeys/cancel/{journeyId}/{createdAt}
+          method: put
+          cors: true
+          authorizer: aws_iam
   cancelPassengerAcceptedJourney:
     handler: src/handler.cancelPassengerAcceptedJourney
     events:
       - http:
           path: /journeys/passenger-cancel
+          method: put
+          cors: true
+          authorizer: aws_iam
+  subscribeDriverLocation:
+    handler: src/handler.subscribeDriverLocation
+    events:
+      - http:
+          path: /journeys/subscribe/driver-location
+          method: put
+          cors: true
+          authorizer: aws_iam
+  unsubscribeDriverLocation:
+    handler: src/handler.unsubscribeDriverLocation
+    events:
+      - http:
+          path: /journeys/unsubscribe/driver-location
+          method: put
+          cors: true
+          authorizer: aws_iam
+  driverMovement:
+    handler: src/handler.driverMovement
+    events:
+      - http:
+          path: /journeys/driver-movement
+          method: put
+          cors: true
+          authorizer: aws_iam
+  driverConfirmPassengerPickup:
+    handler: src/handler.driverConfirmPassengerPickup
+    events:
+      - http:
+          path: /journeys/confirm-pickup/driver
+          method: put
+          cors: true
+          authorizer: aws_iam
+  passengerConfirmPassengerPickup:
+    handler: src/handler.passengerConfirmPassengerPickup
+    events:
+      - http:
+          path: /journeys/confirm-pickup/passenger
+          method: put
+          cors: true
+          authorizer: aws_iam
+  driverCancelPassengerPickup:
+    handler: src/handler.driverCancelPassengerPickup
+    events:
+      - http:
+          path: /journeys/cancel-pickup/driver
+          method: put
+          cors: true
+          authorizer: aws_iam
+  passengerCancelPickup:
+    handler: src/handler.passengerCancelPickup
+    events:
+      - http:
+          path: /journeys/cancel-pickup/passenger
           method: put
           cors: true
           authorizer: aws_iam

@@ -55,14 +55,22 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 	}
 
 	public async getUserJourneys(userId: string): Promise<Journey[]> {
+		const predicate: EqualityExpressionPredicate = equals(true);
+
+		const expression: ConditionExpression = {
+			...predicate,
+			subject: 'available'
+		};
+
 		const keyCondition: QueryKey = {
 			entity: 'journey',
 			sk2: `user#${userId}`
 		};
 
 		const queryOptions: QueryOptions = {
-			indexName: 'created-by-index',
-			scanIndexForward: false
+			indexName: 'entity-sk2-index',
+			scanIndexForward: false,
+			filter: expression
 		};
 
 		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
@@ -175,6 +183,9 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 	}
 
 	public async update(journeyId: string, createdAt: string, changes: Partial<Journey>): Promise<Journey> {
+		delete changes.sk2;
+		delete changes.sk3;
+
 		return this.db.update(Object.assign(new JourneyItem(), {
 			pk: `journey#${journeyId}`,
 			sk: `createdAt#${createdAt}`,
