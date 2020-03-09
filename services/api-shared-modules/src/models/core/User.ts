@@ -56,6 +56,9 @@ export class UserItem extends DynamoDbItem implements User {
 	public connections: UserConnection[];
 
 	@attribute()
-	public universityId: string;
+	public university?: {
+		universityId: string;
+		name: string;
+	};
 
 }

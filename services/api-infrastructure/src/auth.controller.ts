@@ -15,21 +15,27 @@ export class AuthController {
 		const user: Partial<User> = {
 			email : cognitoUser.email
 		};
-		if (cognitoUser['cognito:user_status'] === 'FORCE_CHANGE_PASSWORD') {
-			user.userType = 'Moderator';
-		} else {
-			user.phone = MobileNumberNoExtension(cognitoUser.phone_number);
-			user.userType = 'Passenger';
-		}
+
 		let university: University;
 
 		try {
-			const universities: University[] = await this.unitOfWork.Universities.getAll();
-			universities.forEach((u: University) => {
-				const emailIsInThisUni: boolean = u.emailDomains.some((e) => user.email.includes(e));
+			if (cognitoUser['cognito:user_status'] === 'FORCE_CHANGE_PASSWORD') {
+				user.userType = cognitoUser.user_role as 'Passenger' | 'Driver' | 'Moderator' | 'Admin';
+				if (user.userType !== 'Admin') {
+					university.universityId = cognitoUser.university_Id;
+				}
+				university.universityId = '';
+			} else {
+				user.phone = MobileNumberNoExtension(cognitoUser.phone_number);
+				user.userType = 'Passenger';
+				const universities: University[] = await this.unitOfWork.Universities.getAll();
+				universities.forEach((u: University) => {
+					const emailIsInThisUni: boolean = u.emailDomains.some((e) => user.email.includes(e));
 
-				if (emailIsInThisUni) university = u;
-			});
+					if (emailIsInThisUni) university = u;
+				});
+			}
+
 			await this.unitOfWork.Users.createAfterSignUp(cognitoUser.sub, university.universityId, { ...user});
 
 			return event;
