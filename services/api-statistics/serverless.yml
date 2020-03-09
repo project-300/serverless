@@ -49,11 +49,11 @@ functions:
           method: get
           cors: true
           authorizer: aws_iam
-  getAllTotalStatsForOneUni:
+  getAllTotalStats:
     handler: src/handler.getAllTotalStatsForOneUni
     events:
       - http:
-          path: /statistics/university/total/{universityId}
+          path: /statistics/university/total
           method: get
           cors: true
           authroizer: aws_iam
@@ -73,11 +73,11 @@ functions:
           method: get
           cors: true
           authorizer: aws_iam
-  getTotalsForEachMonthOneUni:
+  getTotalsForEachMonth:
     handler: src/handler.getTotalsForEachMonthOneUni
     events:
       - http:
-          path: /statistics/university/months/{universityId}
+          path: /statistics/university/months
           method: post
           cors: true
           authorizer: aws_iam
