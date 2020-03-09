@@ -66,13 +66,22 @@ export class UserController {
 		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 		try {
 			const callingUser: User = await this.unitOfWork.Users.getById(userId);
-			const rightRole: boolean = SharedFunctions.checkRole(['Admin'], callingUser.userType);
-			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
+			SharedFunctions.checkUserRole(['Admin'], callingUser.userType);
 
 			const newUser: AdminCreateUserResponse = await cognito.adminCreateUser({
 				DesiredDeliveryMediums: ['EMAIL'],
 				Username: user.email,
-				UserPoolId: USER_POOL_ID
+				UserPoolId: USER_POOL_ID,
+				UserAttributes: [
+					{
+						Name: 'custom:user_role',
+						Value: user.userType
+					},
+					{
+						Name: 'custom:university_id',
+						Value: user.university.universityId || ''
+					}
+				]
 			}).promise();
 
 			return ResponseBuilder.ok({ newUser });
