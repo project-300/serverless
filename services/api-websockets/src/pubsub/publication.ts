@@ -27,6 +27,7 @@ export default class PublicationManager {
 	}
 
 	public publishCRUD = async (publicationData: PublicationData): Promise<void> => {
+		console.log(publicationData);
 		const connectionIds: string[] = await this._getConnectionIds(
 			publicationData.subscriptionName,
 			publicationData.itemType,

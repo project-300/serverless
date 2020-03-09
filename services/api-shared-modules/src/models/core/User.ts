@@ -1,6 +1,6 @@
 import { DynamoDbItem } from '../DynamoDBItem';
 import { attribute } from '@aws/dynamodb-data-mapper-annotations';
-import { User, UserConnection } from '@project-300/common-types';
+import { User, UserConnection, UserTypes } from '@project-300/common-types';
 
 export class UserItem extends DynamoDbItem implements User {
 	@attribute()
@@ -34,7 +34,11 @@ export class UserItem extends DynamoDbItem implements User {
 	public isOnJourney!: boolean;
 
 	@attribute()
-	public currentJourneyId!: string;
+	public currentJourney?: {
+		journeyId: string;
+		createdAt: string;
+		travellingAs: UserTypes;
+	};
 
 	@attribute()
 	public interests?: string[];
@@ -56,6 +60,9 @@ export class UserItem extends DynamoDbItem implements User {
 	public connections: UserConnection[];
 
 	@attribute()
-	public universityId: string;
+	public university?: {
+		universityId: string;
+		name: string;
+	};
 
 }

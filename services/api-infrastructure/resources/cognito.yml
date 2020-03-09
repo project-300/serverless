@@ -7,7 +7,18 @@ Resources:
         - email
       AutoVerifiedAttributes:
         - email
-
+      Schema:
+        - Name: user_role
+          AttributeDataType: String
+          StringAttributeConstraints:
+            MinLength: 4
+            MaxLength: 256
+        - Name: university_id
+          AttributeDataType: String
+          StringAttributeConstraints:
+            MinLength: 4
+            MaxLength: 256
+            
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:

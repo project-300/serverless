@@ -18,13 +18,17 @@ export class JourneyItem extends DynamoDbItem implements Journey {
 
 	@attribute()
 	public times!: {
-		createdAt: Date | string;
-		updatedAt?: Date | string;
-		leavingAt: Date | string;
-		estimatedArrival?: Date | string;
-		startedAt?: Date | string;
-		endedAt?: Date | string;
-		arrivedAt?: Date | string;
+		createdAt: string;
+		updatedAt?: string;
+		leavingAt: string;
+		estimatedArrival?: string;
+		startedPickupAt?: string;
+		startedAt?: string;
+		pausedAt?: string;
+		resumedAt?: string;
+		endedAt?: string;
+		cancelledAt?: string;
+		arrivedAt?: string;
 	};
 
 	@attribute()

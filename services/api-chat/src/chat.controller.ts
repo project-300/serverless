@@ -48,7 +48,7 @@ export class ChatController {
 			const userWithConnections: Partial<User> = await this.unitOfWork.Users.getUserConnections(userId);
 			const currentConnection: UserConnection =
 				userWithConnections.connections && _.findLast(_.sortBy(userWithConnections.connections, [ 'connectedAt' ]),
-				(con: UserConnection) => con.deviceId === deviceId
+					(con: UserConnection) => con.deviceId === deviceId
 				);
 
 			await Promise.all(chats.map(async (chat: Chat) => {
