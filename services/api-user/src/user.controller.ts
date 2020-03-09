@@ -46,7 +46,7 @@ export class UserController {
 
 			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
 
-			let users: User[] = await this.unitOfWork.Users.getAllUsersByUni(user.universityId);
+			let users: User[] = await this.unitOfWork.Users.getAllUsersByUni(user.university.universityId);
 			if (!users) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Users');
 
 			users = SharedFunctions.orderByDate(true, users) as User[];
