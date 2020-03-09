@@ -79,7 +79,7 @@ export class UserController {
 					},
 					{
 						Name: 'custom:university_id',
-						Value: user.universityId || ''
+						Value: user.university.universityId || ''
 					}
 				]
 			}).promise();
