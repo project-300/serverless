@@ -1,25 +1,36 @@
 import { UserItem } from '../../models/core';
-import { DriverBrief, User, UserBrief } from '@project-300/common-types';
-import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
+import { DriverBrief, User, UserBrief, LastEvaluatedKey } from '@project-300/common-types';
+import { QueryOptions, QueryIterator, QueryPaginator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
 import { QueryKey } from '../interfaces';
+import { SharedFunctions } from '../..';
 
 export class UserRepository extends Repository {
 
-	public async getAll(): Promise<User[]> {
+	public async getAll(lastEvaluatedKey?: LastEvaluatedKey): Promise<{ users: User[]; lastEvaluatedKey: Partial<UserItem> }> {
 		const keyCondition: QueryKey = {
 			entity: 'user'
 		};
 		const queryOptions: QueryOptions = {
-			indexName: 'entity-sk-index'
+			indexName: 'entity-sk-index',
+			scanIndexForward: true,
+			startKey: lastEvaluatedKey,
+			limit: 10
 		};
-		const queryIterator: QueryIterator<UserItem> = this.db.query(UserItem, keyCondition, queryOptions);
+		const queryPages: QueryPaginator<UserItem> = this.db.query(UserItem, keyCondition, queryOptions).pages();
 		const users: User[] = [];
-		for await (const user of queryIterator) {
-			users.push(user);
+		for await (const page of queryPages) {
+			for (const user of page)
+				users.push(user);
 		}
-		return users;
+		return {
+			users,
+			lastEvaluatedKey:
+				queryPages.lastEvaluatedKey ?
+					SharedFunctions.stripLastEvaluatedKey(queryPages.lastEvaluatedKey) :
+					undefined
+		};
 	}
 
 	public async getById(userId: string): Promise<User> {

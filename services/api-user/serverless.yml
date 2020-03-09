@@ -29,6 +29,7 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
+        - cognito-idp:AdminCreateUser
       Resource:
         - '*'
 

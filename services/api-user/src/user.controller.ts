@@ -7,7 +7,8 @@ import {
 	ApiEvent,
 	ApiContext,
 	UnitOfWork,
-	SharedFunctions
+	SharedFunctions,
+	UserItem
   } from '../../api-shared-modules/src';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
 import { USER_POOL_ID } from '../../../environment/env';
@@ -18,11 +19,19 @@ export class UserController {
 	public constructor(private unitOfWork: UnitOfWork) { }
 
 	public getAllUsers: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		let lastEvaluatedKey: { [key: string]: string };
+		if (event.queryStringParameters && event.queryStringParameters.pk && event.queryStringParameters.sk) {
+			lastEvaluatedKey = {
+				pk: `user#${event.queryStringParameters.pk}`,
+				sk: `user#${event.queryStringParameters.sk}`,
+				entity: 'user'
+			};
+		}
 		try {
-			const users: User[] = await this.unitOfWork.Users.getAll();
-			if (!users) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Users');
+			const result: { users: User[]; lastEvaluatedKey: Partial<UserItem> } = await this.unitOfWork.Users.getAll(lastEvaluatedKey);
+			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Users');
 
-			return ResponseBuilder.ok({ users });
+			return ResponseBuilder.ok({ ...result, count: result.users.length });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
