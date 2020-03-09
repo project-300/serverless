@@ -30,6 +30,10 @@ export class SharedFunctions {
 			if (a.times.createdAt > b.times.createdAt) return 1;
 			return 0;
 		});
+  }
+    
+	public static checkUserRole = (roles: string[], userRole: string): void => {
+		if (!roles.some((role: string) => role === userRole)) throw Error('Unauthorised User');
 	}
 
 	public static stripLastEvaluatedKey = (lastEvaluatedKey: Partial<DynamoDbItem>): Partial<DynamoDbItem> => {

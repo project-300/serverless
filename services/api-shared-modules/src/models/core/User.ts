@@ -57,4 +57,5 @@ export class UserItem extends DynamoDbItem implements User {
 
 	@attribute()
 	public universityId: string;
+
 }
