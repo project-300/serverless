@@ -91,6 +91,47 @@ export class JourneyController {
 		}
 	}
 
+	public getCurrentJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.pathParameters || !event.pathParameters.deviceId)
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const deviceId: string = event.pathParameters.deviceId;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+
+			if (!user.currentJourney) return ResponseBuilder.ok({ });
+
+			let journey: Journey = await this.unitOfWork.Journeys.getById(user.currentJourney.journeyId, user.currentJourney.createdAt);
+			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
+
+			if (journey.journeyStatus === 'FINISHED') return ResponseBuilder.ok({ });
+
+			journey.readableDurations = SharedFunctions.TimeDurations(journey.times);
+			journey = (await this._setJourneyFlags(userId, [ journey ]))[0];
+
+			const userWithConnections: Partial<User> = await this.unitOfWork.Users.getUserConnections(userId);
+			const currentConnection: UserConnection =
+				userWithConnections.connections && _.findLast(_.sortBy(userWithConnections.connections, [ 'connectedAt' ]),
+															  (con: UserConnection) => con.deviceId === deviceId
+				);
+
+			await this.SubManager.subscribe({
+				subscriptionName: 'journey/current',
+				itemType: 'journey',
+				itemId: journey.journeyId,
+				connectionId: currentConnection.connectionId,
+				deviceId,
+				userId
+			});
+
+			return ResponseBuilder.ok({ journey, travellingAs: user.currentJourney.travellingAs });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, 'Unable to get Journey');
+		}
+	}
+
 	public createJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
 
@@ -272,6 +313,99 @@ export class JourneyController {
 		}
 	}
 
+	public beginJourneyPickup: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.pathParameters || !event.pathParameters.journeyId || !event.pathParameters.createdAt)
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const journeyId: string = event.pathParameters.journeyId;
+		const createdAt: string = event.pathParameters.createdAt;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Driver' ], user.userType);
+
+			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+
+			if (userId !== journey.driver.userId)
+				return ResponseBuilder.forbidden(ErrorCode.MissingPermission, 'Only the driver can start the Journey pickup');
+
+			if (
+				journey.journeyStatus === 'STARTED' ||
+				journey.journeyStatus === 'PAUSED' ||
+				journey.journeyStatus === 'ARRIVED'
+			) throw Error('Unable to begin pickup - Journey has already Started');
+			if (journey.journeyStatus === 'FINISHED') throw Error('Unable to begin pickup - Journey has already Finished');
+			if (journey.journeyStatus === 'CANCELLED') throw Error('Unable to begin pickup - Journey has been Cancelled');
+
+			let result: Journey = journey;
+
+			if (journey.journeyStatus !== 'PICKUP') {
+				const date: string = new Date().toISOString();
+
+				journey.journeyStatus = 'PICKUP';
+				journey.times.startedPickupAt = date;
+				journey.times.updatedAt = date;
+
+				result = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
+				if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
+			}
+
+			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+
+			await this._publishJourneyUpdate(result);
+
+			return ResponseBuilder.ok({ journey: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to begin pickup for Journey');
+		}
+	}
+
+	public waitingJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.pathParameters || !event.pathParameters.journeyId || !event.pathParameters.createdAt)
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const journeyId: string = event.pathParameters.journeyId;
+		const createdAt: string = event.pathParameters.createdAt;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole([ 'Driver' ], user.userType);
+
+			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+
+			if (userId !== journey.driver.userId)
+				return ResponseBuilder.forbidden(ErrorCode.MissingPermission, 'Only the driver can update the Journey');
+
+			if (
+				journey.journeyStatus !== 'NOT_STARTED'
+				&& journey.journeyStatus !== 'PICKUP'
+				&& journey.journeyStatus !== 'WAITING'
+			) throw Error('Journey has already started');
+
+			const date: string = new Date().toISOString();
+			let result: Journey = journey;
+
+			if (journey.journeyStatus !== 'WAITING') {
+				journey.journeyStatus = 'WAITING';
+				journey.times.waitingAt = date;
+				journey.times.updatedAt = date;
+
+				result = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
+				if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Updated');
+			}
+
+			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+
+			await this._publishJourneyUpdate(result);
+
+			return ResponseBuilder.ok({ journey: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to update Journey');
+		}
+	}
+
 	public startJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (!event.pathParameters || !event.pathParameters.journeyId || !event.pathParameters.createdAt)
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
@@ -284,14 +418,15 @@ export class JourneyController {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			SharedFunctions.checkUserRole([ 'Driver' ], user.userType);
 
-			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+			const journey: Journey = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+			const { journeyStatus }: Partial<Journey> = journey;
 
 			if (userId !== journey.driver.userId)
 				return ResponseBuilder.forbidden(ErrorCode.MissingPermission, 'Only the driver can start the Journey');
 
-			if (journey.journeyStatus === 'STARTED' || journey.journeyStatus === 'ARRIVED') throw Error('Journey has already started');
-			if (journey.journeyStatus === 'FINISHED') throw Error('Journey has already been complete');
-			if (journey.journeyStatus === 'CANCELLED') throw Error('Journey has been cancelled');
+			if (journeyStatus === 'STARTED' || journeyStatus === 'ARRIVED') throw Error('Journey has already started');
+			if (journeyStatus === 'FINISHED') throw Error('Journey has already been complete');
+			if (journeyStatus === 'CANCELLED') throw Error('Journey has been cancelled');
 
 			const date: string = new Date().toISOString();
 
@@ -303,6 +438,8 @@ export class JourneyController {
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+
+			await this._publishJourneyUpdate(result);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -340,6 +477,8 @@ export class JourneyController {
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
+			await this._publishJourneyUpdate(result);
+
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to pause Journey');
@@ -375,6 +514,8 @@ export class JourneyController {
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+
+			await this._publishJourneyUpdate(result);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -417,6 +558,8 @@ export class JourneyController {
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
+			await this._publishJourneyUpdate(result);
+
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to end Journey');
@@ -455,6 +598,8 @@ export class JourneyController {
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+
+			await this._publishJourneyUpdate(result);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -690,6 +835,8 @@ export class JourneyController {
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
 
+			await this._publishJourneyUpdate(result);
+
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to update passenger pickup status');
@@ -720,6 +867,8 @@ export class JourneyController {
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
+
+			await this._publishJourneyUpdate(result);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -752,6 +901,8 @@ export class JourneyController {
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
 
+			await this._publishJourneyUpdate(result);
+
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to cancel passenger pickup');
@@ -783,6 +934,8 @@ export class JourneyController {
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
 
+			await this._publishJourneyUpdate(result);
+
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to cancel pickup');
@@ -801,4 +954,14 @@ export class JourneyController {
 		);
 	}
 
+	private _publishJourneyUpdate = async (journey: Journey): Promise<void> => {
+		await this.PubManager.publishCRUD({
+			subscriptionName: 'journey/current',
+			itemType: 'journey',
+			itemId: journey.journeyId,
+			data: { journey },
+			sendAsCollection: true,
+			publishType: PublishType.UPDATE
+		});
+	}
 }

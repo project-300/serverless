@@ -96,6 +96,7 @@
     "curly": false,
     "no-magic-numbers": false,
     "align": false,
+    "prefer-switch": false,
     "typedef": [
       true,
       "call-signature",

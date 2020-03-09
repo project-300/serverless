@@ -91,14 +91,14 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
-  deleteJourney:
-    handler: src/handler.deleteJourney
-    events:
-      - http:
-          path: /journeys/{journeyId}/{createdAt}
-          method: delete
-          cors: true
-          authorizer: aws_iam
+#  deleteJourney:
+#    handler: src/handler.deleteJourney
+#    events:
+#      - http:
+#          path: /journeys/{journeyId}/{createdAt}
+#          method: delete
+#          cors: true
+#          authorizer: aws_iam
   addUserToJourney:
     handler: src/handler.addUserToJourney
     events:
@@ -121,6 +121,30 @@ functions:
       - http:
           path: /journeys/passenger
           method: get
+          cors: true
+          authorizer: aws_iam
+  getCurrentJourney:
+    handler: src/handler.getCurrentJourney
+    events:
+      - http:
+          path: /journeys/current/{deviceId}
+          method: get
+          cors: true
+          authorizer: aws_iam
+  beginJourneyPickup:
+    handler: src/handler.beginJourneyPickup
+    events:
+      - http:
+          path: /journeys/begin-pickup/{journeyId}/{createdAt}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  waitingJourney:
+    handler: src/handler.waitingJourney
+    events:
+      - http:
+          path: /journeys/waiting/{journeyId}/{createdAt}
+          method: put
           cors: true
           authorizer: aws_iam
   startJourney:

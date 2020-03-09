@@ -5,6 +5,7 @@ const unitOfWork: UnitOfWork = new UnitOfWork();
 const controller: JourneyController = new JourneyController(unitOfWork);
 
 export const getAllJourneys: ApiHandler = controller.getAllJourneys;
+export const getCurrentJourney: ApiHandler = controller.getCurrentJourney;
 export const searchJourneys: ApiHandler = controller.searchJourneys;
 export const getJourneyById: ApiHandler = controller.getJourneyById;
 export const createJourney: ApiHandler = controller.createJourney;
@@ -13,6 +14,8 @@ export const deleteJourney: ApiHandler = controller.deleteJourney;
 export const addUserToJourney: ApiHandler = controller.addUserToJourney;
 export const getDriverJourneys: ApiHandler = controller.getDriverJourneys;
 export const getPassengerJourneys: ApiHandler = controller.getPassengerJourneys;
+export const beginJourneyPickup: ApiHandler = controller.beginJourneyPickup;
+export const waitingJourney: ApiHandler = controller.waitingJourney;
 export const startJourney: ApiHandler = controller.startJourney;
 export const pauseJourney: ApiHandler = controller.pauseJourney;
 export const resumeJourney: ApiHandler = controller.resumeJourney;

@@ -22,6 +22,7 @@ export class JourneyItem extends DynamoDbItem implements Journey {
 		updatedAt?: string;
 		leavingAt: string;
 		estimatedArrival?: string;
+		startedPickupAt?: string;
 		startedAt?: string;
 		pausedAt?: string;
 		resumedAt?: string;
