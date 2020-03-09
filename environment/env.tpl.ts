@@ -5,3 +5,5 @@ export const WEBSOCKET_ENDPOINT: string = process.env.IS_OFFLINE ?
 export const AWS_S3_SECRET_KEY: string = '{{ AWS_S3_SECRET_KEY }}';
 
 export const USERID_FOR_TESTING: string = '{{ USERID_FOR_TESTING }}';
+
+export const USER_POOL_ID: string = '{{ COGNITO_USER_POOL_ID }}';

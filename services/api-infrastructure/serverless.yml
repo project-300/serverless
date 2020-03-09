@@ -45,6 +45,13 @@ functions:
           pool: ${self:custom.stage}-${self:custom.projectName}Pool
           trigger: CustomMessage
           existing: true
+  preSignUp:
+    handler: src/handler.preSignUp
+    events:
+      - cognitoUserPool:
+          pool: ${self:custom.stage}-${self:custom.projectName}Pool
+          trigger: PreSignUp
+          existing: true
   postConfirmation:
     handler: src/handler.postConfirmation
     events:
