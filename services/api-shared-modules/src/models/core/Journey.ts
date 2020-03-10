@@ -1,7 +1,7 @@
 import { PlaceItem, CoordsItem } from '../embedded';
 import { DynamoDbItem } from '../DynamoDBItem';
 import { attribute } from '@aws/dynamodb-data-mapper-annotations';
-import { Journey, DriverBrief, PassengerBrief, Coords, JourneyAction } from '@project-300/common-types';
+import { Journey, DriverBrief, PassengerBrief, Coords, JourneyAction, JourneyRating } from '@project-300/common-types';
 
 export class JourneyItem extends DynamoDbItem implements Journey {
 	@attribute()
@@ -72,4 +72,7 @@ export class JourneyItem extends DynamoDbItem implements Journey {
 
 	@attribute()
 	public actionLogs: JourneyAction[];
+
+	@attribute()
+	public ratings: JourneyRating[];
 }

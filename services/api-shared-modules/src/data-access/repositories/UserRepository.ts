@@ -76,6 +76,8 @@ export class UserRepository extends Repository {
 			userId: id,
 			pk: `user#${id}`,
 			sk: `user#${id}`,
+			averageRating: 0,
+			totalRatings: 0,
 			...toCreate
 		}));
 	}

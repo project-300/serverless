@@ -21,6 +21,7 @@ export const pauseJourney: ApiHandler = controller.pauseJourney;
 export const resumeJourney: ApiHandler = controller.resumeJourney;
 export const endJourney: ApiHandler = controller.endJourney;
 export const cancelJourney: ApiHandler = controller.cancelJourney;
+export const rateJourney: ApiHandler = controller.rateJourney;
 export const cancelPassengerAcceptedJourney: ApiHandler = controller.cancelPassengerAcceptedJourney;
 export const subscribeDriverLocation: ApiHandler = controller.subscribeDriverLocation;
 export const unsubscribeDriverLocation: ApiHandler = controller.unsubscribeDriverLocation;

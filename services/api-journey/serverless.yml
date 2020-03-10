@@ -83,14 +83,14 @@ functions:
           method: post
           cors: true
           authorizer: aws_iam
-  updateJourney:
-    handler: src/handler.updateJourney
-    events:
-      - http:
-          path: /journeys
-          method: put
-          cors: true
-          authorizer: aws_iam
+#  updateJourney:
+#    handler: src/handler.updateJourney
+#    events:
+#      - http:
+#          path: /journeys
+#          method: put
+#          cors: true
+#          authorizer: aws_iam
 #  deleteJourney:
 #    handler: src/handler.deleteJourney
 #    events:
@@ -192,6 +192,14 @@ functions:
     events:
       - http:
           path: /journeys/passenger-cancel
+          method: put
+          cors: true
+          authorizer: aws_iam
+  rateJourney:
+    handler: src/handler.rateJourney
+    events:
+      - http:
+          path: /journeys/rate
           method: put
           cors: true
           authorizer: aws_iam
