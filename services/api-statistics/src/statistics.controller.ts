@@ -98,7 +98,6 @@ export class StatisticsController {
 			|| !event.queryStringParameters.endDate) {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 		}
-		console.log('start')
 		const { startDate, endDate, totalsOnly }: { [params: string]: string } = event.queryStringParameters;
 		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
@@ -160,7 +159,6 @@ export class StatisticsController {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 
 			if (user.university && user.university.universityId !== '') {
-				console.log('inside if')
 				SharedFunctions.checkUserRole(['Moderator'], user.userType);
 				const allStatsTotalsForOneUni: StatsTotal[] = await Promise.all(
 					dates.map(async (d: string): Promise<StatsTotal> => {
@@ -171,7 +169,6 @@ export class StatisticsController {
 
 				return ResponseBuilder.ok({ statsTotals: allStatsTotalsForOneUni });
 			}
-			console.log('admin')
 			SharedFunctions.checkUserRole(['Admin'], user.userType);
 			if (!getAll) throw new Error('getAll query string param is not set to true');
 			const allStatsTotals: StatsTotal[] = await Promise.all(

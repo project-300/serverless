@@ -19,10 +19,7 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 			projection: [ 'emissions', 'distance', 'fuel', 'times' ]
 		};
 
-		console.log('start get all')
 		const queryIterator: QueryIterator<DayStatisticsBrief> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
-		console.log('iterated')
-		console.log(queryIterator)
 		const dayStatistics: DayStatisticsBrief[] = [];
 
 		for await (const stats of queryIterator) dayStatistics.push(stats);
@@ -115,7 +112,6 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 			indexName: 'entity-sk2-index'
 		};
 
-		console.log(date)
 		const queryIterator: QueryIterator<DayStatisticsBrief> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
 		const dayStatistics: DayStatisticsBrief[] = [];
 
