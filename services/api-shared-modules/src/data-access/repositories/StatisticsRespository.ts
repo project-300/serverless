@@ -107,7 +107,7 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 	public async getForMonthForAll(date: string): Promise<DayStatisticsBrief[]> {
 		const keyCondition: QueryKey = {
 			entity: 'statistics',
-			sk2: beginsWith(`date${date}`)
+			sk2: beginsWith(`date#${date}`)
 		};
 
 		const queryOptions: QueryOptions = {
@@ -115,6 +115,7 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 			indexName: 'entity-sk2-index'
 		};
 
+		console.log(date)
 		const queryIterator: QueryIterator<DayStatisticsBrief> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
 		const dayStatistics: DayStatisticsBrief[] = [];
 

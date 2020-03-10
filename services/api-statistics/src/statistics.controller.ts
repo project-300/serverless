@@ -129,24 +129,20 @@ export class StatisticsController {
 			|| !event.queryStringParameters.endDate) {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 		}
-		console.log('start')
+
 		const { startDate, endDate }: { [params: string]: string } = event.queryStringParameters;
 		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
-
-		console.log('got userId')
 
 		try {
 			const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
 			const rightRole: boolean = SharedFunctions.checkRole(['Admin'], user.userType);
 
-			console.log('user')
 			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
-			console.log('right role')
+
 			const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllBetweenDatesForAllUniversities(startDate, endDate);
-			console.log('result')
 			const total: StatsTotal = this._addUpStatistics(result);
-			console.log('total')
-			return ResponseBuilder.ok({ statistics: total });
+
+			return ResponseBuilder.ok({ statistics: result, totalStatistics: total });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, 'Unable to get Statistics');
 		}
@@ -162,9 +158,10 @@ export class StatisticsController {
 
 		try {
 			const user: User = await this.unitOfWork.Users.getById(userId);
-			SharedFunctions.checkUserRole(['Moderator'], user.userType);
 
-			if (user.university.universityId === '') {
+			if (user.university && user.university.universityId !== '') {
+				console.log('inside if')
+				SharedFunctions.checkUserRole(['Moderator'], user.userType);
 				const allStatsTotalsForOneUni: StatsTotal[] = await Promise.all(
 					dates.map(async (d: string): Promise<StatsTotal> => {
 						const stats: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getForMonthForOneUni(d, user.university.universityId);
@@ -174,7 +171,7 @@ export class StatisticsController {
 
 				return ResponseBuilder.ok({ statsTotals: allStatsTotalsForOneUni });
 			}
-
+			console.log('admin')
 			SharedFunctions.checkUserRole(['Admin'], user.userType);
 			if (!getAll) throw new Error('getAll query string param is not set to true');
 			const allStatsTotals: StatsTotal[] = await Promise.all(
