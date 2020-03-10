@@ -43,7 +43,7 @@ functions:
     events:
       - http:
           path: /users
-          method: get
+          method: put
           cors: true
           authorizer: aws_iam
   getCallingUser:

@@ -4,7 +4,6 @@ import { QueryOptions, QueryIterator, QueryPaginator } from '@aws/dynamodb-data-
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
 import { QueryKey } from '../interfaces';
-import { SharedFunctions } from '../..';
 import { beginsWith } from '@aws/dynamodb-expressions';
 
 export class UserRepository extends Repository {
@@ -17,7 +16,7 @@ export class UserRepository extends Repository {
 			indexName: 'entity-sk2-index',
 			scanIndexForward: true,
 			startKey: lastEvaluatedKey,
-			limit: 5
+			limit: 2
 		};
 
 		const queryPages: QueryPaginator<UserItem> = this.db.query(UserItem, keyCondition, queryOptions).pages();
@@ -30,7 +29,7 @@ export class UserRepository extends Repository {
 			users,
 			lastEvaluatedKey:
 				queryPages.lastEvaluatedKey ?
-					SharedFunctions.stripLastEvaluatedKey(queryPages.lastEvaluatedKey) :
+					queryPages.lastEvaluatedKey :
 					undefined
 		};
 	}
@@ -117,7 +116,7 @@ export class UserRepository extends Repository {
 			userId,
 			pk: `user#${userId}`,
 			sk: `user#${userId}`,
-			sk2: `univsersity#${universityId}/createdAt#${date}`,
+			sk2: `university#${universityId}/createdAt#${date}`,
 			times: {
 				createdAt: date
 			},

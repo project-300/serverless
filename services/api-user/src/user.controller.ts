@@ -1,4 +1,4 @@
-import { User } from '@project-300/common-types';
+import { User, LastEvaluatedKey } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -20,17 +20,16 @@ export class UserController {
 
 	public getAllUsers: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		let lastEvaluatedKey: { [key: string]: string };
-		if (event.queryStringParameters && event.queryStringParameters.pk && event.queryStringParameters.sk) {
+		if (event.body) {
+			const { pk, sk, sk2, entity}: User = JSON.parse(event.body) as User;
 			lastEvaluatedKey = {
-				pk: `user#${event.queryStringParameters.pk}`,
-				sk: `user#${event.queryStringParameters.sk}`,
-				sk2: event.queryStringParameters.sk2,
-				entity: 'user'
+				pk,
+				sk,
+				sk2,
+				entity
 			};
 		}
 		try {
-			console.log(lastEvaluatedKey);
-
 			const result: { users: User[]; lastEvaluatedKey: Partial<UserItem> } = await this.unitOfWork.Users.getAll(lastEvaluatedKey);
 			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Users');
 
