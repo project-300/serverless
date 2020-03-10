@@ -24,10 +24,13 @@ export class UserController {
 			lastEvaluatedKey = {
 				pk: `user#${event.queryStringParameters.pk}`,
 				sk: `user#${event.queryStringParameters.sk}`,
+				sk2: event.queryStringParameters.sk2,
 				entity: 'user'
 			};
 		}
 		try {
+			console.log(lastEvaluatedKey);
+
 			const result: { users: User[]; lastEvaluatedKey: Partial<UserItem> } = await this.unitOfWork.Users.getAll(lastEvaluatedKey);
 			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Users');
 
@@ -62,7 +65,6 @@ export class UserController {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
 		}
 		const user: Partial<User> = JSON.parse(event.body) as Partial<User>;
-		console.log(user);
 		const cognito: CognitoIdentityServiceProvider = new CognitoIdentityServiceProvider();
 		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 		try {
@@ -80,7 +82,7 @@ export class UserController {
 					},
 					{
 						Name: 'custom:university_id',
-						Value: user.university.universityId
+						Value: user.university.universityId || ''
 					}
 				]
 			}).promise();

@@ -1,4 +1,4 @@
-import { MobileNumberNoExtension, User, University } from '@project-300/common-types';
+import { MobileNumberNoExtension, User, University, UserTypes } from '@project-300/common-types';
 import {
 	UnitOfWork,
 	TriggerCognitoEvent,
@@ -20,7 +20,7 @@ export class AuthController {
 
 		try {
 			if (event.triggerSource === 'CustomMessage_AdminCreateUser') {
-				user.userType = cognitoUser['custom:user_role'] as 'Passenger' | 'Driver' | 'Moderator' | 'Admin';
+				user.userType = cognitoUser['custom:user_role'] as UserTypes;
 				user.confirmed = true;
 				university.universityId = user.userType !== 'Admin' ? cognitoUser['custom:university_Id'] : ' ';
 			} else {

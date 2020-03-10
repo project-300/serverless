@@ -1,6 +1,7 @@
 {
   "extends": "tslint:all",
   "rules": {
+    "no-console": false,
     "import-spacing": true,
     "max-line-length": [
       true,
