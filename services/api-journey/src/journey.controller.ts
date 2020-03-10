@@ -107,6 +107,7 @@ export class JourneyController {
 			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			if (journey.journeyStatus === 'FINISHED') return ResponseBuilder.ok({ });
+			const isDriver: boolean = journey.driver.userId === userId;
 
 			journey.readableDurations = SharedFunctions.TimeDurations(journey.times);
 			journey = (await this._setJourneyFlags(userId, [ journey ]))[0];
@@ -126,7 +127,33 @@ export class JourneyController {
 				userId
 			});
 
-			return ResponseBuilder.ok({ journey, travellingAs: user.currentJourney.travellingAs });
+			let awaitingConfirmation: boolean = false;
+
+			if (!isDriver) {
+				await this.SubManager.subscribe({
+					subscriptionName: 'journey/pickup-alerts',
+					itemType: 'journey',
+					itemId: journey.journeyId,
+					connectionId: currentConnection.connectionId,
+					deviceId,
+					userId
+				});
+
+				const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === userId);
+
+				awaitingConfirmation = passenger.driverConfirmedPickup && !passenger.passengerConfirmedPickup && !passenger.passengerCancelledPickup;
+			} else {
+				await this.SubManager.subscribe({
+					subscriptionName: 'journey/passenger-tracking',
+					itemType: 'journey',
+					itemId: journey.journeyId,
+					connectionId: currentConnection.connectionId,
+					deviceId,
+					userId
+				});
+			}
+
+			return ResponseBuilder.ok({ journey, travellingAs: user.currentJourney.travellingAs, awaitingConfirmation });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, 'Unable to get Journey');
 		}
@@ -346,6 +373,7 @@ export class JourneyController {
 				journey.journeyStatus = 'PICKUP';
 				journey.times.startedPickupAt = date;
 				journey.times.updatedAt = date;
+				journey.actionLogs.push({ description: 'Began passenger pickup', time: date });
 
 				result = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 				if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
@@ -353,7 +381,7 @@ export class JourneyController {
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -391,6 +419,7 @@ export class JourneyController {
 				journey.journeyStatus = 'WAITING';
 				journey.times.waitingAt = date;
 				journey.times.updatedAt = date;
+				journey.actionLogs.push({ description: 'Waiting to start Journey', time: date });
 
 				result = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 				if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Updated');
@@ -398,7 +427,7 @@ export class JourneyController {
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -433,13 +462,14 @@ export class JourneyController {
 			journey.journeyStatus = 'STARTED';
 			journey.times.startedAt = date;
 			journey.times.updatedAt = date;
+			journey.actionLogs.push({ description: 'Started Journey', time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -471,13 +501,14 @@ export class JourneyController {
 			journey.journeyStatus = 'PAUSED';
 			journey.times.pausedAt = date;
 			journey.times.updatedAt = date;
+			journey.actionLogs.push({ description: 'Paused Journey', time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -509,13 +540,14 @@ export class JourneyController {
 			journey.journeyStatus = 'STARTED';
 			journey.times.resumedAt = date;
 			journey.times.updatedAt = date;
+			journey.actionLogs.push({ description: 'Resumed Journey', time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -550,6 +582,7 @@ export class JourneyController {
 			journey.times.endedAt = date;
 			journey.times.updatedAt = date;
 			journey.available = false;
+			journey.actionLogs.push({ description: 'Ended Journey', time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
@@ -558,7 +591,7 @@ export class JourneyController {
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -593,13 +626,14 @@ export class JourneyController {
 			journey.times.cancelledAt = date;
 			journey.times.updatedAt = date;
 			journey.available = false;
+			journey.actionLogs.push({ description: 'Cancelled Journey', time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -700,6 +734,42 @@ export class JourneyController {
 				sendAsCollection: true,
 				publishType: PublishType.UPDATE
 			});
+
+			return ResponseBuilder.ok({ journey });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to add user to Journey');
+		}
+	}
+
+	public locationMovement: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+		const data: { coords: Coords } = JSON.parse(event.body);
+		if (!data.coords) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const { coords }: { coords: Coords } = data;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			const { currentJourney }: Partial<User> = user;
+
+			if (!currentJourney) ResponseBuilder.ok({ });
+
+			const journey: Journey = await this.unitOfWork.Journeys.getById(currentJourney.journeyId, currentJourney.createdAt);
+			if (!journey) throw Error('Journey not found');
+			const { journeyId, passengers, times: { createdAt } }: Partial<Journey> = journey;
+
+			if (journey.driver.userId === userId) {	// User is the driver
+				if (journey.journeyStatus !== 'STARTED') throw Error('Unable to update journey - Journey has not started');
+
+				journey.routeTravelled.push(coords);
+				journey.times.updatedAt = new Date().toISOString();
+
+				await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
+				await this._publishDriverLocation(journeyId, coords);
+			} else if (passengers.map((p: PassengerBrief) => p.userId).find((p: string) => p === userId)) { // User is a passenger
+				this._publishPassengerLocation(journeyId, userId, coords);
+			}
 
 			return ResponseBuilder.ok({ journey });
 		} catch (err) {
@@ -828,14 +898,19 @@ export class JourneyController {
 			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === passengerId);
 			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
 
+			const date: string = new Date().toISOString();
+
 			passenger.driverConfirmedPickup = true;
 			passenger.driverCancelledPickup = false;
-			passenger.times.driverConfirmPickUpAt = new Date().toISOString();
+			passenger.times.driverConfirmPickUpAt = date;
+
+			journey.actionLogs.push({ description: `${user.firstName} confirmed pickup for ${passenger.firstName}`, time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
+			await this._publishPickupAlert(result, passengerId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -861,14 +936,18 @@ export class JourneyController {
 			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === userId);
 			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
 
+			const date: string = new Date().toISOString();
+
 			passenger.passengerConfirmedPickup = true;
 			passenger.passengerCancelledPickup = false;
-			passenger.times.passengerConfirmPickUpAt = new Date().toISOString();
+			passenger.times.passengerConfirmPickUpAt = date;
+
+			journey.actionLogs.push({ description: `${passenger.firstName} confirmed their pickup`, time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -894,14 +973,18 @@ export class JourneyController {
 			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === passengerId);
 			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
 
+			const date: string = new Date().toISOString();
+
 			passenger.driverCancelledPickup = true;
 			passenger.driverConfirmedPickup = false;
-			passenger.times.driverCancelPickUpAt = new Date().toISOString();
+			passenger.times.driverCancelPickUpAt = date;
+
+			journey.actionLogs.push({ description: `${user.firstName} cancelled pickup for ${passenger.firstName}`, time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -927,14 +1010,18 @@ export class JourneyController {
 			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === userId);
 			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
 
+			const date: string = new Date().toISOString();
+
 			passenger.passengerCancelledPickup = true;
 			passenger.passengerConfirmedPickup = false;
-			passenger.times.passengerCancelPickUpAt = new Date().toISOString();
+			passenger.times.passengerCancelPickUpAt = date;
+
+			journey.actionLogs.push({ description: `${passenger.firstName} cancelled their pickup`, time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -954,14 +1041,53 @@ export class JourneyController {
 		);
 	}
 
-	private _publishJourneyUpdate = async (journey: Journey): Promise<void> => {
+	private _publishJourneyUpdate = async (journey: Journey, userId: string): Promise<void> => {
 		await this.PubManager.publishCRUD({
 			subscriptionName: 'journey/current',
 			itemType: 'journey',
 			itemId: journey.journeyId,
-			data: { journey },
+			data: { journey, updatedBy: userId },
 			sendAsCollection: true,
 			publishType: PublishType.UPDATE
 		});
 	}
+
+	private _publishPickupAlert = async (journey: Journey, passengerId: string): Promise<void> => {
+		const userWithConnections: Partial<User> = await this.unitOfWork.Users.getUserConnections(passengerId);
+		const connectionIds: string[] =
+			userWithConnections.connections && userWithConnections.connections.map((con: UserConnection) => con.connectionId);
+
+		await this.PubManager.publishToMultipleConnections({
+			subscriptionName: 'journey/pickup-alerts',
+			itemType: 'journey',
+			itemId: journey.journeyId,
+			data: { journey },
+			sendAsCollection: true,
+			publishType: PublishType.UPDATE,
+			connectionIds
+		});
+	}
+
+	private _publishDriverLocation = async (journeyId: string, coords: Coords): Promise<void> => {
+		await this.PubManager.publishCRUD({
+			subscriptionName: 'journey/driver-tracking',
+			itemType: 'journey',
+			itemId: journeyId,
+			data: { journeyId, coords },
+			sendAsCollection: true,
+			publishType: PublishType.UPDATE
+		});
+	}
+
+	private _publishPassengerLocation = async (journeyId: string, passengerId: string, coords: Coords): Promise<void> => {
+		await this.PubManager.publishCRUD({
+			subscriptionName: 'journey/passenger-tracking',
+			itemType: 'journey',
+			itemId: journeyId,
+			data: { journeyId, passengerId, coords },
+			sendAsCollection: true,
+			publishType: PublishType.UPDATE
+		});
+	}
+
 }

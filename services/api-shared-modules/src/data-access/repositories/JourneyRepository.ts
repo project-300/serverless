@@ -178,6 +178,7 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 			seatsLeft: toCreate.totalNoOfSeats,
 			lastLocation: { latitude: 0, longitude: 0 },
 			available: true,
+			actionLogs: [],
 			...toCreate
 		}));
 	}

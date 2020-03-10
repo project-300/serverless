@@ -211,11 +211,19 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
-  driverMovement:
-    handler: src/handler.driverMovement
+#  driverMovement:
+#    handler: src/handler.driverMovement
+#    events:
+#      - http:
+#          path: /journeys/driver-movement
+#          method: put
+#          cors: true
+#          authorizer: aws_iam
+  locationMovement:
+    handler: src/handler.locationMovement
     events:
       - http:
-          path: /journeys/driver-movement
+          path: /journeys/location-movement
           method: put
           cors: true
           authorizer: aws_iam
