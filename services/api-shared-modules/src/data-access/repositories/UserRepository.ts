@@ -1,25 +1,36 @@
 import { UserItem } from '../../models/core';
-import { DriverBrief, User, UserBrief } from '@project-300/common-types';
-import { QueryOptions, QueryIterator } from '@aws/dynamodb-data-mapper';
+import { DriverBrief, User, UserBrief, LastEvaluatedKey } from '@project-300/common-types';
+import { QueryOptions, QueryIterator, QueryPaginator } from '@aws/dynamodb-data-mapper';
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
 import { QueryKey } from '../interfaces';
+import { SharedFunctions } from '../..';
 
 export class UserRepository extends Repository {
 
-	public async getAll(): Promise<User[]> {
+	public async getAll(lastEvaluatedKey?: LastEvaluatedKey): Promise<{ users: User[]; lastEvaluatedKey: Partial<UserItem> }> {
 		const keyCondition: QueryKey = {
 			entity: 'user'
 		};
 		const queryOptions: QueryOptions = {
-			indexName: 'entity-sk-index'
+			indexName: 'entity-sk-index',
+			scanIndexForward: true,
+			startKey: lastEvaluatedKey,
+			limit: 10
 		};
-		const queryIterator: QueryIterator<UserItem> = this.db.query(UserItem, keyCondition, queryOptions);
+		const queryPages: QueryPaginator<UserItem> = this.db.query(UserItem, keyCondition, queryOptions).pages();
 		const users: User[] = [];
-		for await (const user of queryIterator) {
-			users.push(user);
+		for await (const page of queryPages) {
+			for (const user of page)
+				users.push(user);
 		}
-		return users;
+		return {
+			users,
+			lastEvaluatedKey:
+				queryPages.lastEvaluatedKey ?
+					SharedFunctions.stripLastEvaluatedKey(queryPages.lastEvaluatedKey) :
+					undefined
+		};
 	}
 
 	public async getById(userId: string): Promise<User> {
@@ -78,6 +89,22 @@ export class UserRepository extends Repository {
 		});
 	}
 
+	public async getAllUsersByUni(universityId: string): Promise<User[]> {
+		const keyCondition: QueryKey = {
+			entity: 'user',
+			sk2: `university#${universityId}`
+		};
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk2-index'
+		};
+		const queryIterator: QueryIterator<UserItem> = this.db.query(UserItem, keyCondition, queryOptions);
+		const users: User[] = [];
+		for await (const user of queryIterator) {
+			users.push(user);
+		}
+		return users;
+	}
+
 	public async create(toCreate: Partial<User>): Promise<User> {
 		const id: string = uuid();
 		return this.db.put(Object.assign(new UserItem(), {
@@ -91,14 +118,17 @@ export class UserRepository extends Repository {
 		}));
 	}
 
-	public async createAfterSignUp(userId: string, toCreate: Partial<User>): Promise<User> {
+	public async createAfterSignUp(userId: string, universityId: string, toCreate: Partial<User>): Promise<User> {
 		return this.db.put(Object.assign(new UserItem(), {
 			entity: 'user',
 			confirmed: false,
 			userId,
-			userType: 'Passenger',
 			pk: `user#${userId}`,
 			sk: `user#${userId}`,
+			sk2: `univsersity#${universityId}`,
+			university: {
+				universityId
+			},
 			...toCreate
 		}));
 	}

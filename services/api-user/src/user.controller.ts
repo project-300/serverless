@@ -7,19 +7,99 @@ import {
 	ApiEvent,
 	ApiContext,
 	UnitOfWork,
-    SharedFunctions
+	SharedFunctions,
+	UserItem
   } from '../../api-shared-modules/src';
+import { CognitoIdentityServiceProvider } from 'aws-sdk';
+import { USER_POOL_ID } from '../../../environment/env';
+import { AdminCreateUserResponse } from 'aws-sdk/clients/cognitoidentityserviceprovider';
 
 export class UserController {
 
 	public constructor(private unitOfWork: UnitOfWork) { }
 
 	public getAllUsers: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		let lastEvaluatedKey: { [key: string]: string };
+		if (event.queryStringParameters && event.queryStringParameters.pk && event.queryStringParameters.sk) {
+			lastEvaluatedKey = {
+				pk: `user#${event.queryStringParameters.pk}`,
+				sk: `user#${event.queryStringParameters.sk}`,
+				entity: 'user'
+			};
+		}
 		try {
-			const users: User[] = await this.unitOfWork.Users.getAll();
+			const result: { users: User[]; lastEvaluatedKey: Partial<UserItem> } = await this.unitOfWork.Users.getAll(lastEvaluatedKey);
+			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Users');
+
+			return ResponseBuilder.ok({ ...result, count: result.users.length });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message);
+		}
+	}
+
+	public getAllUsersForOneUni: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+
+		try {
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			const rightRole: boolean = SharedFunctions.checkRole(['Moderator'], user.userType);
+
+			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
+
+			let users: User[] = await this.unitOfWork.Users.getAllUsersByUni(user.university.universityId);
 			if (!users) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Users');
 
+			users = SharedFunctions.orderByDate(true, users) as User[];
+
 			return ResponseBuilder.ok({ users });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message);
+		}
+	}
+
+	public adminCreateUser: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.body) {
+			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+		}
+		const user: Partial<User> = JSON.parse(event.body) as Partial<User>;
+		const cognito: CognitoIdentityServiceProvider = new CognitoIdentityServiceProvider();
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+		try {
+			const callingUser: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole(['Admin'], callingUser.userType);
+
+			const newUser: AdminCreateUserResponse = await cognito.adminCreateUser({
+				DesiredDeliveryMediums: ['EMAIL'],
+				Username: user.email,
+				UserPoolId: USER_POOL_ID,
+				UserAttributes: [
+					{
+						Name: 'custom:user_role',
+						Value: user.userType
+					},
+					{
+						Name: 'custom:university_id',
+						Value: user.university.universityId || ''
+					}
+				]
+			}).promise();
+
+			return ResponseBuilder.ok({ newUser });
+		} catch (err) {
+			console.log(err);
+			return ResponseBuilder.internalServerError(err, err.message);
+		}
+	}
+
+	public getCallingUser: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		// remember to update the react native for this
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+		try {
+
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			if (!user) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'User Not found');
+
+			return ResponseBuilder.ok({ user });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
@@ -29,10 +109,10 @@ export class UserController {
 		if (!event.pathParameters || !event.pathParameters.userId) {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 		}
-
 		const userId: string = event.pathParameters.userId;
 
 		try {
+
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			if (!user) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'User Not found');
 

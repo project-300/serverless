@@ -7,7 +7,18 @@ Resources:
         - email
       AutoVerifiedAttributes:
         - email
-
+      Schema:
+        - Name: user_role
+          AttributeDataType: String
+          StringAttributeConstraints:
+            MinLength: 4
+            MaxLength: 256
+        - Name: university_id
+          AttributeDataType: String
+          StringAttributeConstraints:
+            MinLength: 4
+            MaxLength: 256
+            
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
@@ -68,8 +79,23 @@ Resources:
               Action:
                 - 'mobileanalytics:PutEvents'
                 - 'cognito-sync:*'
+                - 'cognito-idp:*'
+                - 'iam:ListRoles'
+                - 'iam:ListOpenIdConnectProviders'
+                - 'sns:ListPlatformApplications'
                 - 'cognito-identity:*'
               Resource: '*'
+            - Effect: 'Allow'
+              Action: 'iam:CreateServiceLinkedRole'
+              Resource: '*'
+              Condition:
+                StringEquals:
+                  'iam:AWSServiceName': 'email.cognito-idp.amazonaws.com'
+            - Effect: 'Allow'
+              Action:
+                - 'iam:DeleteServiceLinkedRole'
+                - 'iam:GetServiceLinkedRoleDeletionStatus'
+              Resource: 'arn:aws:iam::*:role/aws-service-role/email.cognito-idp.amazonaws.com/AWSServiceRoleForAmazonCognitoIdpEmail*'
         Roles:
           - Ref: CognitoAuthRole
 

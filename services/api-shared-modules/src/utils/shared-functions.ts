@@ -1,6 +1,6 @@
 import { USERID_FOR_TESTING } from '../../../../environment/env';
 import { DynamoDbItem } from '../models';
-import { Chat, ChatUser, Message, TimeDuration } from '@project-300/common-types';
+import { Chat, ChatUser, Message, TimeDuration, User, DayStatistics } from '@project-300/common-types';
 
 export class SharedFunctions {
 
@@ -17,6 +17,21 @@ export class SharedFunctions {
 
 	public static checkRole = (roles: string[], userRole: string): boolean => roles.some((role: string) => role === userRole);
 
+	public static orderByDate = (ascending: boolean, arr: Array<User | DayStatistics>): Array<User | DayStatistics> => {
+		if (ascending) {
+			return arr.sort((a, b) => {
+				if (a.times.createdAt > b.times.createdAt) return -1;
+				if (a.times.createdAt < b.times.createdAt) return 1;
+				return 0;
+			});
+		}
+		return arr.sort((a, b) => {
+			if (a.times.createdAt < b.times.createdAt) return -1;
+			if (a.times.createdAt > b.times.createdAt) return 1;
+			return 0;
+		});
+  }
+    
 	public static checkUserRole = (roles: string[], userRole: string): void => {
 		if (!roles.some((role: string) => role === userRole)) throw Error('Unauthorised User');
 	}

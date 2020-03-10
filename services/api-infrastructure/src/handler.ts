@@ -6,3 +6,4 @@ const controller: AuthController = new AuthController(unitOfWork);
 
 export const postSignUp: TriggerCognitoHandler = controller.postSignUp;
 export const postConfirmation: TriggerCognitoHandler = controller.postConfirmation;
+export const preSignUp: TriggerCognitoHandler = controller.preSignUp;
