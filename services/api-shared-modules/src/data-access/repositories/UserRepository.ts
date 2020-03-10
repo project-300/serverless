@@ -60,6 +60,15 @@ export class UserRepository extends Repository {
 		});
 	}
 
+	public async getUserStats(userId: string): Promise<Partial<User>> {
+		return this.db.get(Object.assign(new UserItem(), {
+			pk: `user#${userId}`,
+			sk: `user#${userId}`
+		}), {
+			projection: [ 'userId', 'statistics' ]
+		});
+	}
+
 	public async getJourneysAsPassenger(userId: string): Promise<Partial<User>> {
 		return this.db.get(Object.assign(new UserItem(), {
 			pk: `user#${userId}`,

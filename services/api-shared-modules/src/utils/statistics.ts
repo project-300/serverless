@@ -12,7 +12,7 @@ export class Statistics {
 
 		const passengerCount: number = passengers.length;
 
-		const passengerStats: UserStatistics[] = passengers.map((p): UserStatistics =>
+		const passengerStats: UserStatistics[] = passengers.map((p: PassengerBrief): UserStatistics =>
 			({
 				userId: p.userId,
 				emissions: co2Emissions,

@@ -1,4 +1,4 @@
-// import { Statistics } from './../../api-shared-modules/src/utils/statistics';
+import { Statistics } from './../../api-shared-modules/src/utils/statistics';
 import {
 	DriverBrief,
 	Journey,
@@ -9,8 +9,8 @@ import {
 	Coords,
 	UserConnection,
 	PublishType, JourneyRating, UserBrief,
-	// DayStatistics,
-	// UserStatistics
+	DayStatistics,
+	UserStatistics
 } from '@project-300/common-types';
 import {
 	ResponseBuilder,
@@ -584,7 +584,7 @@ export class JourneyController {
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
-			// await this._handleStatistics(journey.distanceTravelled, user.university.universityId, journey);
+			await this._handleStatistics(journey.distanceTravelled || 0, user.university.universityId, journey);
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
@@ -638,26 +638,70 @@ export class JourneyController {
 		}
 	}
 
-	// private _handleStatistics = async (distanceTravelled: number, universityId: string, journey: Partial<Journey>): Promise<void> => {
-	// 	const date: string = new Date().toISOString().split('T')[0];
-	//
-	// 	const newStats: Partial<DayStatistics> = Statistics.calcStatistics(distanceTravelled, journey.driver.userId, journey.passengers);
-	// 	const todaysStats: DayStatistics = await this.unitOfWork.Statistics.getForToday(date, universityId);
-	//
-	// 	newStats.passengers.forEach((p: UserStatistics) => {
-	// 		todaysStats.passengers.push(p);
-	// 	});
-	//
-	// 	todaysStats.drivers.push(newStats.drivers[0]);
-	//
-	// 	todaysStats.distance += newStats.distance;
-	// 	todaysStats.fuel += newStats.fuel;
-	// 	todaysStats.emissions += newStats.emissions;
-	//
-	// 	const statsId: string = todaysStats.pk.split('#')[1];
-	//
-	// 	await this.unitOfWork.Statistics.update(statsId, universityId, date, todaysStats);
-	// }
+	private _handleStatistics = async (distanceTravelled: number = 0, universityId: string, journey: Partial<Journey>): Promise<void> => {
+		const date: string = new Date().toISOString().split('T')[0];
+
+		try {
+			const newStats: Partial<DayStatistics> = Statistics.calcStatistics(distanceTravelled, journey.driver.userId, journey.passengers);
+			const todaysStats: DayStatistics = await this.unitOfWork.Statistics.getForToday(date, universityId);
+
+			if (todaysStats) {
+				newStats.passengers.forEach((p: UserStatistics) => {
+					todaysStats.passengers.push(p);
+				});
+
+				todaysStats.drivers.push(newStats.drivers[0]);
+
+				todaysStats.distance += newStats.distance;
+				todaysStats.fuel += newStats.fuel;
+				todaysStats.emissions += newStats.emissions;
+
+				const statsId: string = todaysStats.pk.split('#')[1];
+
+				await this.unitOfWork.Statistics.update(statsId, universityId, date, todaysStats);
+			}
+
+			await Promise.all(newStats.passengers.map(async (p: UserStatistics) => {
+				const passenger: Partial<User> = await this.unitOfWork.Users.getUserStats(p.userId);
+
+				if (!passenger.statistics) passenger.statistics = {
+					distance: 0,
+					emissions: 0,
+					fuel: 0,
+					liftsGiven: 0,
+					liftsTaken: 0
+				};
+
+				passenger.statistics.distance = (passenger.statistics.distance || 0) + p.distance;
+				passenger.statistics.emissions = (passenger.statistics.emissions || 0) + p.emissions;
+				passenger.statistics.fuel = (passenger.statistics.fuel || 0) + p.fuel;
+				passenger.statistics.liftsTaken = (passenger.statistics.liftsTaken || 0) + 1;
+
+				await this.unitOfWork.Users.update(passenger.userId, passenger);
+			}));
+
+			await Promise.all(newStats.drivers.map(async (d: UserStatistics) => {
+				const driver: Partial<User> = await this.unitOfWork.Users.getUserStats(d.userId);
+
+				if (!driver.statistics) driver.statistics = {
+					distance: 0,
+					emissions: 0,
+					fuel: 0,
+					liftsGiven: 0,
+					liftsTaken: 0
+				};
+
+				driver.statistics.distance = (driver.statistics.distance || 0) + d.distance;
+				driver.statistics.emissions = (driver.statistics.emissions || 0) + d.emissions;
+				driver.statistics.fuel = (driver.statistics.fuel || 0) + d.fuel;
+				driver.statistics.liftsGiven = (driver.statistics.liftsGiven || 0) + 1;
+
+				await this.unitOfWork.Users.update(driver.userId, driver);
+			}));
+		} catch (err) {
+			console.log(err);
+		}
+	}
 
 	public cancelPassengerAcceptedJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
@@ -1051,7 +1095,7 @@ export class JourneyController {
 
 			const sumOfRatings: number = (driver.averageRating * driver.totalRatings) + rating;
 			driver.totalRatings = driver.totalRatings + 1;
-			driver.averageRating = sumOfRatings / driver.totalRatings;
+			driver.averageRating = Number((sumOfRatings / driver.totalRatings).toFixed(2));
 
 			const driverResult: User = await this.unitOfWork.Users.update(driver.userId, driver);
 			if (!driverResult) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Rating not Updated');

@@ -70,4 +70,13 @@ export class UserItem extends DynamoDbItem implements User {
 
 	@attribute()
 	public averageRating: number;
+
+	@attribute()
+	public statistics: {
+		emissions: number;
+		distance: number;
+		fuel: number;
+		liftsGiven: number;
+		liftsTaken: number;
+	};
 }
