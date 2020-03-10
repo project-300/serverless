@@ -16,7 +16,7 @@ export class UserRepository extends Repository {
 			indexName: 'entity-sk2-index',
 			scanIndexForward: true,
 			startKey: lastEvaluatedKey,
-			limit: 2
+			limit: 5
 		};
 
 		const queryPages: QueryPaginator<UserItem> = this.db.query(UserItem, keyCondition, queryOptions).pages();

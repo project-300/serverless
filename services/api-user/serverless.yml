@@ -42,7 +42,7 @@ functions:
     handler: src/handler.getAllUsers
     events:
       - http:
-          path: /users
+          path: /users/all
           method: put
           cors: true
           authorizer: aws_iam

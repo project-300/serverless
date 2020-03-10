@@ -19,9 +19,9 @@ export class UserController {
 	public constructor(private unitOfWork: UnitOfWork) { }
 
 	public getAllUsers: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-		let lastEvaluatedKey: { [key: string]: string };
+		let lastEvaluatedKey: LastEvaluatedKey;
 		if (event.body) {
-			const { pk, sk, sk2, entity}: User = JSON.parse(event.body) as User;
+			const { pk, sk, sk2, entity}: LastEvaluatedKey = JSON.parse(event.body) as LastEvaluatedKey;
 			lastEvaluatedKey = {
 				pk,
 				sk,
