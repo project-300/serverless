@@ -50,18 +50,18 @@ functions:
           cors: true
           authorizer: aws_iam
   getAllTotalStats:
-    handler: src/handler.getAllTotalStatsForOneUni
+    handler: src/handler.getAllTotalStats
     events:
       - http:
           path: /statistics/university/total
           method: get
           cors: true
-          authroizer: aws_iam
+          authorizer: aws_iam
   getForDateRangeOneUni:
     handler: src/handler.getForDateRangeOneUni
     events:
       - http:
-          path: /statistics/university/{universityId}
+          path: /statistics/university
           method: get
           cors: true
           authorizer: aws_iam
