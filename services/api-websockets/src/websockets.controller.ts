@@ -3,6 +3,8 @@ import { PublishType, Subscription, User, UserConnection } from '@project-300/co
 import SubscriptionManager, { SubscriptionData } from './pubsub/subscription';
 import API from './lib/api';
 import PublicationManager from './pubsub/publication';
+import * as moment from 'moment';
+import _ from 'lodash';
 
 const $connectSubData: SubscriptionData = {
 	subscriptionName: '$connect',
@@ -58,16 +60,13 @@ export class ConnectController {
 	}
 
 	public disconnect: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
-		const subscriptionName: string = '$connect';
-		const itemType: string = 'connection';
-		const itemId: string = '$connect';
 		const connectionId: string = event.requestContext.connectionId;
 
 		try {
 			await this.subManager.unsubscribe({
-				subscriptionName,
-				itemType,
-				itemId,
+				subscriptionName: $connectSubData.subscriptionName,
+				itemType: $connectSubData.itemType,
+				itemId: $connectSubData.itemId,
 				connectionId
 			});
 
@@ -98,8 +97,15 @@ export class ConnectController {
 				connectedAt: new Date().toISOString()
 			};
 
-			if (user.connections) user.connections.push(connectionData); // Add new connectionId to user
-			else user.connections = [ connectionData ];
+			if (user.connections) {
+				user.connections = _.reject(
+					user.connections,
+					(con: UserConnection) => con.deviceId === deviceId || moment().subtract(3, 'hours') > moment(con.connectedAt)
+				);
+				user.connections.push(connectionData); // Add new connectionId to user
+			} else {
+				user.connections = [ connectionData ];
+			}
 
 			if (oldConnection && oldConnection !== connectionId) {
 				const conIndex: number = user.connections.findIndex((con: UserConnection) => con.connectionId === oldConnection);
@@ -117,22 +123,17 @@ export class ConnectController {
 			);
 
 			if (sub) {
-				console.log('UPDATE SUB');
 				delete sub.sk2;
 				delete sub.sk3;
 				sub.userId = userId;
-				const updatedSub: Subscription = await this.unitOfWork.Subscriptions.update(
+				await this.unitOfWork.Subscriptions.update(
 					'$connect',
 					'connection',
 					'$connect',
 					connectionId,
 					sub
 				);
-
-				console.log(updatedSub);
-			} else {
-				console.log('CREATE NEW SUB');
-				await this.unitOfWork.Subscriptions.create(
+			} else {await this.unitOfWork.Subscriptions.create(
 					'$connect',
 					'connection',
 					'$connect',
@@ -152,16 +153,23 @@ export class ConnectController {
 
 			return ResponseBuilder.ok({ });
 		} catch (err) {
-			console.log(err);
 			return ResponseBuilder.internalServerError(err);
 		}
 	}
 
-	private _updateUserSubscriptions = async (userId: string, newConnectionId: string, oldConnection: string, deviceId: string): Promise<void> => {
+	private _updateUserSubscriptions =
+		async (userId: string, newConnectionId: string, oldConnection: string, deviceId: string): Promise<void> => {
 		const userSubs: Subscription[] = await this.unitOfWork.Subscriptions.getAllByDevice(deviceId);
 
 		await Promise.all(userSubs.map(async (sub: Subscription): Promise<void> => {
-			if (oldConnection) await this.unitOfWork.Subscriptions.create(sub.subscriptionId, sub.itemType, sub.itemId, newConnectionId, deviceId, userId);
+			if (oldConnection) await this.unitOfWork.Subscriptions.create(
+				sub.subscriptionId,
+				sub.itemType,
+				sub.itemId,
+				newConnectionId,
+				deviceId,
+				userId
+			);
 			await this.unitOfWork.Subscriptions.delete(sub.subscriptionId, sub.itemType, sub.itemId, sub.connectionId);
 		}));
 	}

@@ -83,14 +83,14 @@ functions:
           method: post
           cors: true
           authorizer: aws_iam
-  updateJourney:
-    handler: src/handler.updateJourney
-    events:
-      - http:
-          path: /journeys
-          method: put
-          cors: true
-          authorizer: aws_iam
+#  updateJourney:
+#    handler: src/handler.updateJourney
+#    events:
+#      - http:
+#          path: /journeys
+#          method: put
+#          cors: true
+#          authorizer: aws_iam
 #  deleteJourney:
 #    handler: src/handler.deleteJourney
 #    events:
@@ -195,6 +195,14 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
+  rateJourney:
+    handler: src/handler.rateJourney
+    events:
+      - http:
+          path: /journeys/rate
+          method: put
+          cors: true
+          authorizer: aws_iam
   subscribeDriverLocation:
     handler: src/handler.subscribeDriverLocation
     events:
@@ -211,11 +219,19 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
-  driverMovement:
-    handler: src/handler.driverMovement
+#  driverMovement:
+#    handler: src/handler.driverMovement
+#    events:
+#      - http:
+#          path: /journeys/driver-movement
+#          method: put
+#          cors: true
+#          authorizer: aws_iam
+  locationMovement:
+    handler: src/handler.locationMovement
     events:
       - http:
-          path: /journeys/driver-movement
+          path: /journeys/location-movement
           method: put
           cors: true
           authorizer: aws_iam

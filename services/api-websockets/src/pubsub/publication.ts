@@ -8,6 +8,7 @@ export interface PublicationData {
 	itemType: string; // journey, user, application, subscription, etc
 	itemId: string; // hash id
 	connectionId?: string; // websocket connection id
+	connectionIds?: string[]; // websocket connection ids
 	data: CollectionItem | CollectionItem[] | string; // user hash id
 	sendAsCollection: boolean; // Send individually or as a collection
 	publishType?: PublishType; // Only used for CRUD operations
@@ -24,6 +25,12 @@ export default class PublicationManager {
 		publicationData.publishType = publicationData.publishType || PublishType.QUERY;
 
 		await this._sendToConnections([ publicationData.connectionId ], publicationData);
+	}
+
+	public publishToMultipleConnections = async (publicationData: PublicationData): Promise<void> => {
+		publicationData.publishType = publicationData.publishType || PublishType.QUERY;
+
+		await this._sendToConnections(publicationData.connectionIds, publicationData);
 	}
 
 	public publishCRUD = async (publicationData: PublicationData): Promise<void> => {

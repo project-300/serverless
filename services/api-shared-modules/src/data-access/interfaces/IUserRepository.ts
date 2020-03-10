@@ -6,6 +6,7 @@ export interface IUserRepository {
 	getById(userId: string): Promise<User>;
 	getUserBrief(userId: string): Promise<UserBrief>;
 	getUserConnections(userId: string): Promise<Partial<User>>;
+	getUserStats(userId: string): Promise<Partial<User>>;
 	getDriverBrief(userId: string): Promise<DriverBrief>;
 	getJourneysAsPassenger(userId: string): Promise<Partial<User>>;
 	create(toCreate: Partial<User>): Promise<User>;
