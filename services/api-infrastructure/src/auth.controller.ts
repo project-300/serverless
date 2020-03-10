@@ -10,21 +10,19 @@ export class AuthController {
 	public constructor(private unitOfWork: UnitOfWork) { }
 
 	public postSignUp: TriggerCognitoHandler = async (event: TriggerCognitoEvent) => {
-		console.log(event);
 		const cognitoUser: { [key: string]: string } = event.request.userAttributes;
 		const user: Partial<User> = {
-			email : cognitoUser.email
+			email : cognitoUser.email,
+			confirmed: false
 		};
 
-		let university: University;
+		let university: Partial<University> = { };
 
 		try {
-			if (cognitoUser['cognito:user_status'] === 'FORCE_CHANGE_PASSWORD') {
-				user.userType = cognitoUser.user_role as 'Passenger' | 'Driver' | 'Moderator' | 'Admin';
-				if (user.userType !== 'Admin') {
-					university.universityId = cognitoUser.university_Id;
-				}
-				university.universityId = '';
+			if (event.triggerSource === 'CustomMessage_AdminCreateUser') {
+				user.userType = cognitoUser['custom:user_role'] as 'Passenger' | 'Driver' | 'Moderator' | 'Admin';
+				user.confirmed = true;
+				university.universityId = user.userType !== 'Admin' ? cognitoUser['custom:university_Id'] : ' ';
 			} else {
 				user.phone = MobileNumberNoExtension(cognitoUser.phone_number);
 				user.userType = 'Passenger';
@@ -45,6 +43,8 @@ export class AuthController {
 	}
 
 	public preSignUp: TriggerCognitoHandler = async (event: TriggerCognitoEvent) => {
+		if (event.triggerSource === 'PreSignUp_AdminCreateUser') return event;
+
 		const cognitoUser: { [key: string]: string } = event.request.userAttributes;
 		let emailIsInThisUni: boolean = false;
 

@@ -62,6 +62,7 @@ export class UserController {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
 		}
 		const user: Partial<User> = JSON.parse(event.body) as Partial<User>;
+		console.log(user);
 		const cognito: CognitoIdentityServiceProvider = new CognitoIdentityServiceProvider();
 		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 		try {
@@ -79,7 +80,7 @@ export class UserController {
 					},
 					{
 						Name: 'custom:university_id',
-						Value: user.university.universityId || ''
+						Value: user.university.universityId
 					}
 				]
 			}).promise();

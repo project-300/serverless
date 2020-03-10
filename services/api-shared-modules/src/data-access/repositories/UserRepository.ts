@@ -108,13 +108,17 @@ export class UserRepository extends Repository {
 	}
 
 	public async createAfterSignUp(userId: string, universityId: string, toCreate: Partial<User>): Promise<User> {
+		const date: string = new Date().toISOString();
 		return this.db.put(Object.assign(new UserItem(), {
 			entity: 'user',
 			confirmed: false,
 			userId,
 			pk: `user#${userId}`,
 			sk: `user#${userId}`,
-			sk2: `univsersity#${universityId}`,
+			sk2: `univsersity#${universityId}/createAt#${date}`,
+			times: {
+				createdAt: date
+			},
 			university: {
 				universityId
 			},

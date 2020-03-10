@@ -72,7 +72,7 @@ export class StatisticsController {
 
 		try {
 			const user: User = await this.unitOfWork.Users.getById(userId);
-			if (user.university.universityId === '') {
+			if (user.university.universityId === ' ') {
 				SharedFunctions.checkUserRole(['Moderator'], user.userType);
 
 				const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllForOneUniversity(user.university.universityId);
@@ -163,7 +163,7 @@ export class StatisticsController {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			SharedFunctions.checkUserRole(['Moderator'], user.userType);
 
-			if (user.university.universityId === '') {
+			if (user.university.universityId === ' ') {
 				const allStatsTotalsForOneUni: StatsTotal[] = await Promise.all(
 					dates.map(async (d: string): Promise<StatsTotal> => {
 						const stats: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getForMonthForOneUni(d, user.university.universityId);
