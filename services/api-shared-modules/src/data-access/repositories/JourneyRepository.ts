@@ -127,8 +127,6 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		const start: string = moment().subtract(30, 'minutes').toDate().toISOString();
 		const end: string = moment().add(30, 'minutes').toDate().toISOString();
 
-		console.log(start, end);
-
 		const notEqualPredicate: InequalityExpressionPredicate = notEquals(true);
 		const lessThanPredicate: LessThanExpressionPredicate = lessThan(end);
 
