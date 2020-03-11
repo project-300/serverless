@@ -50,6 +50,8 @@ export class JourneyController {
 			};
 		}
 
+		console.log(lastEvaluatedKey);
+
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
@@ -65,6 +67,7 @@ export class JourneyController {
 
 			return ResponseBuilder.ok({ ...result, count: result.journeys.length });
 		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to get journeys');
 		}
 	}
@@ -944,6 +947,7 @@ export class JourneyController {
 
 			return ResponseBuilder.ok({ ...result, count: result.journeys.length });
 		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to search journeys');
 		}
 	}

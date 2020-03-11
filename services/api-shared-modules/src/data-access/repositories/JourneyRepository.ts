@@ -38,9 +38,9 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk3-index',
 			scanIndexForward: true,
-			startKey: lastEvaluatedKey,
-			filter: equalsExpression,
-			limit: 10
+			// startKey: lastEvaluatedKey,
+			filter: equalsExpression
+			// limit: 10
 		};
 
 		const queryPages: QueryPaginator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions).pages();
@@ -102,9 +102,9 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk3-index',
 			scanIndexForward: true,
-			filter: containsExpression,
-			startKey: lastEvaluatedKey,
-			limit: 10
+			filter: containsExpression
+			// startKey: lastEvaluatedKey,
+			// limit: 10
 		};
 
 		const queryPages: QueryPaginator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions).pages();
@@ -228,6 +228,14 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 			lastLocation: { latitude: 0, longitude: 0 },
 			available: true,
 			actionLogs: [],
+			ratings: [],
+			statistics: {
+				emissions: 0,
+				distance: 0,
+				fuel: 0
+			},
+			distanceTravelled: 0,
+			cronJobEvaluated: false,
 			...toCreate
 		}));
 	}
