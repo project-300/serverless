@@ -31,3 +31,4 @@ export const driverConfirmPassengerPickup: ApiHandler = controller.driverConfirm
 export const passengerConfirmPassengerPickup: ApiHandler = controller.passengerConfirmPickup;
 export const driverCancelPassengerPickup: ApiHandler = controller.driverCancelPassengerPickup;
 export const passengerCancelPickup: ApiHandler = controller.passengerCancelPickup;
+export const organiseUpcomingJourneys: ApiHandler = controller.organiseUpcomingJourneys;

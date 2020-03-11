@@ -75,4 +75,21 @@ export class JourneyItem extends DynamoDbItem implements Journey {
 
 	@attribute()
 	public ratings: JourneyRating[];
+
+	@attribute()
+	public estimatedDistance: number;
+
+	@attribute()
+	public estimatedDuration: number;
+
+	@attribute()
+	public statistics: {
+		fuel: number;
+		distance: number;
+		emissions: number;
+	};
+
+	@attribute()
+	public cronJobEvaluated: boolean;
+
 }

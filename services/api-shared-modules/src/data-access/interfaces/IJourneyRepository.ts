@@ -4,6 +4,7 @@ export interface IJourneyRepository {
 	getAll(lastEvaluatedKey?: LastEvaluatedKey): Promise<{ journeys: Journey[]; lastEvaluatedKey: LastEvaluatedKey}>;
 	getUserJourneys(userId: string): Promise<Journey[]>;
 	getJourneysWithIds(journeyIds: string[]): Promise<Journey[]>;
+	getNextJourneys(): Promise<Journey[]>;
 	getById(journeyId: string, createdAt: string): Promise<Journey>;
 	getByIdWithProjection(journeyId: string, createdAt: string, projection: string[]): Promise<Journey>;
 	create(toCreate: Partial<Journey>): Promise<Journey>;

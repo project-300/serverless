@@ -259,14 +259,19 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
-  passengerCancelPickup:
-    handler: src/handler.passengerCancelPickup
+#  passengerCancelPickup:
+#    handler: src/handler.passengerCancelPickup
+#    events:
+#      - http:
+#          path: /journeys/cancel-pickup/passenger
+#          method: put
+#          cors: true
+#          authorizer: aws_iam
+  organiseUpcomingJourneys:
+    handler: src/handler.organiseUpcomingJourneys
     events:
-      - http:
-          path: /journeys/cancel-pickup/passenger
-          method: put
-          cors: true
-          authorizer: aws_iam
+      - schedule: rate(1 minute)
+
 
 resources:
     - ${file(../resources/cognito-policy.yml)}

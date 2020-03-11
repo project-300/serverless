@@ -1,4 +1,4 @@
-import { Statistics } from './../../api-shared-modules/src/utils/statistics';
+import { Statistics } from '../../api-shared-modules/src/utils/statistics';
 import {
 	DriverBrief,
 	Journey,
@@ -106,8 +106,14 @@ export class JourneyController {
 			let journey: Journey = await this.unitOfWork.Journeys.getById(user.currentJourney.journeyId, user.currentJourney.createdAt);
 			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
-			if (journey.journeyStatus === 'FINISHED') return ResponseBuilder.ok({ });
 			const isDriver: boolean = journey.driver.userId === userId;
+
+			if (journey.journeyStatus === 'FINISHED' &&
+				(isDriver || journey.ratings && journey.ratings.find((rating: JourneyRating) => rating.passenger.userId === userId))
+			) {
+				this._removeCurrentJourney(userId, journey.journeyId);
+				return ResponseBuilder.ok({ });
+			}
 
 			journey.readableDurations = SharedFunctions.TimeDurations(journey.times);
 			journey = (await this._setJourneyFlags(userId, [ journey ]))[0];
@@ -584,16 +590,24 @@ export class JourneyController {
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
-			await this._handleStatistics(journey.distanceTravelled || 0, user.university.universityId, journey);
+			await this._handleStatistics((journey.estimatedDistance / 1000) || 0, user.university.universityId, journey);
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
+			await this._removeCurrentJourney(journey.driver.userId, journey.journeyId);
 			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to end Journey');
 		}
+	}
+
+	private _removeCurrentJourney = async (userId: string, journeyId: string): Promise<void> => {
+		const user: User = await this.unitOfWork.Users.getById(userId);
+		if (!user) return;
+		if (user.currentJourney && user.currentJourney.journeyId === journeyId) user.currentJourney = null;
+		await this.unitOfWork.Users.update(userId, user);
 	}
 
 	public cancelJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
@@ -698,6 +712,19 @@ export class JourneyController {
 
 				await this.unitOfWork.Users.update(driver.userId, driver);
 			}));
+
+			const currentJourney: Journey = await this.unitOfWork.Journeys.getById(journey.journeyId, journey.times.createdAt);
+			if (!currentJourney.statistics) currentJourney.statistics = {
+				emissions: 0,
+				distance: 0,
+				fuel: 0
+			};
+
+			currentJourney.statistics.emissions = currentJourney.statistics.emissions + (newStats.drivers[0].emissions / journey.passengers.length);
+			currentJourney.statistics.distance = currentJourney.statistics.distance + (newStats.drivers[0].distance / journey.passengers.length);
+			currentJourney.statistics.fuel = currentJourney.statistics.fuel + (newStats.drivers[0].fuel / journey.passengers.length);
+
+			await this.unitOfWork.Journeys.update(journey.journeyId, journey.times.createdAt, currentJourney);
 		} catch (err) {
 			console.log(err);
 		}
@@ -798,15 +825,15 @@ export class JourneyController {
 
 			const journey: Journey = await this.unitOfWork.Journeys.getById(currentJourney.journeyId, currentJourney.createdAt);
 			if (!journey) throw Error('Journey not found');
-			const { journeyId, passengers, times: { createdAt } }: Partial<Journey> = journey;
+			const { journeyId, passengers}: Partial<Journey> = journey;
 
 			if (journey.driver.userId === userId) {	// User is the driver
-				if (journey.journeyStatus !== 'STARTED') throw Error('Unable to update journey - Journey has not started');
+				// if (journey.journeyStatus !== 'WAITING') throw Error('Unable to update journey - Journey has not started');
 
-				journey.routeTravelled.push(coords);
-				journey.times.updatedAt = new Date().toISOString();
+				// journey.routeTravelled.push(coords);
+				// journey.times.updatedAt = new Date().toISOString();
 
-				await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
+				// await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 				await this._publishDriverLocation(journeyId, coords);
 			} else if (passengers.map((p: PassengerBrief) => p.userId).find((p: string) => p === userId)) { // User is a passenger
 				this._publishPassengerLocation(journeyId, userId, coords);
@@ -1118,6 +1145,9 @@ export class JourneyController {
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
+			await this._removeCurrentJourney(user.userId, journey.journeyId);
+			await this._publishJourneyUpdate(result, userId);
+
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to Save Rating');
@@ -1144,6 +1174,18 @@ export class JourneyController {
 			data: { journey, updatedBy: userId },
 			sendAsCollection: true,
 			publishType: PublishType.UPDATE
+		});
+	}
+
+	private _publishAutoJourneySub = async (journey: Journey, userId: string, connectionId: string, travellingAs: string): Promise<void> => {
+		await this.PubManager.publishToSingleConnection({
+			subscriptionName: 'journey/current',
+			itemType: 'journey',
+			itemId: journey.journeyId,
+			data: { journey, updatedBy: userId, travellingAs },
+			sendAsCollection: true,
+			publishType: PublishType.UPDATE,
+			connectionId
 		});
 	}
 
@@ -1183,6 +1225,90 @@ export class JourneyController {
 			sendAsCollection: true,
 			publishType: PublishType.UPDATE
 		});
+	}
+
+	// This function is run as a cron job at regular intervals to alert drivers & passengers of upcoming journeys
+	public organiseUpcomingJourneys: ApiHandler = async (event: ApiEvent): Promise<void> => {
+		const nextJourneys: Journey[] = await this.unitOfWork.Journeys.getNextJourneys();
+		console.log(nextJourneys);
+		console.log('------------------------------------');
+
+		await Promise.all(nextJourneys.map(async (journey: Journey) => {
+			const { driver, passengers }: Partial<Journey> = journey;
+
+			console.log(driver);
+			console.log(passengers);
+			console.log('------------------------------------');
+			if (!passengers.length) return; // Do not alert when journey has no passengers
+
+			console.log('Subscribing');
+			await Promise.all(passengers.map(async (passenger: PassengerBrief) => {
+				console.log('Passenger');
+				const user: Partial<User> = await this.unitOfWork.Users.getUserConnections(passenger.userId);
+				const passengerConnections: UserConnection[] = user.connections;
+
+				user.currentJourney = {
+					journeyId: journey.journeyId,
+					createdAt: journey.times.createdAt,
+					travellingAs: 'Passenger'
+				};
+
+				await this.unitOfWork.Users.update(passenger.userId, user);
+
+				await Promise.all(passengerConnections.map(async (connection: UserConnection) => {
+					console.log('Passenger connection: ', connection.connectionId);
+					await this.SubManager.subscribe({
+						subscriptionName: 'journey/current',
+						itemType: 'journey',
+						itemId: journey.journeyId,
+						connectionId: connection.connectionId,
+						deviceId: connection.deviceId,
+						userId: passenger.userId
+					});
+
+					await this.SubManager.subscribe({
+						subscriptionName: 'journey/pickup-alerts',
+						itemType: 'journey',
+						itemId: journey.journeyId,
+						connectionId: connection.connectionId,
+						deviceId: connection.deviceId,
+						userId: passenger.userId
+					});
+
+					await this._publishAutoJourneySub(journey, passenger.userId, connection.connectionId, 'Passenger');
+				}));
+			}));
+
+			const driverUser: Partial<User> = await this.unitOfWork.Users.getUserConnections(driver.userId);
+			const driverConnections: UserConnection[] = driverUser.connections;
+			console.log('Driver');
+
+			driverUser.currentJourney = {
+				journeyId: journey.journeyId,
+				createdAt: journey.times.createdAt,
+				travellingAs: 'Driver'
+			};
+
+			await this.unitOfWork.Users.update(driver.userId, driverUser);
+
+			await Promise.all(driverConnections.map(async (connection: UserConnection) => {
+				console.log('Driver connection: ', connection.connectionId);
+				await this.SubManager.subscribe({
+					subscriptionName: 'journey/current',
+					itemType: 'journey',
+					itemId: journey.journeyId,
+					connectionId: connection.connectionId,
+					deviceId: connection.deviceId,
+					userId: driver.userId
+				});
+
+				await this._publishAutoJourneySub(journey, driver.userId, connection.connectionId, 'Driver');
+			}));
+
+			journey.cronJobEvaluated = true; // Prevent cron running again on same journey
+
+			await this.unitOfWork.Journeys.update(journey.journeyId, journey.times.createdAt, journey);
+		}));
 	}
 
 }
