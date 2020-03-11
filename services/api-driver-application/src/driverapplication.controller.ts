@@ -44,7 +44,6 @@ export class DriverApplicationController {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 			SharedFunctions.checkUserRole(['Moderator'], user.userType);
 
-			console.log(user);
 			const applications: DriverApplicationObject[] =
 				await this.unitOfWork.DriverApplications.getAll(booleanApproved, user.university.universityId);
 			if (!applications) {
