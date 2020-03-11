@@ -72,18 +72,18 @@ export class StatisticsController {
 
 		try {
 			const user: User = await this.unitOfWork.Users.getById(userId);
-			if (user.university.universityId === ' ') {
+      
+			if (user.university && user.university.universityId !== '') {
 				SharedFunctions.checkUserRole(['Moderator'], user.userType);
-
 				const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllForOneUniversity(user.university.universityId);
 				const oneUniTotal: StatsTotal = this._addUpStatistics(result);
 
 				return ResponseBuilder.ok({ statisticsTotal: oneUniTotal });
 			}
-
 			SharedFunctions.checkUserRole(['Admin'], user.userType);
 			if (!getAll) throw new Error('getAll query string param is not set to true');
 			const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllForAllUniversities();
+
 			const allUniTotal: StatsTotal = this._addUpStatistics(result);
 
 			return ResponseBuilder.ok({ statisticsTotal: allUniTotal });
@@ -94,25 +94,22 @@ export class StatisticsController {
 
 	public getForDateRangeOneUni: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
 		if (
-			!event.pathParameters
-			|| !event.pathParameters.universityId
-			|| !event.queryStringParameters
+			!event.queryStringParameters
 			|| !event.queryStringParameters.startDate
 			|| !event.queryStringParameters.endDate) {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 		}
-		const universityId: string = event.pathParameters.universityId;
 		const { startDate, endDate, totalsOnly }: { [params: string]: string } = event.queryStringParameters;
 		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 		try {
-			const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+			const user: User = await this.unitOfWork.Users.getById(userId);
 			const rightRole: boolean = SharedFunctions.checkRole(['Admin', 'Moderator'], user.userType);
 
 			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
 
 			const result: DayStatisticsBrief[] =
-				await this.unitOfWork.Statistics.getAllBetweenDatesForOneUniversity(startDate, endDate, universityId);
+				await this.unitOfWork.Statistics.getAllBetweenDatesForOneUniversity(startDate, endDate, user.university.universityId);
 			const total: StatsTotal = this._addUpStatistics(result);
 
 			if (totalsOnly === 'true') {
@@ -138,14 +135,14 @@ export class StatisticsController {
 
 		try {
 			const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
-			const rightRole: boolean = SharedFunctions.checkRole(['Admin', 'Moderator'], user.userType);
+			const rightRole: boolean = SharedFunctions.checkRole(['Admin'], user.userType);
 
 			if (!rightRole) return ResponseBuilder.forbidden(ErrorCode.ForbiddenAccess, 'Unauthorized');
 
 			const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllBetweenDatesForAllUniversities(startDate, endDate);
 			const total: StatsTotal = this._addUpStatistics(result);
 
-			return ResponseBuilder.ok({ statistics: total });
+			return ResponseBuilder.ok({ statistics: result, totalStatistics: total });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, 'Unable to get Statistics');
 		}
@@ -161,9 +158,10 @@ export class StatisticsController {
 
 		try {
 			const user: User = await this.unitOfWork.Users.getById(userId);
-			SharedFunctions.checkUserRole(['Moderator'], user.userType);
 
-			if (user.university.universityId === ' ') {
+
+			if (user.university && user.university.universityId !== '') {
+				SharedFunctions.checkUserRole(['Moderator'], user.userType);
 				const allStatsTotalsForOneUni: StatsTotal[] = await Promise.all(
 					dates.map(async (d: string): Promise<StatsTotal> => {
 						const stats: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getForMonthForOneUni(d, user.university.universityId);
@@ -173,7 +171,6 @@ export class StatisticsController {
 
 				return ResponseBuilder.ok({ statsTotals: allStatsTotalsForOneUni });
 			}
-
 			SharedFunctions.checkUserRole(['Admin'], user.userType);
 			if (!getAll) throw new Error('getAll query string param is not set to true');
 			const allStatsTotals: StatsTotal[] = await Promise.all(

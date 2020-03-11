@@ -104,7 +104,7 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 	public async getForMonthForAll(date: string): Promise<DayStatisticsBrief[]> {
 		const keyCondition: QueryKey = {
 			entity: 'statistics',
-			sk2: beginsWith(`date${date}`)
+			sk2: beginsWith(`date#${date}`)
 		};
 
 		const queryOptions: QueryOptions = {
