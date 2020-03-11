@@ -1,4 +1,4 @@
-import { DriverApplicationObject, User, VehicleModel, VehicleMake, Vehicle } from '@project-300/common-types';
+import { DriverApplicationObject, User, VehicleModel, VehicleMake, Vehicle, UserBrief } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -38,10 +38,14 @@ export class DriverApplicationController {
 		}
 		const { approved }: { [params: string]: string } = event.queryStringParameters;
 		const booleanApproved: boolean = (approved === 'true');
-		// const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+		const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
 		try {
-			const applications: DriverApplicationObject[] = await this.unitOfWork.DriverApplications.getAll(booleanApproved);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole(['Moderator'], user.userType);
+
+			const applications: DriverApplicationObject[] =
+				await this.unitOfWork.DriverApplications.getAll(booleanApproved, user.university.universityId);
 			if (!applications) {
 				return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Applications');
 			}
@@ -80,13 +84,17 @@ export class DriverApplicationController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const userBrief: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			SharedFunctions.checkUserRole(['Passenger'], user.userType);
 
 			const checkIfApplicationExists: DriverApplicationObject = await this.unitOfWork.DriverApplications.getByUserId(userId);
 			if (checkIfApplicationExists) {
 				throw Error('You have already made an application');
 			}
 
-			const result: DriverApplicationObject = await this.unitOfWork.DriverApplications.create(userId, { vehicle });
+			const result: DriverApplicationObject =
+				await this.unitOfWork.DriverApplications.create(userId, user.university.universityId, { vehicle, user: userBrief });
 			if (!result) {
 				return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'failed to create new application');
 			}
@@ -101,12 +109,15 @@ export class DriverApplicationController {
 		if (!event.pathParameters || !event.pathParameters.userId) {
 			return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
 		}
-
+		const callingUserId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 		const userId: string = event.pathParameters.userId;
 
 		try {
-			const user: User = await this.unitOfWork.Users.update(userId, { userType: 'Driver' });
-			if (!user) {
+			const user: User = await this.unitOfWork.Users.getById(callingUserId);
+			SharedFunctions.checkUserRole(['Moderator'], user.userType);
+
+			const result: User = await this.unitOfWork.Users.update(userId, { userType: 'Driver' });
+			if (!result) {
 				throw Error('Failed to update user');
 			}
 

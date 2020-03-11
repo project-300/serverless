@@ -1,9 +1,9 @@
-import { MobileNumberNoExtension, User, University, UserTypes } from '@project-300/common-types';
 import {
 	UnitOfWork,
 	TriggerCognitoEvent,
 	TriggerCognitoHandler
   } from '../../api-shared-modules/src';
+import { User, University, UserTypes } from '@project-300/common-types';
 
 export class AuthController {
 
@@ -28,7 +28,7 @@ export class AuthController {
 					};
 				}
 			} else {
-				user.phone = MobileNumberNoExtension(cognitoUser.phone_number);
+				user.phone = cognitoUser.phone_number;
 				user.userType = 'Passenger';
 				user.firstName = cognitoUser.given_name;
 				user.lastName = cognitoUser.family_name;

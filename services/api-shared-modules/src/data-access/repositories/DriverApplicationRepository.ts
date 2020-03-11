@@ -8,12 +8,13 @@ import { QueryKey } from '../interfaces';
 export class DriverApplicationRepository extends Repository {
 	// REMEMBER ABOUT ProjectionExpression to take out pk, sk and entity!!!!
 
-	public async getAll(approved: boolean): Promise<DriverApplicationObject[]> {
+	public async getAll(approved: boolean, universityId: string): Promise<DriverApplicationObject[]> {
 		const keyCondition: QueryKey = {
-			entity: 'driverApplication'
+			entity: 'driverApplication',
+			sk2: `university#${universityId}`
 		};
 		const queryOptions: QueryOptions = {
-			indexName: 'entity-sk-index',
+			indexName: 'entity-sk2-index',
 			filter: {
 				...equals(approved),
 				subject: 'approved'
@@ -39,12 +40,12 @@ export class DriverApplicationRepository extends Repository {
 		}
 	}
 
-	public async create(userId: string, toCreate: Partial<DriverApplicationObject>): Promise<DriverApplicationObject> {
+	public async create(userId: string, universityId: string, toCreate: Partial<DriverApplicationObject>): Promise<DriverApplicationObject> {
 		return this.db.put(Object.assign(new DriverApplicationItem(), {
 			entity: 'driverApplication',
-			userId,
 			pk: `user#${userId}`,
 			sk: `application#${userId}`,
+			sk2: `university#${universityId}`,
 			times: {
 				applied: new Date().toISOString()
 			},
