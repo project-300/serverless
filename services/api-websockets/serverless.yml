@@ -66,4 +66,3 @@ functions:
 #    handler: src/handler.cleanupConnections
 #    events:
 #      - schedule: rate(1 minute)
-

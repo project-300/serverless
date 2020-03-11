@@ -12,9 +12,13 @@ import {
 	inList,
 	MembershipExpressionPredicate,
 	equals,
-	EqualityExpressionPredicate
+	EqualityExpressionPredicate,
+	AndExpression,
+	LessThanExpressionPredicate,
+	lessThan, notEquals, InequalityExpressionPredicate, AttributePath
 } from '@aws/dynamodb-expressions';
 import { SharedFunctions } from '../..';
+import * as moment from 'moment';
 
 export class JourneyRepository extends Repository implements IJourneyRepository {
 
@@ -117,6 +121,51 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 					SharedFunctions.stripLastEvaluatedKey(queryPages.lastEvaluatedKey) :
 					undefined
 		};
+	}
+
+	public async getNextJourneys(): Promise<Journey[]> {
+		const start: string = moment().subtract(30, 'minutes').toDate().toISOString();
+		const end: string = moment().add(30, 'minutes').toDate().toISOString();
+
+		console.log(start, end);
+
+		const notEqualPredicate: InequalityExpressionPredicate = notEquals(true);
+		const lessThanPredicate: LessThanExpressionPredicate = lessThan(end);
+
+		const equalExpression: ConditionExpression = {
+			...notEqualPredicate,
+			subject: 'cronJobEvaluated'
+		};
+		const lessThanExpression: ConditionExpression = {
+			...lessThanPredicate,
+			subject: new AttributePath('times.leavingAt')
+		};
+
+		const andExpression: AndExpression = {
+			type: 'And',
+			conditions : [
+				equalExpression,
+				lessThanExpression
+			]
+		};
+
+		const keyCondition: QueryKey = {
+			entity: 'journey',
+			sk3: greaterThan(`leavingAt#${start}`)
+		};
+
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk3-index',
+			scanIndexForward: true,
+			filter: andExpression
+		};
+
+		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);
+		const journeys: Journey[] = [];
+
+		for await (const journey of queryIterator) journeys.push(journey);
+
+		return journeys;
 	}
 
 	public async getJourneysWithIds(journeyIds: string[]): Promise<Journey[]> {
