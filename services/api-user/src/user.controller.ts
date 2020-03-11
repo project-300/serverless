@@ -81,7 +81,7 @@ export class UserController {
 					},
 					{
 						Name: 'custom:university_id',
-						Value: user.university.universityId || ''
+						Value: user.university.universityId
 					}
 				]
 			}).promise();
