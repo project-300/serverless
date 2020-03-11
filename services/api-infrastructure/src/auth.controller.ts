@@ -1,9 +1,9 @@
-import { MobileNumberNoExtension, User, University, UserTypes } from '@project-300/common-types';
 import {
 	UnitOfWork,
 	TriggerCognitoEvent,
 	TriggerCognitoHandler
   } from '../../api-shared-modules/src';
+import { User, University, UserTypes } from '@project-300/common-types';
 
 export class AuthController {
 
@@ -24,7 +24,7 @@ export class AuthController {
 				user.confirmed = true;
 				university.universityId = user.userType !== 'Admin' ? cognitoUser['custom:university_id'] : ' ';
 			} else {
-				user.phone = MobileNumberNoExtension(cognitoUser.phone_number);
+				user.phone = cognitoUser.phone_number;
 				user.userType = 'Passenger';
 				const universities: University[] = await this.unitOfWork.Universities.getAll();
 				universities.forEach((u: University) => {

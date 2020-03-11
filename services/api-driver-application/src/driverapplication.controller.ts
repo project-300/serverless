@@ -1,4 +1,4 @@
-import { DriverApplicationObject, User, VehicleModel, VehicleMake, Vehicle } from '@project-300/common-types';
+import { DriverApplicationObject, User, VehicleModel, VehicleMake, Vehicle, UserBrief } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -80,13 +80,15 @@ export class DriverApplicationController {
 
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+			SharedFunctions.checkUserRole(['Passenger'], user.userType);
 
 			const checkIfApplicationExists: DriverApplicationObject = await this.unitOfWork.DriverApplications.getByUserId(userId);
 			if (checkIfApplicationExists) {
 				throw Error('You have already made an application');
 			}
 
-			const result: DriverApplicationObject = await this.unitOfWork.DriverApplications.create(userId, { vehicle });
+			const result: DriverApplicationObject = await this.unitOfWork.DriverApplications.create(userId, { vehicle, user });
 			if (!result) {
 				return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'failed to create new application');
 			}
