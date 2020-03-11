@@ -8,7 +8,7 @@ import {
 	User,
 	Coords,
 	UserConnection,
-	PublishType,
+	PublishType, JourneyRating, UserBrief,
 	DayStatistics,
 	UserStatistics
 } from '@project-300/common-types';
@@ -107,6 +107,7 @@ export class JourneyController {
 			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			if (journey.journeyStatus === 'FINISHED') return ResponseBuilder.ok({ });
+			const isDriver: boolean = journey.driver.userId === userId;
 
 			journey.readableDurations = SharedFunctions.TimeDurations(journey.times);
 			journey = (await this._setJourneyFlags(userId, [ journey ]))[0];
@@ -126,7 +127,33 @@ export class JourneyController {
 				userId
 			});
 
-			return ResponseBuilder.ok({ journey, travellingAs: user.currentJourney.travellingAs });
+			let awaitingConfirmation: boolean = false;
+
+			if (!isDriver) {
+				await this.SubManager.subscribe({
+					subscriptionName: 'journey/pickup-alerts',
+					itemType: 'journey',
+					itemId: journey.journeyId,
+					connectionId: currentConnection.connectionId,
+					deviceId,
+					userId
+				});
+
+				const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === userId);
+
+				awaitingConfirmation = passenger.driverConfirmedPickup && !passenger.passengerConfirmedPickup && !passenger.passengerCancelledPickup;
+			} else {
+				await this.SubManager.subscribe({
+					subscriptionName: 'journey/passenger-tracking',
+					itemType: 'journey',
+					itemId: journey.journeyId,
+					connectionId: currentConnection.connectionId,
+					deviceId,
+					userId
+				});
+			}
+
+			return ResponseBuilder.ok({ journey, travellingAs: user.currentJourney.travellingAs, awaitingConfirmation });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, 'Unable to get Journey');
 		}
@@ -346,6 +373,7 @@ export class JourneyController {
 				journey.journeyStatus = 'PICKUP';
 				journey.times.startedPickupAt = date;
 				journey.times.updatedAt = date;
+				journey.actionLogs.push({ description: 'Began passenger pickup', time: date });
 
 				result = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 				if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
@@ -353,7 +381,7 @@ export class JourneyController {
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -378,19 +406,17 @@ export class JourneyController {
 			if (userId !== journey.driver.userId)
 				return ResponseBuilder.forbidden(ErrorCode.MissingPermission, 'Only the driver can update the Journey');
 
-			if (
-				journey.journeyStatus !== 'NOT_STARTED'
-				&& journey.journeyStatus !== 'PICKUP'
-				&& journey.journeyStatus !== 'WAITING'
-			) throw Error('Journey has already started');
+			if (journey.journeyStatus === 'CANCELLED') throw Error('Journey has been cancelled');
+			if (journey.journeyStatus === 'FINISHED') throw Error('Journey has already ended');
 
 			const date: string = new Date().toISOString();
 			let result: Journey = journey;
 
-			if (journey.journeyStatus !== 'WAITING') {
+			if (journey.journeyStatus === 'NOT_STARTED' || journey.journeyStatus === 'PICKUP') {
 				journey.journeyStatus = 'WAITING';
 				journey.times.waitingAt = date;
 				journey.times.updatedAt = date;
+				journey.actionLogs.push({ description: 'Waiting to start Journey', time: date });
 
 				result = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 				if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Updated');
@@ -398,7 +424,7 @@ export class JourneyController {
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -424,7 +450,7 @@ export class JourneyController {
 			if (userId !== journey.driver.userId)
 				return ResponseBuilder.forbidden(ErrorCode.MissingPermission, 'Only the driver can start the Journey');
 
-			if (journeyStatus === 'STARTED' || journeyStatus === 'ARRIVED') throw Error('Journey has already started');
+			if (journeyStatus === 'STARTED' || journeyStatus === 'ARRIVED') return ResponseBuilder.ok({ journey });
 			if (journeyStatus === 'FINISHED') throw Error('Journey has already been complete');
 			if (journeyStatus === 'CANCELLED') throw Error('Journey has been cancelled');
 
@@ -433,13 +459,14 @@ export class JourneyController {
 			journey.journeyStatus = 'STARTED';
 			journey.times.startedAt = date;
 			journey.times.updatedAt = date;
+			journey.actionLogs.push({ description: 'Started Journey', time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -471,13 +498,14 @@ export class JourneyController {
 			journey.journeyStatus = 'PAUSED';
 			journey.times.pausedAt = date;
 			journey.times.updatedAt = date;
+			journey.actionLogs.push({ description: 'Paused Journey', time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -509,13 +537,14 @@ export class JourneyController {
 			journey.journeyStatus = 'STARTED';
 			journey.times.resumedAt = date;
 			journey.times.updatedAt = date;
+			journey.actionLogs.push({ description: 'Resumed Journey', time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -550,15 +579,16 @@ export class JourneyController {
 			journey.times.endedAt = date;
 			journey.times.updatedAt = date;
 			journey.available = false;
+			journey.actionLogs.push({ description: 'Ended Journey', time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
-			await this._handleStatistics(journey.distanceTravelled, user.university.universityId, journey);
+			await this._handleStatistics(journey.distanceTravelled || 0, user.university.universityId, journey);
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -593,13 +623,14 @@ export class JourneyController {
 			journey.times.cancelledAt = date;
 			journey.times.updatedAt = date;
 			journey.available = false;
+			journey.actionLogs.push({ description: 'Cancelled Journey', time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
 			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -607,25 +638,69 @@ export class JourneyController {
 		}
 	}
 
-	private _handleStatistics = async (distanceTravelled: number, universityId: string, journey: Partial<Journey>): Promise<void> => {
+	private _handleStatistics = async (distanceTravelled: number = 0, universityId: string, journey: Partial<Journey>): Promise<void> => {
 		const date: string = new Date().toISOString().split('T')[0];
 
-		const newStats: Partial<DayStatistics> = Statistics.calcStatistics(distanceTravelled, journey.driver.userId, journey.passengers);
-		const todaysStats: DayStatistics = await this.unitOfWork.Statistics.getForToday(date, universityId);
+		try {
+			const newStats: Partial<DayStatistics> = Statistics.calcStatistics(distanceTravelled, journey.driver.userId, journey.passengers);
+			const todaysStats: DayStatistics = await this.unitOfWork.Statistics.getForToday(date, universityId);
 
-		newStats.passengers.forEach((p: UserStatistics) => {
-			todaysStats.passengers.push(p);
-		});
+			if (todaysStats) {
+				newStats.passengers.forEach((p: UserStatistics) => {
+					todaysStats.passengers.push(p);
+				});
 
-		todaysStats.drivers.push(newStats.drivers[0]);
+				todaysStats.drivers.push(newStats.drivers[0]);
 
-		todaysStats.distance += newStats.distance;
-		todaysStats.fuel += newStats.fuel;
-		todaysStats.emissions += newStats.emissions;
+				todaysStats.distance += newStats.distance;
+				todaysStats.fuel += newStats.fuel;
+				todaysStats.emissions += newStats.emissions;
 
-		const statsId: string = todaysStats.pk.split('#')[1];
+				const statsId: string = todaysStats.pk.split('#')[1];
 
-		await this.unitOfWork.Statistics.update(statsId, universityId, date, todaysStats);
+				await this.unitOfWork.Statistics.update(statsId, universityId, date, todaysStats);
+			}
+
+			await Promise.all(newStats.passengers.map(async (p: UserStatistics) => {
+				const passenger: Partial<User> = await this.unitOfWork.Users.getUserStats(p.userId);
+
+				if (!passenger.statistics) passenger.statistics = {
+					distance: 0,
+					emissions: 0,
+					fuel: 0,
+					liftsGiven: 0,
+					liftsTaken: 0
+				};
+
+				passenger.statistics.distance = (passenger.statistics.distance || 0) + p.distance;
+				passenger.statistics.emissions = (passenger.statistics.emissions || 0) + p.emissions;
+				passenger.statistics.fuel = (passenger.statistics.fuel || 0) + p.fuel;
+				passenger.statistics.liftsTaken = (passenger.statistics.liftsTaken || 0) + 1;
+
+				await this.unitOfWork.Users.update(passenger.userId, passenger);
+			}));
+
+			await Promise.all(newStats.drivers.map(async (d: UserStatistics) => {
+				const driver: Partial<User> = await this.unitOfWork.Users.getUserStats(d.userId);
+
+				if (!driver.statistics) driver.statistics = {
+					distance: 0,
+					emissions: 0,
+					fuel: 0,
+					liftsGiven: 0,
+					liftsTaken: 0
+				};
+
+				driver.statistics.distance = (driver.statistics.distance || 0) + d.distance;
+				driver.statistics.emissions = (driver.statistics.emissions || 0) + d.emissions;
+				driver.statistics.fuel = (driver.statistics.fuel || 0) + d.fuel;
+				driver.statistics.liftsGiven = (driver.statistics.liftsGiven || 0) + 1;
+
+				await this.unitOfWork.Users.update(driver.userId, driver);
+			}));
+		} catch (err) {
+			console.log(err);
+		}
 	}
 
 	public cancelPassengerAcceptedJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
@@ -700,6 +775,42 @@ export class JourneyController {
 				sendAsCollection: true,
 				publishType: PublishType.UPDATE
 			});
+
+			return ResponseBuilder.ok({ journey });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to add user to Journey');
+		}
+	}
+
+	public locationMovement: ApiHandler = async (event: ApiEvent): Promise<ApiResponse> => {
+		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+		const data: { coords: Coords } = JSON.parse(event.body);
+		if (!data.coords) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		const { coords }: { coords: Coords } = data;
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: User = await this.unitOfWork.Users.getById(userId);
+			const { currentJourney }: Partial<User> = user;
+
+			if (!currentJourney) ResponseBuilder.ok({ });
+
+			const journey: Journey = await this.unitOfWork.Journeys.getById(currentJourney.journeyId, currentJourney.createdAt);
+			if (!journey) throw Error('Journey not found');
+			const { journeyId, passengers, times: { createdAt } }: Partial<Journey> = journey;
+
+			if (journey.driver.userId === userId) {	// User is the driver
+				if (journey.journeyStatus !== 'STARTED') throw Error('Unable to update journey - Journey has not started');
+
+				journey.routeTravelled.push(coords);
+				journey.times.updatedAt = new Date().toISOString();
+
+				await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
+				await this._publishDriverLocation(journeyId, coords);
+			} else if (passengers.map((p: PassengerBrief) => p.userId).find((p: string) => p === userId)) { // User is a passenger
+				this._publishPassengerLocation(journeyId, userId, coords);
+			}
 
 			return ResponseBuilder.ok({ journey });
 		} catch (err) {
@@ -828,14 +939,19 @@ export class JourneyController {
 			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === passengerId);
 			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
 
+			const date: string = new Date().toISOString();
+
 			passenger.driverConfirmedPickup = true;
 			passenger.driverCancelledPickup = false;
-			passenger.times.driverConfirmPickUpAt = new Date().toISOString();
+			passenger.times.driverConfirmPickUpAt = date;
+
+			journey.actionLogs.push({ description: `${user.firstName} confirmed pickup for ${passenger.firstName}`, time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
+			await this._publishPickupAlert(result, passengerId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -861,14 +977,18 @@ export class JourneyController {
 			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === userId);
 			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
 
+			const date: string = new Date().toISOString();
+
 			passenger.passengerConfirmedPickup = true;
 			passenger.passengerCancelledPickup = false;
-			passenger.times.passengerConfirmPickUpAt = new Date().toISOString();
+			passenger.times.passengerConfirmPickUpAt = date;
+
+			journey.actionLogs.push({ description: `${passenger.firstName} confirmed their pickup`, time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -894,14 +1014,18 @@ export class JourneyController {
 			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === passengerId);
 			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
 
+			const date: string = new Date().toISOString();
+
 			passenger.driverCancelledPickup = true;
 			passenger.driverConfirmedPickup = false;
-			passenger.times.driverCancelPickUpAt = new Date().toISOString();
+			passenger.times.driverCancelPickUpAt = date;
+
+			journey.actionLogs.push({ description: `${user.firstName} cancelled pickup for ${passenger.firstName}`, time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
@@ -927,18 +1051,76 @@ export class JourneyController {
 			const passenger: PassengerBrief = journey.passengers.find((p: PassengerBrief) => p.userId === userId);
 			if (!passenger) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Passenger not found');
 
+			const date: string = new Date().toISOString();
+
 			passenger.passengerCancelledPickup = true;
 			passenger.passengerConfirmedPickup = false;
-			passenger.times.passengerCancelPickUpAt = new Date().toISOString();
+			passenger.times.passengerCancelPickUpAt = date;
+
+			journey.actionLogs.push({ description: `${passenger.firstName} cancelled their pickup`, time: date });
 
 			const result: Journey = await this.unitOfWork.Journeys.update(journeyId, createdAt, journey);
 			if (!result) throw Error('Unable to Update Journey');
 
-			await this._publishJourneyUpdate(result);
+			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to cancel pickup');
+		}
+	}
+
+	public rateJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		if (!event.body) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request body');
+
+		const { journeyId, createdAt, rating }: { journeyId: string; createdAt: string; rating: number } = JSON.parse(event.body);
+
+		if (!journeyId || !createdAt || !rating) return ResponseBuilder.badRequest(ErrorCode.BadRequest, 'Invalid request parameters');
+
+		try {
+			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
+			const user: UserBrief = await this.unitOfWork.Users.getUserBrief(userId);
+
+			const journey: Partial<Journey> = await this.unitOfWork.Journeys.getById(journeyId, createdAt);
+
+			if (journey.driver.userId === userId)
+				return ResponseBuilder.forbidden(ErrorCode.MissingPermission, 'A driver cannot rate their own Journey');
+			if (!journey.passengers.find((p: PassengerBrief) => p.userId === userId))
+				return ResponseBuilder.forbidden(ErrorCode.MissingPermission, 'Only a passenger on this v can submit a Rating');
+
+			if (journey.journeyStatus !== 'FINISHED') throw Error('Journey has not finished yet');
+
+			const driver: User = await this.unitOfWork.Users.getById(journey.driver.userId);
+			if (!driver) throw Error('Driver does not exist');
+
+			const sumOfRatings: number = (driver.averageRating * driver.totalRatings) + rating;
+			driver.totalRatings = driver.totalRatings + 1;
+			driver.averageRating = Number((sumOfRatings / driver.totalRatings).toFixed(2));
+
+			const driverResult: User = await this.unitOfWork.Users.update(driver.userId, driver);
+			if (!driverResult) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Rating not Updated');
+
+			const date: string = new Date().toISOString();
+			const ratingObj: JourneyRating = {
+				rating,
+				passenger: user,
+				times: {
+					ratedAt: date
+				}
+			};
+
+			journey.times.updatedAt = date;
+			if (journey.ratings) journey.ratings.push(ratingObj);
+			else journey.ratings = [ ratingObj ];
+
+			const result: Journey = await this.unitOfWork.Journeys.update(journey.journeyId, createdAt, { ...journey });
+			if (!result) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
+
+			result.readableDurations = SharedFunctions.TimeDurations(result.times);
+
+			return ResponseBuilder.ok({ journey: result });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message || 'Unable to Save Rating');
 		}
 	}
 
@@ -954,14 +1136,53 @@ export class JourneyController {
 		);
 	}
 
-	private _publishJourneyUpdate = async (journey: Journey): Promise<void> => {
+	private _publishJourneyUpdate = async (journey: Journey, userId: string): Promise<void> => {
 		await this.PubManager.publishCRUD({
 			subscriptionName: 'journey/current',
 			itemType: 'journey',
 			itemId: journey.journeyId,
-			data: { journey },
+			data: { journey, updatedBy: userId },
 			sendAsCollection: true,
 			publishType: PublishType.UPDATE
 		});
 	}
+
+	private _publishPickupAlert = async (journey: Journey, passengerId: string): Promise<void> => {
+		const userWithConnections: Partial<User> = await this.unitOfWork.Users.getUserConnections(passengerId);
+		const connectionIds: string[] =
+			userWithConnections.connections && userWithConnections.connections.map((con: UserConnection) => con.connectionId);
+
+		await this.PubManager.publishToMultipleConnections({
+			subscriptionName: 'journey/pickup-alerts',
+			itemType: 'journey',
+			itemId: journey.journeyId,
+			data: { journey },
+			sendAsCollection: true,
+			publishType: PublishType.UPDATE,
+			connectionIds
+		});
+	}
+
+	private _publishDriverLocation = async (journeyId: string, coords: Coords): Promise<void> => {
+		await this.PubManager.publishCRUD({
+			subscriptionName: 'journey/driver-tracking',
+			itemType: 'journey',
+			itemId: journeyId,
+			data: { journeyId, coords },
+			sendAsCollection: true,
+			publishType: PublishType.UPDATE
+		});
+	}
+
+	private _publishPassengerLocation = async (journeyId: string, passengerId: string, coords: Coords): Promise<void> => {
+		await this.PubManager.publishCRUD({
+			subscriptionName: 'journey/passenger-tracking',
+			itemType: 'journey',
+			itemId: journeyId,
+			data: { journeyId, passengerId, coords },
+			sendAsCollection: true,
+			publishType: PublishType.UPDATE
+		});
+	}
+
 }

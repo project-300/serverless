@@ -72,6 +72,7 @@ export class StatisticsController {
 
 		try {
 			const user: User = await this.unitOfWork.Users.getById(userId);
+      
 			if (user.university && user.university.universityId !== '') {
 				SharedFunctions.checkUserRole(['Moderator'], user.userType);
 				const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllForOneUniversity(user.university.universityId);
@@ -157,6 +158,7 @@ export class StatisticsController {
 
 		try {
 			const user: User = await this.unitOfWork.Users.getById(userId);
+
 
 			if (user.university && user.university.universityId !== '') {
 				SharedFunctions.checkUserRole(['Moderator'], user.userType);

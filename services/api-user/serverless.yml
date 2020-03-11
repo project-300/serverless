@@ -42,8 +42,8 @@ functions:
     handler: src/handler.getAllUsers
     events:
       - http:
-          path: /users
-          method: get
+          path: /users/all
+          method: put
           cors: true
           authorizer: aws_iam
   getCallingUser:
