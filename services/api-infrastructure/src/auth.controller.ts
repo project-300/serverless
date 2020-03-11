@@ -16,24 +16,35 @@ export class AuthController {
 			confirmed: false
 		};
 
-		let university: Partial<University> = { };
-
 		try {
 			if (event.triggerSource === 'CustomMessage_AdminCreateUser') {
 				user.userType = cognitoUser['custom:user_role'] as UserTypes;
 				user.confirmed = true;
-				university.universityId = user.userType !== 'Admin' ? cognitoUser['custom:university_id'] : ' ';
+
+				if (cognitoUser['custom:university_Id'] && user.userType !== 'Admin') {
+					user.university = {
+						universityId: cognitoUser['custom:university_Id'],
+						name: ''
+					};
+				}
 			} else {
 				user.phone = cognitoUser.phone_number;
 				user.userType = 'Passenger';
-				const universities: University[] = await this.unitOfWork.Universities.getAll();
-				universities.forEach((u: University) => {
-					const emailIsInThisUni: boolean = u.emailDomains.some((e) => user.email.includes(e));
+				user.firstName = cognitoUser.given_name;
+				user.lastName = cognitoUser.family_name;
 
-					if (emailIsInThisUni) university = u;
-				});
+				const universities: University[] = await this.unitOfWork.Universities.getAll();
+
+				const university: University = universities.find((uni: University) => uni.emailDomains.some((e: string) => user.email.includes(e)));
+				if (!university) throw new Error();
+
+				user.university = {
+					universityId: university.universityId,
+					name: university.name
+				};
 			}
-			await this.unitOfWork.Users.createAfterSignUp(cognitoUser.sub, university.universityId, { ...user});
+
+			await this.unitOfWork.Users.createAfterSignUp(cognitoUser.sub, { ...user });
 
 			return event;
 		} catch (err) {
@@ -62,9 +73,10 @@ export class AuthController {
 
 	public postConfirmation: TriggerCognitoHandler = async (event: TriggerCognitoEvent) => {
 		const cognitoUser: { [key: string]: string } = event.request.userAttributes;
-		const user: Partial<User> = {
-			confirmed: true
-		};
+
+		const user: User = await this.unitOfWork.Users.getById(cognitoUser.sub);
+		user.confirmed = true;
+		user.times.confirmedAt = new Date().toISOString();
 
 		try {
 			await this.unitOfWork.Users.update(cognitoUser.sub, { ...user});

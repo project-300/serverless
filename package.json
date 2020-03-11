@@ -12,6 +12,7 @@
     "aws-sdk": "^2.624.0",
     "email-validator": "^2.0.4",
     "moment": "^2.24.0",
+    "moment-range": "^4.0.2",
     "request": "^2.88.2",
     "request-promise": "^4.2.5",
     "source-map-support": "^0.5.16",

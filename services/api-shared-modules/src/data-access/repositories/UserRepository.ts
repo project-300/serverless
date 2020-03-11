@@ -106,7 +106,7 @@ export class UserRepository extends Repository {
 		return users;
 	}
 
-	public async create(toCreate: Partial<User>): Promise<User> {
+	public async create(toCreate: Partial<User>): Promise<User> { // NOT TO BE USED
 		const id: string = uuid();
 		return this.db.put(Object.assign(new UserItem(), {
 			entity: 'user',
@@ -115,30 +115,59 @@ export class UserRepository extends Repository {
 			sk: `user#${id}`,
 			averageRating: 0,
 			totalRatings: 0,
+			statistics: {
+				emissions: 0,
+				distance: 0,
+				fuel: 0,
+				liftsGiven: 0,
+				liftsTaken: 0
+			},
+			connections: [],
+			isDriving: false,
+			journeysAsPassenger: [],
+			interests: [],
+			isOnJourney: false,
 			...toCreate
 		}));
 	}
 
-	public async createAfterSignUp(userId: string, universityId: string, toCreate: Partial<User>): Promise<User> {
+	public async createAfterSignUp(userId: string, toCreate: Partial<User>): Promise<User> {
 		const date: string = new Date().toISOString();
+
 		return this.db.put(Object.assign(new UserItem(), {
 			entity: 'user',
 			confirmed: false,
 			userId,
 			pk: `user#${userId}`,
 			sk: `user#${userId}`,
-			sk2: `university#${universityId}/createdAt#${date}`,
+			sk2: toCreate.university ?
+				`university#${toCreate.university.universityId}/createdAt#${date}` :
+				`admin#createdAt#${date}`,
 			times: {
 				createdAt: date
 			},
-			university: {
-				universityId
+			averageRating: 0,
+			totalRatings: 0,
+			statistics: {
+				emissions: 0,
+				distance: 0,
+				fuel: 0,
+				liftsGiven: 0,
+				liftsTaken: 0
 			},
+			connections: [],
+			isDriving: false,
+			journeysAsPassenger: [],
+			interests: [],
+			isOnJourney: false,
 			...toCreate
 		}));
 	}
 
 	public async update(userId: string, changes: Partial<User>): Promise<User> {
+		delete changes.sk2;
+		delete changes.sk3;
+
 		return this.db.update(Object.assign(new UserItem(), {
 			pk: `user#${userId}`,
 			sk: `user#${userId}`,

@@ -28,6 +28,10 @@ import _ from 'lodash';
 import SubscriptionManager from '../../api-websockets/src/pubsub/subscription';
 import PublicationManager from '../../api-websockets/src/pubsub/publication';
 import API from '../../api-websockets/src/lib/api';
+import * as Moment from 'moment';
+import { DateRange, extendMoment, MomentRange } from 'moment-range';
+
+const moment: MomentRange & typeof Moment = extendMoment(Moment);
 
 export class JourneyController {
 
@@ -50,6 +54,8 @@ export class JourneyController {
 			};
 		}
 
+		console.log(lastEvaluatedKey);
+
 		try {
 			const userId: string = SharedFunctions.getUserIdFromAuthProvider(event.requestContext.identity.cognitoAuthenticationProvider);
 
@@ -65,6 +71,7 @@ export class JourneyController {
 
 			return ResponseBuilder.ok({ ...result, count: result.journeys.length });
 		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to get journeys');
 		}
 	}
@@ -190,8 +197,14 @@ export class JourneyController {
 			journey.midpoint = GetMidpoint(journey.origin, journey.destination);
 			journey.driver = driver;
 			journey.times.createdAt = new Date().toISOString();
+			journey.times.estimatedArrival = moment(journey.times.leavingAt).add(journey.estimatedDuration, 'seconds').toDate().toISOString();
 			journey.searchText =
 				`${journey.origin.name} ${journey.destination.name} ${journey.driver.firstName} ${journey.driver.lastName}`.toLowerCase();
+
+			const userJourneys: Journey[] = await this.unitOfWork.Journeys.getUserJourneys(userId);
+
+			const clashingJourney: Journey = this._checkForClashingJourneys(userJourneys, journey.times.leavingAt, journey.times.estimatedArrival);
+			if (clashingJourney) throw Error('journey-clashing');
 
 			const result: Journey = await this.unitOfWork.Journeys.create({ ...journey });
 			if (!result) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Failed to create new Journey');
@@ -200,6 +213,19 @@ export class JourneyController {
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to create a new Journey');
 		}
+	}
+
+	private _checkForClashingJourneys = (journeys: Journey[], start: string, end: string): Journey => {
+		const clashingJourney: Journey = journeys.find((journey: Journey) => {
+			const { times: { leavingAt, estimatedArrival } }: Partial<Journey> = journey;
+
+			const newRange: DateRange = moment.range(moment(start), moment(end));
+			const oldRange: DateRange = moment.range(moment(leavingAt), moment(estimatedArrival));
+
+			return newRange.overlaps(oldRange);
+		});
+
+		return clashingJourney;
 	}
 
 	public updateJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
@@ -944,6 +970,7 @@ export class JourneyController {
 
 			return ResponseBuilder.ok({ ...result, count: result.journeys.length });
 		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err, 'Unable to search journeys');
 		}
 	}
@@ -1230,20 +1257,13 @@ export class JourneyController {
 	// This function is run as a cron job at regular intervals to alert drivers & passengers of upcoming journeys
 	public organiseUpcomingJourneys: ApiHandler = async (event: ApiEvent): Promise<void> => {
 		const nextJourneys: Journey[] = await this.unitOfWork.Journeys.getNextJourneys();
-		console.log(nextJourneys);
-		console.log('------------------------------------');
 
 		await Promise.all(nextJourneys.map(async (journey: Journey) => {
 			const { driver, passengers }: Partial<Journey> = journey;
 
-			console.log(driver);
-			console.log(passengers);
-			console.log('------------------------------------');
 			if (!passengers.length) return; // Do not alert when journey has no passengers
 
-			console.log('Subscribing');
 			await Promise.all(passengers.map(async (passenger: PassengerBrief) => {
-				console.log('Passenger');
 				const user: Partial<User> = await this.unitOfWork.Users.getUserConnections(passenger.userId);
 				const passengerConnections: UserConnection[] = user.connections;
 
@@ -1256,7 +1276,6 @@ export class JourneyController {
 				await this.unitOfWork.Users.update(passenger.userId, user);
 
 				await Promise.all(passengerConnections.map(async (connection: UserConnection) => {
-					console.log('Passenger connection: ', connection.connectionId);
 					await this.SubManager.subscribe({
 						subscriptionName: 'journey/current',
 						itemType: 'journey',
@@ -1281,7 +1300,6 @@ export class JourneyController {
 
 			const driverUser: Partial<User> = await this.unitOfWork.Users.getUserConnections(driver.userId);
 			const driverConnections: UserConnection[] = driverUser.connections;
-			console.log('Driver');
 
 			driverUser.currentJourney = {
 				journeyId: journey.journeyId,
@@ -1292,7 +1310,6 @@ export class JourneyController {
 			await this.unitOfWork.Users.update(driver.userId, driverUser);
 
 			await Promise.all(driverConnections.map(async (connection: UserConnection) => {
-				console.log('Driver connection: ', connection.connectionId);
 				await this.SubManager.subscribe({
 					subscriptionName: 'journey/current',
 					itemType: 'journey',
