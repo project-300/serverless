@@ -106,8 +106,14 @@ export class JourneyController {
 			let journey: Journey = await this.unitOfWork.Journeys.getById(user.currentJourney.journeyId, user.currentJourney.createdAt);
 			if (!journey) return ResponseBuilder.notFound(ErrorCode.InvalidId, 'Journey Not Found');
 
-			if (journey.journeyStatus === 'FINISHED') return ResponseBuilder.ok({ });
 			const isDriver: boolean = journey.driver.userId === userId;
+
+			if (journey.journeyStatus === 'FINISHED' &&
+				(isDriver || journey.ratings && journey.ratings.find((rating: JourneyRating) => rating.passenger.userId === userId))
+			) {
+				this._removeCurrentJourney(userId, journey.journeyId);
+				return ResponseBuilder.ok({ });
+			}
 
 			journey.readableDurations = SharedFunctions.TimeDurations(journey.times);
 			journey = (await this._setJourneyFlags(userId, [ journey ]))[0];
@@ -588,12 +594,20 @@ export class JourneyController {
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
+			await this._removeCurrentJourney(journey.driver.userId, journey.journeyId);
 			await this._publishJourneyUpdate(result, userId);
 
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to end Journey');
 		}
+	}
+
+	private _removeCurrentJourney = async (userId: string, journeyId: string): Promise<void> => {
+		const user: User = await this.unitOfWork.Users.getById(userId);
+		if (!user) return;
+		if (user.currentJourney && user.currentJourney.journeyId === journeyId) user.currentJourney = null;
+		await this.unitOfWork.Users.update(userId, user);
 	}
 
 	public cancelJourney: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
@@ -1131,6 +1145,9 @@ export class JourneyController {
 
 			result.readableDurations = SharedFunctions.TimeDurations(result.times);
 
+			await this._removeCurrentJourney(user.userId, journey.journeyId);
+			await this._publishJourneyUpdate(result, userId);
+
 			return ResponseBuilder.ok({ journey: result });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message || 'Unable to Save Rating');
@@ -1149,12 +1166,12 @@ export class JourneyController {
 		);
 	}
 
-	private _publishJourneyUpdate = async (journey: Journey, userId: string, travellingAs?: string, name?: string): Promise<void> => {
+	private _publishJourneyUpdate = async (journey: Journey, userId: string): Promise<void> => {
 		await this.PubManager.publishCRUD({
 			subscriptionName: 'journey/current',
 			itemType: 'journey',
 			itemId: journey.journeyId,
-			data: { journey, updatedBy: userId, travellingAs, name },
+			data: { journey, updatedBy: userId },
 			sendAsCollection: true,
 			publishType: PublishType.UPDATE
 		});
