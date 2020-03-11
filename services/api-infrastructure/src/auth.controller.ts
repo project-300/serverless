@@ -22,7 +22,7 @@ export class AuthController {
 			if (event.triggerSource === 'CustomMessage_AdminCreateUser') {
 				user.userType = cognitoUser['custom:user_role'] as UserTypes;
 				user.confirmed = true;
-				university.universityId = user.userType !== 'Admin' ? cognitoUser['custom:university_Id'] : ' ';
+				university.universityId = user.userType !== 'Admin' ? cognitoUser['custom:university_id'] : ' ';
 			} else {
 				user.phone = MobileNumberNoExtension(cognitoUser.phone_number);
 				user.userType = 'Passenger';
@@ -33,7 +33,6 @@ export class AuthController {
 					if (emailIsInThisUni) university = u;
 				});
 			}
-
 			await this.unitOfWork.Users.createAfterSignUp(cognitoUser.sub, university.universityId, { ...user});
 
 			return event;
