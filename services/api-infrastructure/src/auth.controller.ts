@@ -26,6 +26,8 @@ export class AuthController {
 			} else {
 				user.phone = MobileNumberNoExtension(cognitoUser.phone_number);
 				user.userType = 'Passenger';
+				user.firstName = cognitoUser.given_name;
+				user.lastName = cognitoUser.family_name;
 				const universities: University[] = await this.unitOfWork.Universities.getAll();
 				universities.forEach((u: University) => {
 					const emailIsInThisUni: boolean = u.emailDomains.some((e) => user.email.includes(e));
