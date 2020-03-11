@@ -72,8 +72,9 @@ export class StatisticsController {
 
 		try {
 			const user: User = await this.unitOfWork.Users.getById(userId);
-      
-			if (user.university && user.university.universityId !== '') {
+
+			if (user.university && user.university.universityId !== ' ') {
+				console.log('here');
 				SharedFunctions.checkUserRole(['Moderator'], user.userType);
 				const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllForOneUniversity(user.university.universityId);
 				const oneUniTotal: StatsTotal = this._addUpStatistics(result);
@@ -83,8 +84,10 @@ export class StatisticsController {
 			SharedFunctions.checkUserRole(['Admin'], user.userType);
 			if (!getAll) throw new Error('getAll query string param is not set to true');
 			const result: DayStatisticsBrief[] = await this.unitOfWork.Statistics.getAllForAllUniversities();
+			console.log(result);
 
 			const allUniTotal: StatsTotal = this._addUpStatistics(result);
+			console.log(allUniTotal);
 
 			return ResponseBuilder.ok({ statisticsTotal: allUniTotal });
 		} catch (err) {
@@ -159,8 +162,7 @@ export class StatisticsController {
 		try {
 			const user: User = await this.unitOfWork.Users.getById(userId);
 
-
-			if (user.university && user.university.universityId !== '') {
+			if (user.university && user.university.universityId !== ' ') {
 				SharedFunctions.checkUserRole(['Moderator'], user.userType);
 				const allStatsTotalsForOneUni: StatsTotal[] = await Promise.all(
 					dates.map(async (d: string): Promise<StatsTotal> => {
@@ -183,6 +185,7 @@ export class StatisticsController {
 			return ResponseBuilder.ok({ statsTotals: allStatsTotals });
 
 		} catch (err) {
+			console.log(err);
 			return ResponseBuilder.internalServerError(err, err.message);
 		}
 	}

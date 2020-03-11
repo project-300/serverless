@@ -1,9 +1,9 @@
-import { MobileNumberNoExtension, User, University, UserTypes } from '@project-300/common-types';
 import {
 	UnitOfWork,
 	TriggerCognitoEvent,
 	TriggerCognitoHandler
   } from '../../api-shared-modules/src';
+import { User, University, UserTypes } from '@project-300/common-types';
 
 export class AuthController {
 
@@ -22,9 +22,9 @@ export class AuthController {
 			if (event.triggerSource === 'CustomMessage_AdminCreateUser') {
 				user.userType = cognitoUser['custom:user_role'] as UserTypes;
 				user.confirmed = true;
-				university.universityId = user.userType !== 'Admin' ? cognitoUser['custom:university_Id'] : ' ';
+				university.universityId = user.userType !== 'Admin' ? cognitoUser['custom:university_id'] : ' ';
 			} else {
-				user.phone = MobileNumberNoExtension(cognitoUser.phone_number);
+				user.phone = cognitoUser.phone_number;
 				user.userType = 'Passenger';
 				const universities: University[] = await this.unitOfWork.Universities.getAll();
 				universities.forEach((u: University) => {
@@ -33,7 +33,6 @@ export class AuthController {
 					if (emailIsInThisUni) university = u;
 				});
 			}
-
 			await this.unitOfWork.Users.createAfterSignUp(cognitoUser.sub, university.universityId, { ...user});
 
 			return event;
