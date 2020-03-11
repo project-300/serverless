@@ -46,7 +46,7 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 		return dayStatistics;
 	}
 
-	public async getAllForUniversity(universityId: string): Promise<DayStatisticsBrief[]> {
+	public async getAllForOneUniversity(universityId: string): Promise<DayStatisticsBrief[]> {
 		const keyCondition: QueryKey = {
 			entity: `statistics`,
 			sk: beginsWith(`university#${universityId}`)
@@ -65,10 +65,27 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 		return dayStatistics;
 	}
 
-	public async getForMonth(date: string, universityId: string): Promise<DayStatisticsBrief[]> {
+	public async getAllForAllUniversities(): Promise<DayStatisticsBrief[]> {
+		const keyCondition: QueryKey = {
+			entity: 'statistics'
+		};
+
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk-index'
+		};
+
+		const queryIterator: QueryIterator<DayStatisticsBrief> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
+		const dayStatistics: DayStatisticsBrief[] = [];
+
+		for await (const stats of queryIterator) dayStatistics.push(stats);
+
+		return dayStatistics;
+	}
+
+	public async getForMonthForOneUni(date: string, universityId: string): Promise<DayStatisticsBrief[]> {
 		const keyCondition: QueryKey = {
 			entity: `statistics`,
-			sk: beginsWith(`universityId#${universityId}date#${date}`)
+			sk: beginsWith(`university#${universityId}/date#${date}`)
 		};
 
 		const queryOptions: QueryOptions = {
@@ -84,10 +101,29 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 		return dayStatistics;
 	}
 
+	public async getForMonthForAll(date: string): Promise<DayStatisticsBrief[]> {
+		const keyCondition: QueryKey = {
+			entity: 'statistics',
+			sk2: beginsWith(`date#${date}`)
+		};
+
+		const queryOptions: QueryOptions = {
+			projection: [ 'emissions', 'distance', 'fuel', 'times' ],
+			indexName: 'entity-sk2-index'
+		};
+
+		const queryIterator: QueryIterator<DayStatisticsBrief> = this.db.query(DayStatisticsItem, keyCondition, queryOptions);
+		const dayStatistics: DayStatisticsBrief[] = [];
+
+		for await (const stats of queryIterator) dayStatistics.push(stats);
+
+		return dayStatistics;
+	}
+
 	public async getForToday(date: string, universityId: string): Promise<DayStatistics> {
 		const keyCondition: QueryKey = {
 			entity: `statistics`,
-			sk: beginsWith(`universityId#${universityId}date#${date}`)
+			sk: beginsWith(`university#${universityId}/date#${date}`)
 		};
 
 		const queryOptions: QueryOptions = {

@@ -6,7 +6,7 @@ const controller: StatisticsController = new StatisticsController(unitOfWork);
 
 export const createStatisticsDayForEachUni: ApiHandler = controller.createStatisticsDayForEachUni;
 export const getStatisticsDayById: ApiHandler = controller.getStatisticsDayById;
-export const getAllTotalStatsForOneUni: ApiHandler = controller.getAllTotalStatsForOneUni;
+export const getAllTotalStats: ApiHandler = controller.getAllTotalStats;
 export const getForDateRangeOneUni: ApiHandler = controller.getForDateRangeOneUni;
 export const getAllTotalForDateRangeAllUni: ApiHandler = controller.getAllTotalForDateRangeAllUni;
-export const getTotalsForEachMonthOneUni: ApiHandler = controller.getTotalsForEachMonthOneUni;
+export const getTotalsForEachMonth: ApiHandler = controller.getTotalsForEachMonth;
