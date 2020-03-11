@@ -4,7 +4,7 @@ import { QueryOptions, QueryIterator, QueryPaginator } from '@aws/dynamodb-data-
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
 import { QueryKey } from '../interfaces';
-import { SharedFunctions } from '../..';
+import { beginsWith } from '@aws/dynamodb-expressions';
 
 export class UserRepository extends Repository {
 
@@ -13,11 +13,12 @@ export class UserRepository extends Repository {
 			entity: 'user'
 		};
 		const queryOptions: QueryOptions = {
-			indexName: 'entity-sk-index',
+			indexName: 'entity-sk2-index',
 			scanIndexForward: true,
 			startKey: lastEvaluatedKey,
-			limit: 10
+			limit: 5
 		};
+
 		const queryPages: QueryPaginator<UserItem> = this.db.query(UserItem, keyCondition, queryOptions).pages();
 		const users: User[] = [];
 		for await (const page of queryPages) {
@@ -28,7 +29,7 @@ export class UserRepository extends Repository {
 			users,
 			lastEvaluatedKey:
 				queryPages.lastEvaluatedKey ?
-					SharedFunctions.stripLastEvaluatedKey(queryPages.lastEvaluatedKey) :
+					queryPages.lastEvaluatedKey :
 					undefined
 		};
 	}
@@ -92,7 +93,7 @@ export class UserRepository extends Repository {
 	public async getAllUsersByUni(universityId: string): Promise<User[]> {
 		const keyCondition: QueryKey = {
 			entity: 'user',
-			sk2: `university#${universityId}`
+			sk2: beginsWith(`university#${universityId}`)
 		};
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk2-index'
@@ -119,13 +120,17 @@ export class UserRepository extends Repository {
 	}
 
 	public async createAfterSignUp(userId: string, universityId: string, toCreate: Partial<User>): Promise<User> {
+		const date: string = new Date().toISOString();
 		return this.db.put(Object.assign(new UserItem(), {
 			entity: 'user',
 			confirmed: false,
 			userId,
 			pk: `user#${userId}`,
 			sk: `user#${userId}`,
-			sk2: `univsersity#${universityId}`,
+			sk2: `university#${universityId}/createdAt#${date}`,
+			times: {
+				createdAt: date
+			},
 			university: {
 				universityId
 			},

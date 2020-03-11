@@ -1,4 +1,4 @@
-import { User } from '@project-300/common-types';
+import { User, LastEvaluatedKey } from '@project-300/common-types';
 import {
 	ResponseBuilder,
 	ErrorCode,
@@ -19,12 +19,14 @@ export class UserController {
 	public constructor(private unitOfWork: UnitOfWork) { }
 
 	public getAllUsers: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
-		let lastEvaluatedKey: { [key: string]: string };
-		if (event.queryStringParameters && event.queryStringParameters.pk && event.queryStringParameters.sk) {
+		let lastEvaluatedKey: LastEvaluatedKey;
+		if (event.body) {
+			const { pk, sk, sk2, entity}: LastEvaluatedKey = JSON.parse(event.body) as LastEvaluatedKey;
 			lastEvaluatedKey = {
-				pk: `user#${event.queryStringParameters.pk}`,
-				sk: `user#${event.queryStringParameters.sk}`,
-				entity: 'user'
+				pk,
+				sk,
+				sk2,
+				entity
 			};
 		}
 		try {
@@ -79,7 +81,7 @@ export class UserController {
 					},
 					{
 						Name: 'custom:university_id',
-						Value: user.university.universityId || ''
+						Value: user.university.universityId
 					}
 				]
 			}).promise();
