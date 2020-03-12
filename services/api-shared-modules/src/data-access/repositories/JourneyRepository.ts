@@ -15,7 +15,7 @@ import {
 	EqualityExpressionPredicate,
 	AndExpression,
 	LessThanExpressionPredicate,
-	lessThan, notEquals, InequalityExpressionPredicate, AttributePath
+	lessThan, notEquals, InequalityExpressionPredicate, AttributePath, GreaterThanExpressionPredicate
 } from '@aws/dynamodb-expressions';
 import { SharedFunctions } from '../..';
 import * as moment from 'moment';
@@ -59,7 +59,14 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 	}
 
 	public async getUserJourneys(userId: string): Promise<Journey[]> {
+		const earliest: string = moment().subtract(3, 'hours').toDate().toISOString();
 		const predicate: EqualityExpressionPredicate = equals(true);
+		const greaterThanPredicate: GreaterThanExpressionPredicate = greaterThan(`leavingAt#${earliest}`);
+
+		const lessThanExpression: ConditionExpression = {
+			...greaterThanPredicate,
+			subject: 'sk3'
+		};
 
 		const expression: ConditionExpression = {
 			...predicate,
@@ -71,10 +78,18 @@ export class JourneyRepository extends Repository implements IJourneyRepository 
 			sk2: `user#${userId}`
 		};
 
+		const andExpression: AndExpression = {
+			type: 'And',
+			conditions : [
+				expression,
+				lessThanExpression
+			]
+		};
+
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk2-index',
 			scanIndexForward: false,
-			filter: expression
+			filter: andExpression
 		};
 
 		const queryIterator: QueryIterator<JourneyItem> = this.db.query(JourneyItem, keyCondition, queryOptions);

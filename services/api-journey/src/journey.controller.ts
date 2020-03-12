@@ -190,6 +190,7 @@ export class JourneyController {
 			if (journey.pricePerSeat === undefined) throw Error('Journey seat price is missing');
 			if (!journey.plannedRoute) throw Error('Journey planned route is missing');
 			if (!journey.times || !journey.times.leavingAt) throw Error('Journey start time is missing');
+			if (journey.times.leavingAt <= new Date().toISOString()) throw Error('Departure time must be in the future');
 
 			const driver: DriverBrief = await this.unitOfWork.Users.getDriverBrief(userId);
 			if (!driver) return ResponseBuilder.badRequest(ErrorCode.GeneralError, 'Driver not found');
@@ -365,6 +366,23 @@ export class JourneyController {
 				(j: { journeyId: string; createdAt: string }) => j.journeyId)
 			);
 			if (!journeys) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Journeys');
+
+			const finishedJourneys: string[] =
+				journeys.filter((journey: Journey) => journey.journeyStatus === 'FINISHED')
+					.map((journey: Journey) => journey.journeyId);
+
+			passenger.journeysAsPassenger =
+				passenger.journeysAsPassenger.filter(
+					(journey: { journeyId: string; createdAt: string }) =>
+						journeys.map((j: Journey) => j.journeyId).includes(journey.journeyId)
+				); // Remove deleted journeys
+
+			passenger.journeysAsPassenger =
+				passenger.journeysAsPassenger.filter(
+					(journey: { journeyId: string; createdAt: string }) => !finishedJourneys.includes(journey.journeyId)
+				); // Remove finished journeys
+
+			if (passenger.journeysAsPassenger.length !== journeys.length) await this.unitOfWork.Users.update(passenger.userId, passenger);
 
 			return ResponseBuilder.ok({ journeys });
 		} catch (err) {
