@@ -362,6 +362,8 @@ export class JourneyController {
 			if (!passenger) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'User does not exist');
 			if (!passenger.journeysAsPassenger) return ResponseBuilder.ok([ ]); // Return empty array - No journeys yet
 
+			if (!passenger.journeysAsPassenger.length) return ResponseBuilder.ok({ journeys: [] });
+
 			const journeys: Journey[] = await this.unitOfWork.Journeys.getJourneysWithIds(passenger.journeysAsPassenger.map(
 				(j: { journeyId: string; createdAt: string }) => j.journeyId)
 			);
