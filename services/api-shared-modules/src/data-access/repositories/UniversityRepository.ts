@@ -4,6 +4,14 @@ import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
 import { QueryKey, IUniversityRepository } from '../interfaces';
 import { UniversityItem } from '../../models/core';
+// import {
+// 	AttributePath,
+// 	ConditionExpression, EqualityExpressionPredicate, equals,
+// 	InequalityExpressionPredicate,
+// 	lessThan,
+// 	LessThanExpressionPredicate,
+// 	notEquals
+// } from '@aws/dynamodb-expressions';
 
 export class UniversityRepository extends Repository implements IUniversityRepository {
 
@@ -35,6 +43,21 @@ export class UniversityRepository extends Repository implements IUniversityRepos
 		} catch (err) {
 			return undefined;
 		}
+	}
+
+	public async getByIdOnly(universityId: string): Promise<University> {
+		const keyCondition: QueryKey = {
+			pk: `university#${universityId}`
+		};
+
+		const queryOptions: QueryOptions = { };
+
+		const queryIterator: QueryIterator<UniversityItem> = this.db.query(UniversityItem, keyCondition, queryOptions);
+		const universities: University[] = [];
+
+		for await (const university of queryIterator) universities.push(university);
+
+		return universities[0];
 	}
 
 	public async getByName(name: string): Promise<University> {

@@ -4,18 +4,26 @@ import { QueryOptions, QueryIterator, QueryPaginator } from '@aws/dynamodb-data-
 import { v4 as uuid } from 'uuid';
 import { Repository } from './Repository';
 import { QueryKey } from '../interfaces';
-import { beginsWith } from '@aws/dynamodb-expressions';
+import { beginsWith, ConditionExpression, inList, MembershipExpressionPredicate } from '@aws/dynamodb-expressions';
 
 export class UserRepository extends Repository {
 
 	public async getAll(lastEvaluatedKey?: LastEvaluatedKey): Promise<{ users: User[]; lastEvaluatedKey: Partial<UserItem> }> {
+		const predicate: MembershipExpressionPredicate = inList('Passenger', 'Driver');
+
+		const expression: ConditionExpression = {
+			...predicate,
+			subject: 'userType'
+		};
+
 		const keyCondition: QueryKey = {
 			entity: 'user'
 		};
 		const queryOptions: QueryOptions = {
 			indexName: 'entity-sk2-index',
-			scanIndexForward: true,
+			scanIndexForward: false,
 			startKey: lastEvaluatedKey,
+			filter: expression,
 			limit: 5
 		};
 
@@ -32,6 +40,31 @@ export class UserRepository extends Repository {
 					queryPages.lastEvaluatedKey :
 					undefined
 		};
+	}
+
+	public async getAdminsAndModerators(): Promise<User[]> {
+		const predicate: MembershipExpressionPredicate = inList('Moderator', 'Admin');
+
+		const expression: ConditionExpression = {
+			...predicate,
+			subject: 'userType'
+		};
+
+		const keyCondition: QueryKey = {
+			entity: 'user'
+		};
+
+		const queryOptions: QueryOptions = {
+			indexName: 'entity-sk-index',
+			filter: expression
+		};
+
+		const queryIterator: QueryIterator<UserItem> = this.db.query(UserItem, keyCondition, queryOptions);
+		const users: User[] = [];
+
+		for await (const user of queryIterator) users.push(user);
+
+		return users;
 	}
 
 	public async getById(userId: string): Promise<User> {
@@ -91,12 +124,20 @@ export class UserRepository extends Repository {
 	}
 
 	public async getAllUsersByUni(universityId: string): Promise<User[]> {
+		const predicate: MembershipExpressionPredicate = inList('Passenger', 'Driver');
+
+		const expression: ConditionExpression = {
+			...predicate,
+			subject: 'userType'
+		};
+
 		const keyCondition: QueryKey = {
 			entity: 'user',
 			sk2: beginsWith(`university#${universityId}`)
 		};
 		const queryOptions: QueryOptions = {
-			indexName: 'entity-sk2-index'
+			indexName: 'entity-sk2-index',
+			filter: expression
 		};
 		const queryIterator: QueryIterator<UserItem> = this.db.query(UserItem, keyCondition, queryOptions);
 		const users: User[] = [];

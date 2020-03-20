@@ -5,6 +5,7 @@ const unitOfWork: UnitOfWork = new UnitOfWork();
 const controller: UserController = new UserController(unitOfWork);
 
 export const getAllUsers: ApiHandler = controller.getAllUsers;
+export const getAdminsAndModerators: ApiHandler = controller.getAdminsAndModerators;
 export const getCallingUser: ApiHandler = controller.getCallingUser;
 export const getAllUsersForOneUni: ApiHandler = controller.getAllUsersForOneUni;
 export const getUserById: ApiHandler = controller.getUserById;

@@ -46,9 +46,8 @@ export class DriverApplicationController {
 
 			const applications: DriverApplicationObject[] =
 				await this.unitOfWork.DriverApplications.getAll(booleanApproved, user.university.universityId);
-			if (!applications) {
-				return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Applications');
-			}
+			if (!applications) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Applications');
+
 			return ResponseBuilder.ok({ applications });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);

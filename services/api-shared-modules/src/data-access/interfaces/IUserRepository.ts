@@ -3,6 +3,7 @@ import { UserItem } from '../..';
 
 export interface IUserRepository {
 	getAll(lastEvaluatedKey?: LastEvaluatedKey): Promise<{ users: User[]; lastEvaluatedKey: Partial<UserItem> }>;
+	getAdminsAndModerators(): Promise<User[]>;
 	getById(userId: string): Promise<User>;
 	getUserBrief(userId: string): Promise<UserBrief>;
 	getUserConnections(userId: string): Promise<Partial<User>>;
