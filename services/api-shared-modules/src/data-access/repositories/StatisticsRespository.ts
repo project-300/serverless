@@ -169,6 +169,9 @@ export class StatisticsRepository extends Repository implements IStatisticsRepos
 	}
 
 	public async update(statsId: string, universityId: string, date: string, changes: Partial<DayStatistics>): Promise<DayStatistics> {
+		delete changes.sk2;
+		delete changes.sk3;
+
 		return this.db.update(Object.assign(new DayStatisticsItem(), {
 			pk: `stats#${statsId}`,
 			sk: `university#${universityId}/date#${date}`,

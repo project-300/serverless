@@ -21,10 +21,12 @@ export class AuthController {
 				user.userType = cognitoUser['custom:user_role'] as UserTypes;
 				user.confirmed = true;
 
-				if (cognitoUser['custom:university_Id'] && user.userType !== 'Admin') {
+				if (cognitoUser['custom:university_id'] && user.userType !== 'Admin') {
+					const university: University = await this.unitOfWork.Universities.getByIdOnly(cognitoUser['custom:university_id']);
+
 					user.university = {
-						universityId: cognitoUser['custom:university_Id'],
-						name: ''
+						universityId: university.universityId,
+						name: university.name
 					};
 				}
 			} else {
@@ -59,10 +61,8 @@ export class AuthController {
 		let emailIsInThisUni: boolean = false;
 
 		try {
-			const universities: University[] = await this.unitOfWork.Universities.getAll();
-			universities.forEach((u: University) => {
-				emailIsInThisUni = u.emailDomains.some((e) => cognitoUser.email.includes(e));
-			});
+			const universityDomains: string[] = await this.unitOfWork.Universities.getAllDomains();
+			emailIsInThisUni = universityDomains.some((e: string) => cognitoUser.email.includes(e));
 			if (!emailIsInThisUni) throw new Error();
 
 			return event;

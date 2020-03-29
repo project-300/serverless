@@ -20,11 +20,15 @@ export class DriverApplicationRepository extends Repository {
 				subject: 'approved'
 			}
 		};
+		console.log(keyCondition);
+		console.log(queryOptions);
 		const queryIterator: QueryIterator<DriverApplicationItem> = this.db.query(DriverApplicationItem, keyCondition, queryOptions);
 		const applications: DriverApplicationItem[] = [];
 		for await (const application of queryIterator) {
 			applications.push(application);
 		}
+
+		console.log(applications);
 		return applications;
 	}
 
@@ -32,7 +36,7 @@ export class DriverApplicationRepository extends Repository {
 		try {
 			const item: DriverApplicationObject = await this.db.get(Object.assign(new DriverApplicationItem(), {
 				pk: `user#${userId}`,
-				sk:  `application#${userId}`
+				sk: `application#${userId}`
 			}));
 			return item;
 		} catch (err) {

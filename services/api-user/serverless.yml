@@ -46,6 +46,14 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
+  getAdminsAndModerators:
+    handler: src/handler.getAdminsAndModerators
+    events:
+      - http:
+          path: /users/admins
+          method: get
+          cors: true
+          authorizer: aws_iam
   getCallingUser:
     handler: src/handler.getCallingUser
     events:

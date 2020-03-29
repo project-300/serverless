@@ -9,7 +9,7 @@ import {
 	UnitOfWork,
 	SharedFunctions,
 	UserItem
-  } from '../../api-shared-modules/src';
+} from '../../api-shared-modules/src';
 import { CognitoIdentityServiceProvider } from 'aws-sdk';
 import { USER_POOL_ID } from '../../../environment/env';
 import { AdminCreateUserResponse } from 'aws-sdk/clients/cognitoidentityserviceprovider';
@@ -34,6 +34,25 @@ export class UserController {
 			if (!result) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed at getting Users');
 
 			return ResponseBuilder.ok({ ...result, count: result.users.length });
+		} catch (err) {
+			return ResponseBuilder.internalServerError(err, err.message);
+		}
+	}
+
+	public getAdminsAndModerators: ApiHandler = async (event: ApiEvent, context: ApiContext): Promise<ApiResponse> => {
+		try {
+			const users: User[] = await this.unitOfWork.Users.getAdminsAndModerators();
+			if (!users) return ResponseBuilder.notFound(ErrorCode.GeneralError, 'Failed to retrieve Users');
+
+			const admins: User[] = users.filter((u: User) => u.userType === 'Admin');
+			const moderators: { [key: string]: User[] } = users.filter((u: User) => u.userType === 'Moderator').reduce((memo: { [key: string]: User[] }, user: User) => {
+				if (memo[user.university.name]) memo[user.university.name].push(user);
+				else memo[user.university.name] = [ user ];
+
+				return memo;
+			}, { });
+
+			return ResponseBuilder.ok({ admins, moderators });
 		} catch (err) {
 			return ResponseBuilder.internalServerError(err, err.message);
 		}

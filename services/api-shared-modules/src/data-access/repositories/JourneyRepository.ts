@@ -15,7 +15,11 @@ import {
 	EqualityExpressionPredicate,
 	AndExpression,
 	LessThanExpressionPredicate,
-	lessThan, notEquals, InequalityExpressionPredicate, AttributePath, GreaterThanExpressionPredicate
+	lessThan,
+	notEquals,
+	InequalityExpressionPredicate,
+	AttributePath,
+	GreaterThanExpressionPredicate
 } from '@aws/dynamodb-expressions';
 import { SharedFunctions } from '../..';
 import * as moment from 'moment';
